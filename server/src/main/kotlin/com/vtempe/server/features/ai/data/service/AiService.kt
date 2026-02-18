@@ -15,7 +15,8 @@ import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
-import com.vtempe.server.features.ai.data.llm.pipeline.ResponseExtractor
+import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
+import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.time.DayOfWeek
@@ -33,8 +34,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import com.vtempe.server.features.ai.data.llm.pipeline.MarkerJsonExtraction
-import com.vtempe.server.features.ai.data.llm.pipeline.Validator
 
 class AiService(
     private val llmClient: LLMClient,
@@ -42,7 +41,6 @@ class AiService(
 ) {
 
     private val logger = LoggerFactory.getLogger(AiService::class.java)
-    private val extractor = ResponseExtractor()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -173,16 +171,13 @@ class AiService(
                 logger = logger,
                 operation = "coach-bundle",
                 requestId = cacheKey,
-                timeoutMs = 60_000L, // или твой BundleTimeout
-                prompt = prompt,
-                callModel = { p -> llmClient.generateJson(p) },
-                extraction = MarkerJsonExtraction(extractor, "TRAINING_JSON"), // ниже поясню
+                basePrompt = prompt,
+                callModel = llmClient::generateJson,
                 strategy = AiBootstrapResponse.serializer(),
-                validator = Validator { bundle ->
-                    buildList {
-                        validateBundle(bundle)?.let { add(it) } // если validateBundle возвращает String?
-                    }
-                }
+                validator = SchemaValidator { bundle ->
+                    validateBundle(bundle)?.let(::listOf) ?: emptyList()
+                },
+                extractionMode = ExtractionMode.FirstJsonObject
             )
             val normalized = normalizeBundle(generated, locale)
             cacheMutex.withLock {
@@ -210,8 +205,8 @@ class AiService(
         return buildString {
             appendLine("You are an elite strength coach, nutritionist, and recovery specialist guiding this athlete long-term.")
             appendLine("User language: $languageDisplay. Reply strictly in this language and measurement system.")
-            appendLine("Return ONLY three JSON blocks in the exact format described below. No markdown, introductions, or explanations.")
-            appendLine("Do not escape quotes (no \\\" sequences). Each block must be plain JSON.")
+            appendLine("Return ONLY a single JSON object and nothing else (no markdown, introductions, or explanations).")
+            appendLine("Do not escape quotes (no \\\" sequences). Output must be valid JSON.")
             appendLine()
             appendLine("PROFILE CONTEXT (JSON):")
             appendLine(profileJson)
@@ -219,21 +214,17 @@ class AiService(
             appendLine("KEY FACTS ABOUT THE ATHLETE:")
             append(preferencesSummary)
             appendLine()
-            appendLine("RESPONSE FORMAT (STRICT):")
-            appendLine("TRAINING_JSON")
-            appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")
-            appendLine("NUTRITION_JSON")
-            appendLine("{\"weekIndex\": Int, \"mealsByDay\": {DayLabel: [{\"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": {\"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int}}]}}")
-            appendLine("SLEEP_JSON")
-            appendLine("{\"messages\": [String], \"disclaimer\": String}")
-            appendLine("No other text may appear before TRAINING_JSON or after the final brace of SLEEP_JSON.")
+            appendLine("RESPONSE SCHEMA (STRICT JSON):")
+            appendLine("{\"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]},")
+            appendLine(" \"nutritionPlan\": {\"weekIndex\": Int, \"mealsByDay\": {DayLabel: [{\"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": {\"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int}}]}, \"shoppingList\": [String]},")
+            appendLine(" \"sleepAdvice\": {\"messages\": [String], \"disclaimer\": String}}")
             appendLine()
             appendLine("VALID RESPONSE EXAMPLE (structure only, replace with real data):")
-            appendLine("TRAINING_JSON")
-            appendLine("{\"weekIndex\":0,\"workouts\":[{\"id\":\"w_0_0\",\"date\":\"2025-01-06\",\"sets\":[{\"exerciseId\":\"squat\",\"reps\":8,\"weightKg\":60.0,\"rpe\":7.5}]}]}")
-            appendLine("NUTRITION_JSON")
-            appendLine("{\"weekIndex\":0,\"mealsByDay\":{\"Mon\":[{\"name\":\"\\u041e\\u0432\\u0441\\u044f\\u043d\\u043a\\u0430 \\u0441 \\u044f\\u0433\\u043e\\u0434\\u0430\\u043c\\u0438\",\"ingredients\":[\"\\u043e\\u0432\\u0441\\u044f\\u043d\\u044b\\u0435 \\u0445\\u043b\\u043e\\u043f\\u044c\\u044f\",\"\\u043c\\u043e\\u043b\\u043e\\u043a\\u043e\",\"\\u044f\\u0433\\u043e\\u0434\\u044b\"],\"kcal\":420,\"macros\":{\"proteinGrams\":35,\"fatGrams\":12,\"carbsGrams\":55,\"kcal\":420}}]}}");
-            appendLine("SLEEP_JSON")
+            appendLine("{\"trainingPlan\":{\"weekIndex\":0,\"workouts\":[{\"id\":\"w_0_0\",\"date\":\"2025-01-06\",\"sets\":[{\"exerciseId\":\"squat\",\"reps\":8,\"weightKg\":60.0,\"rpe\":7.5}]}]},")
+            appendLine("\"nutritionPlan\":{\"weekIndex\":0,\"mealsByDay\":{\"Mon\":[{\"name\":\"Oats with berries\",\"ingredients\":[\"rolled oats\",\"milk\",\"berries\"],\"kcal\":420,\"macros\":{\"proteinGrams\":35,\"fatGrams\":12,\"carbsGrams\":55,\"kcal\":420}}]},\"shoppingList\":[\"rolled oats\",\"milk\",\"berries\"]},")
+            appendLine("\"sleepAdvice\":{\"messages\":[\"Keep a consistent sleep schedule.\"],\"disclaimer\":\"Not medical advice\"}}")
+            appendLine("")
+            appendLine("")
             appendLine("{\"messages\":[\"\\u041b\\u043e\\u0436\\u0438\\u0442\\u0435\\u0441\u044c \\u0438 \\u043f\\u0440\u043e\u0441\u044b\u043f\u0430\\u0439\u0442\u0435\u0441\u044c \\u0432 \\u043e\u0434\u043d\u043e \\u0438 \\u0442\u043e \\u0436\\u0435 \\u0432\u0440\u0435\u043c\u044f.\"],\"disclaimer\":\"\\u0421\\u043e\\u0432\u0435\u0442\u044b \\u043d\\u0435 \\u0437\\u0430\u043c\u0435\u043d\u044f\\u044e\u0442 \\u0432\u0440\u0430\u0447\u0430. \\u041f\u0440\u0438 \\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430\u0445 \\u043e\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044c \\u043a \\u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0441\u0442\u0443.\"}")
             appendLine("All arrays must close properly. No missing commas, no trailing commas, no duplicated braces.")
             appendLine()
@@ -790,7 +781,7 @@ internal fun computeKcal(proteinGrams: Int, carbsGrams: Int, fatGrams: Int): Int
         carbsGrams.coerceAtLeast(0) * 4 +
         fatGrams.coerceAtLeast(0) * 9
 
-private fun safeLocale(tag: String?): Locale {
+internal fun safeLocale(tag: String?): Locale {
     val candidate = tag?.let { runCatching { Locale.forLanguageTag(it) }.getOrNull() }
     return if (candidate == null || candidate.language.isNullOrBlank()) Locale.ENGLISH else candidate
 }
@@ -799,5 +790,3 @@ private fun usesImperial(locale: Locale): Boolean =
     locale.country.equals("US", ignoreCase = true) ||
         locale.country.equals("LR", ignoreCase = true) ||
         locale.country.equals("MM", ignoreCase = true)
-
-
