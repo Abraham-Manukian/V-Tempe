@@ -46,7 +46,10 @@ kotlin {
 // Compose Multiplatform resources for iOS must be present in the final app bundle.
 // We unpack them from the :ui "zip-for-publication" output into a folder that Xcode can copy.
 val uiIosResourcesZip = project(":ui").layout.buildDirectory.file(
-    "kotlin-multiplatform-resources/zip-for-publication/iosSimulatorArm64/ui.kotlin_resources.zip"
+    "kotlin-multiplatform-resources/zip-for-publication/iosSimulatorArm64/${project(":ui").name}.kotlin_resources.zip"
+)
+val coreDesignsystemIosResourcesZip = project(":core-designsystem").layout.buildDirectory.file(
+    "kotlin-multiplatform-resources/zip-for-publication/iosSimulatorArm64/${project(":core-designsystem").name}.kotlin_resources.zip"
 )
 
 tasks.register<Copy>("prepareComposeResourcesForXcode") {
@@ -54,8 +57,10 @@ tasks.register<Copy>("prepareComposeResourcesForXcode") {
     description = "Unpacks Compose Multiplatform resources for iOS into build/composeResources for Xcode."
 
     dependsOn(":ui:iosSimulatorArm64ZipMultiplatformResourcesForPublication")
+    dependsOn(":core-designsystem:iosSimulatorArm64ZipMultiplatformResourcesForPublication")
 
     from(uiIosResourcesZip.map { zipTree(it.asFile) })
+    from(coreDesignsystemIosResourcesZip.map { zipTree(it.asFile) })
     // Compose resources loader on iOS looks for `compose-resources/composeResources/...` inside the app bundle.
     into(layout.buildDirectory.dir("compose-resources"))
 }
