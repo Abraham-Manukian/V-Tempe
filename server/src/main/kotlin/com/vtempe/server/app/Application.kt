@@ -10,16 +10,11 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.routing.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.cors.routing.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
-import org.slf4j.LoggerFactory
-
-private val startupLogger = LoggerFactory.getLogger("V-TempeServer")
 
 fun main() {
     val port = Env["PORT"]?.toIntOrNull() ?: 8080

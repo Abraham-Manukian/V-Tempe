@@ -15,6 +15,7 @@ import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
+import com.vtempe.server.features.ai.data.llm.pipeline.ResponseExtractor
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.time.DayOfWeek
@@ -32,8 +33,17 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import com.vtempe.server.features.ai.data.llm.pipeline.MarkerJsonExtraction
+import com.vtempe.server.features.ai.data.llm.pipeline.Validator
 
-class AiService(private val llm: LLMClient) {
+class AiService(
+    private val llmClient: LLMClient,
+    private val llmRepairer: LlmRepairer
+) {
+
+    private val logger = LoggerFactory.getLogger(AiService::class.java)
+    private val extractor = ResponseExtractor()
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -159,17 +169,20 @@ class AiService(private val llm: LLMClient) {
         val prompt = buildBundlePrompt(locale, measurementSystem, weightUnit, request)
 
         return try {
-            val generated = LlmRepairer.generate(
-                llm = llm,
-                locale = locale,
-                operation = "coach-bundle",
+            val generated = llmRepairer.generate(
                 logger = logger,
+                operation = "coach-bundle",
                 requestId = cacheKey,
-                buildPrompt = { attempt, feedback -> withFeedback(prompt, attempt, feedback) },
-                decode = { raw -> decodeBundleResponse(raw) },
-                validate = { validateBundle(it) },
-                textExtractor = { extractTextSignals(it) },
-                maxAttempts = 2
+                timeoutMs = 60_000L, // или твой BundleTimeout
+                prompt = prompt,
+                callModel = { p -> llmClient.generateJson(p) },
+                extraction = MarkerJsonExtraction(extractor, "TRAINING_JSON"), // ниже поясню
+                strategy = AiBootstrapResponse.serializer(),
+                validator = Validator { bundle ->
+                    buildList {
+                        validateBundle(bundle)?.let { add(it) } // если validateBundle возвращает String?
+                    }
+                }
             )
             val normalized = normalizeBundle(generated, locale)
             cacheMutex.withLock {

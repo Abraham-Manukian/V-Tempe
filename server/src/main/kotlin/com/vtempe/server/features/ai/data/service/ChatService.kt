@@ -10,16 +10,24 @@ import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
+import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
+import com.vtempe.server.features.ai.data.llm.pipeline.ResponseExtractor
 import java.util.Locale
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlin.collections.buildList
 import org.slf4j.LoggerFactory
+import org.slf4j.Logger
+
 
 class ChatService(
-    private val llm: LLMClient,
+    private val llmClient: LLMClient,
+    private val llmRepairer: LlmRepairer,
     private val aiService: AiService
 ) {
+    private val logger = LoggerFactory.getLogger(ChatService::class.java)
+    private val extractor = ResponseExtractor()
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -27,85 +35,34 @@ class ChatService(
     }
 
     suspend fun chat(req: AiChatRequest): AiChatResponse {
-        val localeTag = req.locale?.takeIf { it.isNotBlank() } ?: DefaultLocale
-        val locale = runCatching { Locale.forLanguageTag(localeTag) }.getOrElse { Locale.ENGLISH }
-        val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
-        val profileJson = json.encodeToString(AiProfile.serializer(), req.profile)
-        val profileSummary = buildChatProfileSummary(req.profile)
-        val lastUserMessage = req.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }?.content
-            ?: req.messages.lastOrNull()?.content
-            ?: ""
-        val history = req.messages.joinToString("\n\n") { message ->
-            "${message.role}: ${message.content}"
-        }
-
         return runCatching {
-            withTimeout(LlmTimeoutMs) {
-                val basePrompt = buildChatPrompt(
-                    localeTag = localeTag,
-                    languageDisplay = languageDisplay,
-                    profileJson = profileJson,
-                    profileSummary = profileSummary,
-                    lastUserMessage = lastUserMessage,
-                    history = history
-                )
-                val profileHash = profileJson.hashCode()
-                val requestId = "chat-$profileHash-${req.messages.size}-${System.currentTimeMillis()}"
-                logger.debug(
-                    "LLM {} requestId={} locale={} messages={} profileHash={}",
-                    "chat",
-                    requestId,
-                    localeTag,
-                    req.messages.size,
-                    profileHash
-                )
-                val rawResponse = LlmRepairer.generate(
-                    llm = llm,
-                    locale = locale,
-                    operation = "chat",
-                    logger = logger,
-                    requestId = requestId,
-                    buildPrompt = { attempt, feedback -> withChatFeedback(basePrompt, attempt, feedback) },
-                    decode = { raw -> json.decodeFromString(AiChatResponse.serializer(), raw) },
-                    validate = { validateChatResponse(it) },
-                    textExtractor = { response ->
-                        buildList {
-                            add(response.reply)
-                            response.trainingPlan?.let { plan ->
-                                addAll(plan.workouts.flatMap { workout ->
-                                    buildList {
-                                        add(workout.id)
-                                        add(workout.date)
-                                        addAll(workout.sets.map { "${it.exerciseId}:${it.reps}" })
-                                    }
-                                })
-                            }
-                            response.nutritionPlan?.let { plan ->
-                                addAll(
-                                    plan.mealsByDay.values.flatMap { meals ->
-                                        meals.flatMap { meal ->
-                                            buildList {
-                                                add(meal.name)
-                                                addAll(meal.ingredients)
-                                            }
-                                        }
-                                    }
-                                )
-                                addAll(plan.shoppingList)
-                            }
-                            response.sleepAdvice?.let { advice ->
-                                addAll(advice.messages)
-                                advice.disclaimer?.let { add(it) }
-                            }
-                        }
-                    },
-                    maxAttempts = 3
-                )
-                normalizeChatResponse(rawResponse, locale)
-            }
+            // 1) обязательно объяви prompt
+            val prompt = buildChatPrompt(req) // или как у тебя называется
+
+            val rawResponse = llmRepairer.generate(
+                logger = logger,
+                operation = "chat",
+                requestId = requestId,
+                timeoutMs = LlmTimeoutMs,
+                prompt = basePrompt,
+                callModel = { p -> llmClient.generateJson(p) },
+                extraction = com.vtempe.server.features.ai.data.llm.pipeline.FirstJsonObjectExtraction(extractor),
+                strategy = AiChatResponse.serializer(),
+                validator = com.vtempe.server.features.ai.data.llm.pipeline.Validator { resp ->
+                    buildList {
+                        validateChatResponse(resp)?.let { add(it) } // если String?
+                    }
+                }
+            )
+            return normalizeChatResponse(rawResponse, locale)
         }.getOrElse {
             logger.warn("LLM chat fallback triggered", it)
-            AiChatResponse(reply = fallbackChatMessage(locale))
+            AiChatResponse(
+                reply = fallbackChatMessage(safeLocale(req.locale)),
+                trainingPlan = null,
+                nutritionPlan = null,
+                sleepAdvice = null,
+            )
         }
     }
 
@@ -129,6 +86,40 @@ class ChatService(
             sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile))
         )
     }
+
+    private fun extractChatTextSignals(response: AiChatResponse): List<String> = buildList<String> {
+        add(response.reply)
+
+        response.trainingPlan?.let { plan ->
+            addAll(
+                plan.workouts.flatMap { workout ->
+                    buildList<String> {
+                        add(workout.id)
+                        add(workout.date)
+                        addAll(workout.sets.map { set -> "${set.exerciseId}:${set.reps}" })
+                    }
+                }
+            )
+        }
+
+        response.nutritionPlan?.let { plan ->
+            addAll(
+                plan.mealsByDay.values.flatten().flatMap { meal ->
+                    buildList<String> {
+                        add(meal.name)
+                        addAll(meal.ingredients)
+                    }
+                }
+            )
+            addAll(plan.shoppingList)
+        }
+
+        response.sleepAdvice?.let { advice ->
+            addAll(advice.messages)
+            advice.disclaimer?.let { add(it) }
+        }
+    }
+
 
     private fun buildChatPrompt(
         localeTag: String,
