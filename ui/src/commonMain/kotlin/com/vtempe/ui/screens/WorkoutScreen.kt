@@ -246,7 +246,10 @@ private fun WorkoutCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = onSubmit,
-                        colors = ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AiPalette.DeepAccent,
+                            contentColor = AiPalette.OnDeepAccent
+                        ),
                         modifier = Modifier.weight(1f)
                     ) { Text(stringResource(Res.string.workout_mark_complete)) }
                     OutlinedButton(
@@ -351,4 +354,3 @@ private fun workoutCardColors() =
 @Composable
 private fun workoutCardElevation() =
     CardDefaults.cardElevation(defaultElevation = 8.dp)
-

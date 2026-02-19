@@ -82,7 +82,7 @@ fun NutritionDetailScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = null,
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -90,11 +90,11 @@ fun NutritionDetailScreen(
                     stringResource(Res.string.nutrition_detail_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
             when (ui) {
-                UiState.Loading -> Text(stringResource(Res.string.loading), color = Color.White)
+                UiState.Loading -> Text(stringResource(Res.string.loading), color = MaterialTheme.colorScheme.onBackground)
                 is UiState.Error -> Text(
                     stringResource(Res.string.nutrition_error_title),
                     color = MaterialTheme.colorScheme.error
@@ -103,7 +103,7 @@ fun NutritionDetailScreen(
                     val meals = ui.value.mealsByDay[day].orEmpty()
                     val meal = meals.getOrNull(index)
                     if (meal == null) {
-                        Text(stringResource(Res.string.nutrition_detail_missing), color = Color.White)
+                        Text(stringResource(Res.string.nutrition_detail_missing), color = MaterialTheme.colorScheme.onBackground)
                     } else {
                         AnimatedVisibility(
                             visible = true,
@@ -163,4 +163,3 @@ fun NutritionDetailScreen(
         }
     }
 }
-

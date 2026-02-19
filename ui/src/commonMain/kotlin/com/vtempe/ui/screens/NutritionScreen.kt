@@ -93,7 +93,7 @@ fun NutritionScreen(
         "Sat" to stringResource(Res.string.day_sat_short),
         "Sun" to stringResource(Res.string.day_sun_short)
     )
-    val contentColor = AiPalette.OnGradient
+    val contentColor = MaterialTheme.colorScheme.onSurface
     var tab by remember { mutableStateOf(0) }
     
     val topBarHeight = LocalTopBarHeight.current
@@ -687,4 +687,3 @@ private val macroAccentPalette = listOf(
     Color(0xFFFFB74D),
     Color(0xFFFF8A80)
 )
-

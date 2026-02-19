@@ -56,6 +56,8 @@ object AiPalette {
     val PrimaryBright get() = Primary
     
     val OnGradient get() = if (Primary.luminance() > 0.5f) Color(0xFF1A1A1A) else Color.White
+    val OnLightAccent get() = if (LightAccent.luminance() > 0.5f) Color(0xFF1A1A1A) else Color.White
+    val OnDeepAccent get() = if (DeepAccent.luminance() > 0.5f) Color(0xFF1A1A1A) else Color.White
     
     val Secondary = Color(0xFF2FDFB1)
     val Tertiary = Color(0xFFFF7D87)
@@ -93,8 +95,8 @@ fun AiTypography(): Typography {
     return Typography(
         displayLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, shadow = shadow),
         headlineLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, shadow = shadow),
-        titleLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = AiPalette.OnGradient),
-        titleMedium = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = AiPalette.OnGradient),
+        titleLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp),
+        titleMedium = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
         bodyLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.Bold, fontSize = 16.sp),
         bodyMedium = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.Bold, fontSize = 14.sp),
         labelLarge = TextStyle(fontFamily = Manrope, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -105,7 +107,7 @@ fun aiLightColorScheme(): ColorScheme = lightColorScheme(
     primary = AiPalette.Primary,
     onPrimary = if (AiPalette.Primary.luminance() > 0.5f) Color.Black else Color.White,
     background = AiPalette.SurfaceLight,
-    onBackground = AiPalette.OnGradient,
+    onBackground = AiPalette.OnLightAccent,
     surface = AiPalette.Neutral50,
     onSurface = Color(0xFF1A1A1A),
     surfaceVariant = AiPalette.SurfaceVariant,

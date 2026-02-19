@@ -157,7 +157,7 @@ fun PaywallScreen(
                         onClick = { /* TODO billing */ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AiPalette.DeepAccent,
-                            contentColor = Color.White
+                            contentColor = AiPalette.OnDeepAccent
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -243,4 +243,3 @@ private fun PaywallPlanCard(
         }
     }
 }
-

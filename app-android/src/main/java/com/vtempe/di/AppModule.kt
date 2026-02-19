@@ -33,10 +33,9 @@ object AppModule {
         viewModel { WorkoutViewModel(get(), get(), get()) }
         viewModel { NutritionViewModel(get(), get()) }
         viewModel { SleepViewModel(get(), get()) }
-        viewModel { ProgressViewModel(get()) }
+        viewModel { ProgressViewModel(get(), get()) }
         viewModel { PaywallViewModel(get()) }
         viewModel { SettingsViewModel(get(), get()) }
         viewModel { ChatViewModel(get()) }
     }
 }
-

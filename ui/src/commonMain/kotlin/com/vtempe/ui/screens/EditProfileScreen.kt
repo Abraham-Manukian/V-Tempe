@@ -156,7 +156,7 @@ fun EditProfileScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = AiPalette.OnDeepAccent),
                 enabled = !state.saving
             ) {
                 Text(stringResource(Res.string.edit_profile_save), fontWeight = FontWeight.Bold)
@@ -166,4 +166,3 @@ fun EditProfileScreen(
         }
     }
 }
-

@@ -15,9 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiGradients
+import com.vtempe.core.designsystem.theme.AiPalette
 
 @Composable
 fun SplashScreen(onReady: (String) -> Unit = {}) {
@@ -40,7 +40,7 @@ fun SplashScreen(onReady: (String) -> Unit = {}) {
                 modifier = Modifier
                     .size(42.dp)
                     .scale(scale.value),
-                color = Color.White
+                color = AiPalette.OnGradient
             )
         }
     }

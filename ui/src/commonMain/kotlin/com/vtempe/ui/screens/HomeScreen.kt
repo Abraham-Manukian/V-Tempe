@@ -314,9 +314,8 @@ private fun homeCardElevation() = CardDefaults.cardElevation(defaultElevation = 
 
 @Composable
 private fun homeButtonColors() =
-    ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = Color.White)
+    ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = AiPalette.OnDeepAccent)
 
 @Composable
 private fun homeButtonElevation() =
     ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
-

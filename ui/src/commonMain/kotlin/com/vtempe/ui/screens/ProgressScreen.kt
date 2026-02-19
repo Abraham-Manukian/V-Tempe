@@ -1,4 +1,4 @@
-﻿@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
@@ -7,8 +7,20 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -24,11 +36,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BarChart
 import com.vtempe.core.designsystem.components.BrandScreen
-import com.vtempe.core.designsystem.theme.AiPalette
-import com.vtempe.ui.util.kmpFormat
+import com.vtempe.core.designsystem.components.LineChart
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun ProgressScreen(
@@ -44,8 +57,17 @@ fun ProgressScreen(
         stringResource(Res.string.day_sat_short),
         stringResource(Res.string.day_sun_short)
     )
-    val contentColor = AiPalette.OnGradient
-    
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    val weeklyTotalVolume = state.weeklyVolumes.sum()
+    val activeDays = state.weeklyVolumes.count { it > 0 }
+    val avgVolumePerWorkout = if (state.totalWorkouts > 0) state.totalVolume / state.totalWorkouts else 0
+    val bestDayIndex = state.weeklyVolumes.indices.maxByOrNull { state.weeklyVolumes[it] } ?: 0
+    val bestDayVolume = state.weeklyVolumes.getOrNull(bestDayIndex) ?: 0
+    val sleepAverage = if (state.sleepHoursWeek.isNotEmpty()) state.sleepHoursWeek.average().toFloat() else 0f
+    val sleepTargetGap = 8f - sleepAverage
+    val weightDelta = if (state.weightSeries.size >= 2) state.weightSeries.last() - state.weightSeries.first() else 0f
+    val caloriesAverage = if (state.caloriesSeries.isNotEmpty()) state.caloriesSeries.average().roundToInt() else 0
+
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
 
@@ -62,16 +84,6 @@ fun ProgressScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             item {
-                Text(
-                    stringResource(Res.string.progress_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                )
-            }
-            item {
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn(tween(300)) + slideInVertically(
@@ -86,89 +98,51 @@ fun ProgressScreen(
                         shape = MaterialTheme.shapes.extraLarge
                     ) {
                         Column(
-                            Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text(
-                                stringResource(Res.string.progress_total_workouts).kmpFormat(state.totalWorkouts),
-                                color = contentColor,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                stringResource(Res.string.progress_total_sets).kmpFormat(state.totalSets),
-                                color = contentColor,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                stringResource(Res.string.progress_total_volume).kmpFormat(state.totalVolume),
-                                color = contentColor,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-            item {
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(tween(350)) + slideInVertically(
-                        initialOffsetY = { it / 6 },
-                        animationSpec = tween(350)
-                    )
-                ) {
-                    Card(
-                        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-                        colors = progressCardColors(),
-                        elevation = progressCardElevation(),
-                        shape = MaterialTheme.shapes.extraLarge
-                    ) {
-                        Column(
-                            Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                stringResource(Res.string.progress_weekly_volume),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = contentColor,
-                                textAlign = TextAlign.Center
-                            )
-                            BarChart(
-                                data = state.weeklyVolumes.map { it.coerceAtLeast(0) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Text("Общий итог", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                dayLabels.forEachIndexed { index, label ->
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = contentColor.copy(alpha = 0.7f)
-                                        )
-                                        Text(
-                                            "${state.weeklyVolumes.getOrNull(index) ?: 0}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = contentColor
-                                        )
-                                    }
-                                }
+                                ProgressMetricTile(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Тренировки",
+                                    value = "${state.totalWorkouts}"
+                                )
+                                ProgressMetricTile(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Подходы",
+                                    value = "${state.totalSets}"
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                ProgressMetricTile(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Объём (кг)",
+                                    value = "${state.totalVolume}"
+                                )
+                                ProgressMetricTile(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Средний объём/трен.",
+                                    value = "$avgVolumePerWorkout"
+                                )
                             }
                         }
                     }
                 }
             }
+
             item {
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(400)) + slideInVertically(
+                    enter = fadeIn(tween(340)) + slideInVertically(
                         initialOffsetY = { it / 6 },
-                        animationSpec = tween(400)
+                        animationSpec = tween(340)
                     )
                 ) {
                     Card(
@@ -178,27 +152,133 @@ fun ProgressScreen(
                         shape = MaterialTheme.shapes.extraLarge
                     ) {
                         Column(
-                            Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                stringResource(Res.string.progress_weekly_volume),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                HighlightPill(
+                                    modifier = Modifier.weight(1f),
+                                    label = "Активные дни",
+                                    value = "$activeDays / 7"
+                                )
+                                HighlightPill(
+                                    modifier = Modifier.weight(1f),
+                                    label = "Лучш. день",
+                                    value = "${dayLabels[bestDayIndex]} • $bestDayVolume"
+                                )
+                                HighlightPill(
+                                    modifier = Modifier.weight(1f),
+                                    label = "Сумма недели",
+                                    value = "$weeklyTotalVolume кг"
+                                )
+                            }
+                            BarChart(
+                                data = state.weeklyVolumes.map { it.coerceAtLeast(0) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                dayLabels.mapIndexed { index, day ->
+                                    "$day: ${state.weeklyVolumes.getOrNull(index) ?: 0}"
+                                }.joinToString("   "),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = contentColor.copy(alpha = 0.75f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(tween(390)) + slideInVertically(
+                        initialOffsetY = { it / 6 },
+                        animationSpec = tween(390)
+                    )
+                ) {
+                    Card(
+                        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                        colors = progressCardColors(),
+                        elevation = progressCardElevation(),
+                        shape = MaterialTheme.shapes.extraLarge
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
                                 stringResource(Res.string.sleep_weekly_chart_title),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = contentColor,
-                                textAlign = TextAlign.Center
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor
                             )
-                            BarChart(
-                                data = state.sleepHoursWeek,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Text(
-                                stringResource(Res.string.sleep_title),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = contentColor.copy(alpha = 0.85f),
-                                textAlign = TextAlign.Center
-                            )
+                            if (state.sleepHoursWeek.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    HighlightPill(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Средний сон",
+                                        value = "${sleepAverage.roundToInt()} ч"
+                                    )
+                                    HighlightPill(
+                                        modifier = Modifier.weight(1f),
+                                        label = "До цели 8ч",
+                                        value = if (sleepTargetGap > 0) "-${sleepTargetGap.roundToInt()} ч" else "+${abs(sleepTargetGap).roundToInt()} ч"
+                                    )
+                                }
+                                BarChart(
+                                    data = state.sleepHoursWeek,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    "Стабильный сон ускоряет восстановление и рост рабочих весов",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = contentColor.copy(alpha = 0.85f),
+                                )
+                            } else {
+                                Text(
+                                    "Пока нет записей сна — подключим, как только добавим трекинг сна в данные профиля.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = contentColor.copy(alpha = 0.85f),
+                                )
+                            }
+                            if (state.weightSeries.isNotEmpty()) {
+                                Spacer(Modifier.height(4.dp))
+                                Text("Средний рабочий вес (до 14 тренировок)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
+                                LineChart(
+                                    values = state.weightSeries,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    "Изменение: ${if (weightDelta >= 0f) "+" else ""}${weightDelta.toOneDecimal()} кг",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = contentColor
+                                )
+                            }
+                            if (state.caloriesSeries.isNotEmpty()) {
+                                Spacer(Modifier.height(4.dp))
+                                Text("Калории (7 дней)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
+                                BarChart(
+                                    data = state.caloriesSeries,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    "Среднее: $caloriesAverage ккал/день",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = contentColor
+                                )
+                            }
                         }
                     }
                 }
@@ -215,3 +295,70 @@ private fun progressCardColors() =
 private fun progressCardElevation() =
     CardDefaults.cardElevation(defaultElevation = 8.dp)
 
+@Composable
+private fun ProgressMetricTile(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+        )
+    }
+}
+
+@Composable
+private fun HighlightPill(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+private fun Float.toOneDecimal(): String {
+    val rounded = (this * 10f).roundToInt() / 10f
+    return rounded.toString()
+}

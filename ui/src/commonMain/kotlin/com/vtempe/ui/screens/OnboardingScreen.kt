@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
@@ -98,9 +100,9 @@ fun OnboardingScreen(
         unfocusedBorderColor = AiPalette.Outline.copy(alpha = 0.25f),
         cursorColor = AiPalette.Primary,
         focusedLabelColor = AiPalette.Primary,
-        unfocusedLabelColor = AiPalette.OnGradient.copy(alpha = 0.5f),
-        focusedTextColor = AiPalette.OnGradient,
-        unfocusedTextColor = AiPalette.OnGradient,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
         focusedContainerColor = Color.White,
         unfocusedContainerColor = AiPalette.SurfaceLight.copy(alpha = 0.4f)
     )
@@ -209,7 +211,7 @@ fun OnboardingScreen(
                             Text(
                                 stringResource(Res.string.label_sex),
                                 style = MaterialTheme.typography.titleSmall,
-                                color = AiPalette.OnGradient
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Sex.entries.forEach { option ->
@@ -250,7 +252,7 @@ fun OnboardingScreen(
                             Text(
                                 stringResource(Res.string.label_experience).kmpFormat(state.experienceLevel),
                                 style = MaterialTheme.typography.titleSmall,
-                                color = AiPalette.OnGradient
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Slider(
                                 value = state.experienceLevel.toFloat(),
@@ -338,7 +340,7 @@ fun OnboardingScreen(
                     OutlinedButton(
                         onClick = { presenter.prevStep() },
                         enabled = !state.saving,
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         shape = MaterialTheme.shapes.large,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color.White
@@ -351,19 +353,20 @@ fun OnboardingScreen(
                     onClick = {
                         if (isLastStep) presenter.save(onDone) else presenter.nextStep()
                     },
-                    modifier = Modifier.weight(1.5f).height(56.dp),
+                    modifier = Modifier.weight(1.5f).heightIn(min = 56.dp),
                     enabled = !state.saving,
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AiPalette.DeepAccent,
-                        contentColor = Color.White
+                        contentColor = AiPalette.OnDeepAccent
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                 ) {
                     Text(
                         if (isLastStep) stringResource(Res.string.onboard_cta) else stringResource(Res.string.action_next),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -374,9 +377,9 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground, strokeWidth = 2.dp)
                     Spacer(Modifier.size(12.dp))
-                    Text(text = stringResource(Res.string.settings_saving), color = Color.White)
+                    Text(text = stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground)
                 }
             }
             
@@ -391,7 +394,7 @@ private fun StepTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
-        color = AiPalette.OnGradient,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = 8.dp)
     )
 }
@@ -425,9 +428,9 @@ private fun ModernChip(
         label = { Text(label, fontWeight = FontWeight.SemiBold) },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AiPalette.Primary,
-            selectedLabelColor = Color.White,
+            selectedLabelColor = AiPalette.OnGradient,
             containerColor = AiPalette.SurfaceLight,
-            labelColor = AiPalette.OnGradient.copy(alpha = 0.8f)
+            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
         ),
         border = null,
         shape = MaterialTheme.shapes.medium
@@ -437,7 +440,7 @@ private fun ModernChip(
 @Composable
 private fun ModernToggleChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val background = if (selected) AiPalette.Primary else AiPalette.SurfaceLight
-    val textColor = if (selected) Color.White else AiPalette.OnGradient.copy(alpha = 0.8f)
+    val textColor = if (selected) AiPalette.OnGradient else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
     
     Box(
         modifier = Modifier

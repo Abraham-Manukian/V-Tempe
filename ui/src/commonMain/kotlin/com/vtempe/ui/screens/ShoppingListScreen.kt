@@ -52,14 +52,14 @@ fun ShoppingListScreen(
                 onClick = onBack,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AiPalette.DeepAccent,
-                    contentColor = Color.White
+                    contentColor = AiPalette.OnDeepAccent
                 ),
                 shape = MaterialTheme.shapes.large
             ) {
                 Text(stringResource(Res.string.action_back), fontWeight = FontWeight.Bold)
             }
             when (val ui = state.ui) {
-                UiState.Loading -> Text(stringResource(Res.string.loading), color = Color.White)
+                UiState.Loading -> Text(stringResource(Res.string.loading), color = MaterialTheme.colorScheme.onBackground)
                 is UiState.Error -> Text(
                     stringResource(Res.string.nutrition_error_title),
                     color = MaterialTheme.colorScheme.error
@@ -70,7 +70,7 @@ fun ShoppingListScreen(
                         stringResource(Res.string.nutrition_tab_shopping),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
@@ -95,7 +95,7 @@ fun ShoppingListScreen(
                                     Text(
                                         text = "- $entry",
                                         modifier = Modifier.padding(16.dp),
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                 }
@@ -107,4 +107,3 @@ fun ShoppingListScreen(
         }
     }
 }
-

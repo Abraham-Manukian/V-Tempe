@@ -84,7 +84,7 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
             }
         }
         return
@@ -202,7 +202,7 @@ fun SettingsScreen(
                                         Icon(
                                             imageVector = Icons.Filled.Check,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = AiPalette.OnGradient,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -246,14 +246,14 @@ fun SettingsScreen(
             }
 
             if (state.saving) {
-                Text(stringResource(Res.string.settings_saving), color = Color.White.copy(alpha = 0.8f))
+                Text(stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
             }
             Button(
                 onClick = { presenter.reset { platformActions.restartApp() } },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AiPalette.DeepAccent,
-                    contentColor = Color.White
+                    contentColor = AiPalette.OnDeepAccent
                 ),
                 shape = MaterialTheme.shapes.large,
                 enabled = !state.saving
@@ -294,7 +294,7 @@ private fun PreferenceCard(
                     title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = AiPalette.OnGradient
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 trailing?.invoke(this)
             }

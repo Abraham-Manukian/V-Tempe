@@ -51,7 +51,7 @@ fun SleepScreen(
         stringResource(Res.string.day_sat_short),
         stringResource(Res.string.day_sun_short)
     )
-    val contentColor = AiPalette.OnGradient
+    val contentColor = MaterialTheme.colorScheme.onSurface
     
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -178,5 +178,4 @@ private fun sleepCardElevation() = CardDefaults.cardElevation(defaultElevation =
 
 @Composable
 private fun sleepButtonColors() =
-    ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = Color.White)
-
+    ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = AiPalette.OnDeepAccent)
