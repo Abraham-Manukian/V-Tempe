@@ -43,6 +43,12 @@ val serverModule = module {
             val temperature = Env["OPENROUTER_TEMPERATURE"]?.toDoubleOrNull()
             val siteUrl = Env["OPENROUTER_SITE_URL"]?.takeIf { it.isNotBlank() }
             val appName = Env["OPENROUTER_APP_NAME"]?.takeIf { it.isNotBlank() }
+            val requestTimeoutMs = Env["OPENROUTER_REQUEST_TIMEOUT_MS"]?.toLongOrNull() ?: 180_000L
+            val socketTimeoutMs = Env["OPENROUTER_SOCKET_TIMEOUT_MS"]?.toLongOrNull() ?: requestTimeoutMs
+            val connectTimeoutMs = Env["OPENROUTER_CONNECT_TIMEOUT_MS"]?.toLongOrNull() ?: 20_000L
+            val topP = Env["OPENROUTER_TOP_P"]?.toDoubleOrNull()
+            val maxTokens = Env["OPENROUTER_MAX_TOKENS"]?.toIntOrNull()
+            val retryAttempts = Env["OPENROUTER_RETRY_ATTEMPTS"]?.toIntOrNull()?.coerceAtLeast(1) ?: 2
 
             startupLogger.info("Registering OpenRouterLLMClient (model=$model)")
 
@@ -52,13 +58,18 @@ val serverModule = module {
                 baseUrl = baseUrl,
                 temperature = temperature,
                 siteUrl = siteUrl,
-                appName = appName
+                appName = appName,
+                requestTimeoutMs = requestTimeoutMs,
+                socketTimeoutMs = socketTimeoutMs,
+                connectTimeoutMs = connectTimeoutMs,
+                topP = topP,
+                maxTokens = maxTokens
             )
             val throttled = ThrottledLLMClient(openRouter, minSpacingMs = 2_500)
 
             RetryingLLMClient(
                 delegate = throttled,
-                attempts = 1,
+                attempts = retryAttempts,
                 initialDelayMs = 2_500,
                 maxDelayMs = 15_000,
                 backoffMultiplier = 1.8
@@ -103,11 +114,11 @@ val serverModule = module {
     }
 
     // --- Repairer (class, НЕ object) ---
-    single { LlmRepairer(pipeline = get()) }
+    single { LlmRepairer(get()) }
 
     // --- Services ---
-    single { AiService(llmClient = get(), llmRepairer = get()) }
-    single { ChatService(llmClient = get(), llmRepairer = get(), aiService = get()) }
+    single { AiService(get(), get()) }
+    single { ChatService(get(), get(), get()) }
 
     // --- UseCases ---
     single<TrainingUseCase> { TrainingUseCaseImpl(aiService = get()) }

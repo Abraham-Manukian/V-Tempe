@@ -41,10 +41,7 @@ class LlmPipeline(
 
             rawStore.write(operation, requestId, attempt, "raw", raw)
 
-            val extracted = when (extractionMode) {
-                is ExtractionMode.FirstJsonObject -> extractor.firstJsonObject(raw)
-                is ExtractionMode.MarkerAfter -> extractor.jsonAfterMarker(raw, extractionMode.marker)
-            }
+            val extracted = extractCandidate(raw, extractionMode)
 
             val candidate = when (extracted) {
                 is ExtractionResult.Success -> extracted.candidate
@@ -95,6 +92,24 @@ class LlmPipeline(
 
         throw IllegalStateException("LLM $operation failed after ${config.maxAttempts} attempts. lastRaw=${snippet(lastRaw) ?: "<empty>"}")
     }
+
+    private fun extractCandidate(raw: String, extractionMode: ExtractionMode): ExtractionResult =
+        when (extractionMode) {
+            is ExtractionMode.FirstJsonObject -> extractor.firstJsonObject(raw)
+            is ExtractionMode.MarkerAfter -> {
+                when (val markerResult = extractor.jsonAfterMarker(raw, extractionMode.marker)) {
+                    is ExtractionResult.Success -> markerResult
+                    is ExtractionResult.Failure -> {
+                        when (val firstObjectResult = extractor.firstJsonObject(raw)) {
+                            is ExtractionResult.Success -> firstObjectResult
+                            is ExtractionResult.Failure -> ExtractionResult.Failure(
+                                "${markerResult.reason}; fallback first-json failed: ${firstObjectResult.reason}"
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
     private fun snippet(s: String): String? =
         s.replace('\n', ' ').replace('\r', ' ').trim().takeIf { it.isNotEmpty() }?.take(config.rawSnippetLimit)

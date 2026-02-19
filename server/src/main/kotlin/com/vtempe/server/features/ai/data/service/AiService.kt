@@ -13,6 +13,7 @@ import com.vtempe.server.shared.dto.training.AiSet
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
+import com.vtempe.server.config.Env
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
@@ -503,7 +504,7 @@ class AiService(
     }
 
     companion object {
-        private const val LlmTimeoutMs = 120_000L
+        private val LlmTimeoutMs = Env["AI_LLM_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(30_000L) ?: 240_000L
         private const val DEFAULT_LOCALE = "en-US"
         private const val BundleCacheTtlMs = 30 * 60 * 1000L
 

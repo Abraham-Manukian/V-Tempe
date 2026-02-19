@@ -18,16 +18,14 @@ class LlmRepairer(
         strategy: DeserializationStrategy<T>,
         validator: SchemaValidator<T>,
         extractionMode: ExtractionMode = ExtractionMode.FirstJsonObject
-    ): T {
-        return pipeline.run(
-            logger = logger,
-            operation = operation,
-            requestId = requestId,
-            basePrompt = basePrompt,
-            callModel = callModel,
-            strategy = strategy,
-            validator = validator,
-            extractionMode = extractionMode
-        )
-    }
+    ): T = pipeline.run(
+        logger = logger,
+        operation = operation,
+        requestId = requestId,
+        basePrompt = basePrompt,
+        callModel = callModel,
+        strategy = strategy,
+        validator = validator,
+        extractionMode = extractionMode
+    )
 }

@@ -45,6 +45,22 @@ class JsonSanitizer {
         }
         if (changed) set("remove_trailing_commas", tmp)
 
+        // coerce nulls for required numeric fields that often break decoding
+        val requiredNumbers = linkedMapOf(
+            "reps" to "8",
+            "weekIndex" to "0",
+            "kcal" to "0",
+            "proteinGrams" to "0",
+            "fatGrams" to "0",
+            "carbsGrams" to "0",
+        )
+        requiredNumbers.forEach { (field, defaultValue) ->
+            val regex = Regex("\"$field\"\\s*:\\s*null")
+            if (regex.containsMatchIn(s)) {
+                set("coerce_null_$field", regex.replace(s, "\"$field\":$defaultValue"))
+            }
+        }
+
         return RepairResult(s.trim(), fixes)
     }
 }

@@ -23,8 +23,8 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 import java.net.Proxy
 
-private const val REQUEST_TIMEOUT_MS = 90_000L
-private const val SOCKET_TIMEOUT_MS = 90_000L
+private const val REQUEST_TIMEOUT_MS = 180_000L
+private const val SOCKET_TIMEOUT_MS = 180_000L
 private const val CONNECT_TIMEOUT_MS = 20_000L
 
 class OpenRouterLLMClient(
@@ -34,12 +34,22 @@ class OpenRouterLLMClient(
     temperature: Double? = null,
     siteUrl: String? = null,
     appName: String? = null,
+    requestTimeoutMs: Long = REQUEST_TIMEOUT_MS,
+    socketTimeoutMs: Long = SOCKET_TIMEOUT_MS,
+    connectTimeoutMs: Long = CONNECT_TIMEOUT_MS,
+    topP: Double? = null,
+    maxTokens: Int? = null,
 ) : LLMClient {
     private val resolvedBaseUrl = (baseUrl ?: DEFAULT_BASE_URL).trimEnd('/')
     private val resolvedTemperature = temperature ?: DEFAULT_TEMPERATURE
     private val resolvedSiteUrl = siteUrl ?: DEFAULT_SITE_URL
     private val resolvedAppName = appName ?: DEFAULT_APP_NAME
     private val resolvedModel = model
+    private val resolvedRequestTimeoutMs = requestTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedSocketTimeoutMs = socketTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedConnectTimeoutMs = connectTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedTopP = topP
+    private val resolvedMaxTokens = maxTokens
 
     private val http = HttpClient(OkHttp) {
         engine {
@@ -47,9 +57,9 @@ class OpenRouterLLMClient(
         }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         install(HttpTimeout) {
-            requestTimeoutMillis = REQUEST_TIMEOUT_MS
-            socketTimeoutMillis = SOCKET_TIMEOUT_MS
-            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            requestTimeoutMillis = resolvedRequestTimeoutMs
+            socketTimeoutMillis = resolvedSocketTimeoutMs
+            connectTimeoutMillis = resolvedConnectTimeoutMs
         }
         defaultRequest {
             bearerAuth(apiKey)
@@ -67,7 +77,9 @@ class OpenRouterLLMClient(
                 ChatMessageDto(role = "system", content = SYSTEM_PROMPT),
                 ChatMessageDto(role = "user", content = prompt)
             ),
-            temperature = resolvedTemperature
+            temperature = resolvedTemperature,
+            topP = resolvedTopP,
+            maxTokens = resolvedMaxTokens
         )
         val response: ChatCompletionResponseDto = try {
             http.post("$resolvedBaseUrl/chat/completions") {

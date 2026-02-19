@@ -4,6 +4,7 @@ import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.config.Env
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapResponse
@@ -115,7 +116,7 @@ class ChatService(
     }
 
     companion object {
-        private const val LlmTimeoutMs = 90_000L
+        private val LlmTimeoutMs = Env["AI_CHAT_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(15_000L) ?: 120_000L
         private const val DefaultLocale = "en-US"
     }
 }

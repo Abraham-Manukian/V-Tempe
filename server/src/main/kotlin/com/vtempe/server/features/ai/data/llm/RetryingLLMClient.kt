@@ -19,37 +19,56 @@ class RetryingLLMClient(
         while (attempt <= attempts) {
             try {
                 return delegate.generateJson(prompt)
-            } catch (rateLimit: RateLimitException) {
-                lastError = rateLimit
-                if (attempt >= attempts) break
+            } catch (ex: Throwable) {
+                lastError = ex
+                val retryable = isRetryable(ex)
+                if (attempt >= attempts || !retryable) throw ex
 
-                val hintedDelay = rateLimit.retryAfterMillis
+                val hintedDelay = (ex as? RateLimitException)
+                    ?.retryAfterMillis
                     ?.takeIf { it > 0 }
                     ?.coerceAtMost(maxDelayMs)
                 val waitFor = (hintedDelay ?: nextDelay).coerceAtMost(maxDelayMs).coerceAtLeast(0)
                 logger.warn(
-                    "Retrying LLM after rate limit (attempt {}/{}). Waiting {} ms (hint={}, nextDelay={}).",
+                    "Retrying LLM after failure (attempt {}/{}). Waiting {} ms. reason={}",
                     attempt,
                     attempts,
                     waitFor,
-                    hintedDelay,
-                    nextDelay
+                    ex.message ?: ex::class.simpleName
                 )
                 delay(waitFor)
                 nextDelay = (max(nextDelay.toDouble() * backoffMultiplier, initialDelayMs.toDouble()))
                     .toLong()
                     .coerceAtMost(maxDelayMs)
                 attempt += 1
-                continue
-            } catch (ex: Throwable) {
-                throw ex
             }
         }
         throw lastError ?: IllegalStateException("LLM request failed after $attempts attempt(s)")
     }
 
+    private fun isRetryable(error: Throwable): Boolean {
+        if (error is RateLimitException) return true
+        return errorChain(error).any { cause ->
+            val message = cause.message?.lowercase().orEmpty()
+            if (message.contains("timed out") || message.contains("timeout")) return@any true
+            val status = parseOpenRouterStatus(cause.message)
+            status != null && status in RETRYABLE_HTTP_STATUSES
+        }
+    }
+
+    private fun errorChain(error: Throwable): Sequence<Throwable> =
+        generateSequence(error) { it.cause }
+
+    private fun parseOpenRouterStatus(message: String?): Int? {
+        if (message.isNullOrBlank()) return null
+        val match = OPENROUTER_HTTP_REGEX.find(message) ?: return null
+        return match.groupValues.getOrNull(1)?.toIntOrNull()
+    }
+
     companion object {
         private val logger = LoggerFactory.getLogger(RetryingLLMClient::class.java)
+        private val OPENROUTER_HTTP_REGEX = Regex("""OpenRouter HTTP\s+(\d{3})""")
+        private val RETRYABLE_HTTP_STATUSES = setOf(408, 409, 425, 429, 500, 502, 503, 504)
     }
 }
 

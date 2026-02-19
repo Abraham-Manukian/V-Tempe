@@ -92,6 +92,23 @@
     <!-- Workout -->
     <string name="workout_add_set_title">Add workout set</string>
     <string name="workout_exercise_label">Exercise</string>
+    <string name="workout_exercise_squat">Squat</string>
+    <string name="workout_exercise_bench">Bench Press</string>
+    <string name="workout_exercise_deadlift">Deadlift</string>
+    <string name="workout_exercise_ohp">Overhead Press</string>
+    <string name="workout_exercise_row">Row</string>
+    <string name="workout_exercise_pullup">Pull-up</string>
+    <string name="workout_exercise_lunge">Lunge</string>
+    <string name="workout_exercise_dip">Dip</string>
+    <string name="workout_exercise_pushup">Push-up</string>
+    <string name="workout_exercise_curl">Biceps Curl</string>
+    <string name="workout_exercise_tricep_extension">Triceps Extension</string>
+    <string name="workout_exercise_plank">Plank</string>
+    <string name="workout_exercise_hip_thrust">Hip Thrust</string>
+    <string name="workout_exercise_leg_press">Leg Press</string>
+    <string name="workout_exercise_run">Run</string>
+    <string name="workout_exercise_bike">Bike</string>
+    <string name="workout_exercise_yoga">Yoga</string>
     <string name="workout_reps_label">Reps</string>
     <string name="workout_weight_label">Weight</string>
     <string name="workout_rpe_label">RPE</string>
