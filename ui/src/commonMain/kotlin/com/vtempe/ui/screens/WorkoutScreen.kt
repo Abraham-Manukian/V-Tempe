@@ -337,18 +337,18 @@ private fun AddSetSheet(
 private fun exerciseLabel(exerciseId: String): String {
     val normalized = exerciseId.trim().lowercase().replace('-', '_').replace(' ', '_')
     val resource = when (normalized) {
-        "squat" -> Res.string.workout_exercise_squat
-        "bench" -> Res.string.workout_exercise_bench
+        "squat", "back_squat" -> Res.string.workout_exercise_squat
+        "bench", "bench_press" -> Res.string.workout_exercise_bench
         "deadlift" -> Res.string.workout_exercise_deadlift
         "ohp" -> Res.string.workout_exercise_ohp
-        "row" -> Res.string.workout_exercise_row
-        "pullup", "pull_up" -> Res.string.workout_exercise_pullup
-        "lunge" -> Res.string.workout_exercise_lunge
-        "dip" -> Res.string.workout_exercise_dip
+        "row", "bent_over_row", "barbell_row" -> Res.string.workout_exercise_row
+        "pullup", "pull_up", "pullups" -> Res.string.workout_exercise_pullup
+        "lunge", "walking_lunge" -> Res.string.workout_exercise_lunge
+        "dip", "parallel_bar_dip", "parallel_bar_dips" -> Res.string.workout_exercise_dip
         "pushup", "push_up" -> Res.string.workout_exercise_pushup
-        "curl", "bicep_curl" -> Res.string.workout_exercise_curl
-        "tricep_extension", "triceps_extension" -> Res.string.workout_exercise_tricep_extension
-        "plank" -> Res.string.workout_exercise_plank
+        "curl", "bicep_curl", "biceps_curl" -> Res.string.workout_exercise_curl
+        "tricep_extension", "triceps_extension", "triceps_extensions" -> Res.string.workout_exercise_tricep_extension
+        "plank", "plank_hold" -> Res.string.workout_exercise_plank
         "hip_thrust", "hipthrust" -> Res.string.workout_exercise_hip_thrust
         "leg_press", "legpress" -> Res.string.workout_exercise_leg_press
         "run", "running" -> Res.string.workout_exercise_run

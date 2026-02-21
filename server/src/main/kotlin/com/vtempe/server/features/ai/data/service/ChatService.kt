@@ -68,9 +68,9 @@ class ChatService(
     }.getOrElse {
         logger.warn("Bootstrap bundle failed", it)
         AiBootstrapResponse(
-            trainingPlan = aiService.training(AiTrainingRequest(req.profile, req.weekIndex)),
-            nutritionPlan = aiService.nutrition(AiNutritionRequest(req.profile, req.weekIndex)),
-            sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile))
+            trainingPlan = aiService.training(AiTrainingRequest(req.profile, req.weekIndex, req.locale)),
+            nutritionPlan = aiService.nutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale)),
+            sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile, req.locale))
         )
     }
 

@@ -4,6 +4,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.ChatMessage
+import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.ui.screens.ChatPresenter
@@ -15,7 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class ChatViewModel(private val ask: AskAiTrainer) : ViewModel(), ChatPresenter {
+class ChatViewModel(
+    private val ask: AskAiTrainer,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel(), ChatPresenter {
     private val _state = MutableStateFlow(ChatState())
     override val state: StateFlow<ChatState> = _state.asStateFlow()
 
@@ -41,7 +45,8 @@ class ChatViewModel(private val ask: AskAiTrainer) : ViewModel(), ChatPresenter 
             currentState.copy(messages = newHistory, input = "", sendState = ChatSendState.Loading)
 
         viewModelScope.launch {
-            val localeTag = LocaleListCompat.getAdjustedDefault().get(0)?.toLanguageTag()
+            val localeTag = preferencesRepository.getLanguageTag()
+                ?: LocaleListCompat.getAdjustedDefault().get(0)?.toLanguageTag()
 
             val result = runCatching { ask(history, trimmed, localeTag) }
                 .getOrElse { throwable ->

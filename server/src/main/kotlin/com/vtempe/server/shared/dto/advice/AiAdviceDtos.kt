@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AiAdviceRequest(
     val profile: AiProfile,
+    val locale: String? = null,
 )
 
 @Serializable

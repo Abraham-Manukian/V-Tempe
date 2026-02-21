@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 data class AiTrainingRequest(
     val profile: AiProfile,
     val weekIndex: Int,
+    val locale: String? = null,
 )
 
 @Serializable

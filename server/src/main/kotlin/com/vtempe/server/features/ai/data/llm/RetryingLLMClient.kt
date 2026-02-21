@@ -67,7 +67,7 @@ class RetryingLLMClient(
 
     companion object {
         private val logger = LoggerFactory.getLogger(RetryingLLMClient::class.java)
-        private val OPENROUTER_HTTP_REGEX = Regex("""OpenRouter HTTP\s+(\d{3})""")
+        private val OPENROUTER_HTTP_REGEX = Regex("""OpenRouter\s+(?:HTTP|error)\s+(\d{3})""", RegexOption.IGNORE_CASE)
         private val RETRYABLE_HTTP_STATUSES = setOf(408, 409, 425, 429, 500, 502, 503, 504)
     }
 }

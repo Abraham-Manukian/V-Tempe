@@ -23,6 +23,7 @@ data class AiMeal(
 data class AiNutritionRequest(
     val profile: AiProfile,
     val weekIndex: Int,
+    val locale: String? = null,
 )
 
 @Serializable

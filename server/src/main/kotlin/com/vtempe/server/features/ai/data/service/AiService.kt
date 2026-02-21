@@ -53,7 +53,7 @@ class AiService(
         operation = "training",
         fallback = { fallbackTraining(req) }
     ) {
-        fetchBundle(req.profile, req.weekIndex, req.profile.locale).trainingPlan
+        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale).trainingPlan
             ?: throw IllegalStateException("trainingPlan missing in bundle")
     }
 
@@ -61,7 +61,7 @@ class AiService(
         operation = "nutrition",
         fallback = { fallbackNutrition(req) }
     ) {
-        fetchBundle(req.profile, req.weekIndex, req.profile.locale).nutritionPlan
+        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale).nutritionPlan
             ?: throw IllegalStateException("nutritionPlan missing in bundle")
     }
 
@@ -69,7 +69,7 @@ class AiService(
         operation = "sleep",
         fallback = { fallbackAdvice(req) }
     ) {
-        fetchBundle(req.profile, 0, req.profile.locale).sleepAdvice
+        fetchBundle(req.profile, 0, req.locale ?: req.profile.locale).sleepAdvice
             ?: throw IllegalStateException("sleepAdvice missing in bundle")
     }
 
@@ -80,16 +80,18 @@ class AiService(
                 trainingPlan = fallbackTraining(
                     AiTrainingRequest(
                         req.profile,
-                        req.weekIndex
+                        req.weekIndex,
+                        req.locale
                     )
                 ),
                 nutritionPlan = fallbackNutrition(
                     AiNutritionRequest(
                         req.profile,
-                        req.weekIndex
+                        req.weekIndex,
+                        req.locale
                     )
                 ),
-                sleepAdvice = fallbackAdvice(AiAdviceRequest(req.profile))
+                sleepAdvice = fallbackAdvice(AiAdviceRequest(req.profile, req.locale))
             )
         }
     ) {
@@ -234,6 +236,7 @@ class AiService(
             appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit (use null for bodyweight).")
             appendLine("- Provide balanced push/pull/legs/core coverage. 4-6 exercises per workout, vary rep ranges 4-12, include RPE 6.5-9.0.")
             appendLine("- exerciseId must be chosen from: [squat, bench, deadlift, ohp, row, pullup, lunge, dip, pushup, curl, tricep_extension, plank, hip_thrust, leg_press].")
+            appendLine("- Every workout.id must be unique inside trainingPlan. Never repeat workout IDs.")
             appendLine("- Limit workouts to at most 5 in the plan and sets to at most 6 per workout to keep the JSON concise.")
             appendLine()
             appendLine("NUTRITION RULES:")
@@ -419,10 +422,10 @@ class AiService(
     }
 
     private fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
-        val locale = safeLocale(req.profile.locale)
+        val locale = safeLocale(req.locale ?: req.profile.locale)
         val today = LocalDate.now(ZoneOffset.UTC)
         fun set(id: String, reps: Int, weight: Double?, rpe: Double?) =
-            AiSet(localizedExerciseLabel(id, locale), reps, weight, rpe)
+            AiSet(id, reps, weight, rpe)
 
         val workouts = List(3) { day ->
             val id = "w_${req.weekIndex}_${day + 1}"
@@ -450,7 +453,7 @@ class AiService(
     }
 
     private fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
-        val locale = safeLocale(req.profile.locale)
+        val locale = safeLocale(req.locale ?: req.profile.locale)
         val meals = templateMeals(locale)
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val planMeals = days.associateWith { day -> if (day == "Sun") meals.take(3) else meals }
@@ -463,7 +466,7 @@ class AiService(
     }
 
     private fun fallbackAdvice(req: AiAdviceRequest): AiAdviceResponse {
-        val locale = safeLocale(req.profile.locale)
+        val locale = safeLocale(req.locale ?: req.profile.locale)
         val isRu = locale.language.equals("ru", ignoreCase = true)
         val messages = if (isRu) {
             listOf(
@@ -492,17 +495,6 @@ class AiService(
         return AiAdviceResponse(messages, disclaimer)
     }
 
-    private fun localizedExerciseLabel(id: String, locale: Locale): String {
-        val labels = fallbackExerciseLabels[id]
-        val isRu = locale.language.equals("ru", ignoreCase = true)
-        val base = when {
-            labels != null && isRu -> labels.second
-            labels != null -> labels.first
-            else -> sanitizeText(id.replace('_', ' '))
-        }
-        return if (labels != null && isRu) "$base ($id)" else base
-    }
-
     companion object {
         private val LlmTimeoutMs = Env["AI_LLM_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(30_000L) ?: 240_000L
         private const val DEFAULT_LOCALE = "en-US"
@@ -512,28 +504,59 @@ class AiService(
         private val bundleCache = ConcurrentHashMap<String, CacheEntry>()
         private val cacheMutex = Mutex()
         private val inFlightBundles = ConcurrentHashMap<String, CompletableDeferred<AiBootstrapResponse>>()
-        private val fallbackExerciseLabels = mapOf(
-            "squat" to ("Back Squat" to "\u041f\u0440\u0438\u0441\u0435\u0434\u0430\u043d\u0438\u044f \u0441\u043e \u0448\u0442\u0430\u043d\u0433\u043e\u0439"),
-            "bench" to ("Bench Press" to "\u0416\u0438\u043c \u043b\u0451\u0436\u0430"),
-            "deadlift" to ("Deadlift" to "\u0421\u0442\u0430\u043d\u043e\u0432\u0430\u044f \u0442\u044f\u0433\u0430"),
-            "ohp" to ("Overhead Press" to "\u0416\u0438\u043c \u0441\u0442\u043e\u044f"),
-            "row" to ("Bent-Over Row" to "\u0422\u044f\u0433\u0430 \u0432 \u043d\u0430\u043a\u043b\u043e\u043d\u0435"),
-            "pullup" to ("Pull-up" to "\u041f\u043e\u0434\u0442\u044f\u0433\u0438\u0432\u0430\u043d\u0438\u044f"),
-            "lunge" to ("Walking Lunge" to "\u0412\u044b\u043f\u0430\u0434\u044b"),
-            "hip_thrust" to ("Hip Thrust" to "\u042f\u0433\u043e\u0434\u0438\u0447\u043d\u044b\u0439 \u043c\u043e\u0441\u0442"),
-            "plank" to ("Plank Hold" to "\u041f\u043b\u0430\u043d\u043a\u0430"),
-            "dip" to ("Parallel Bar Dip" to "\u041e\u0442\u0436\u0438\u043c\u0430\u043d\u0438\u044f \u043d\u0430 \u0431\u0440\u0443\u0441\u044c\u044f\u0445"),
-            "pushup" to ("Push-up" to "\u041e\u0442\u0436\u0438\u043c\u0430\u043d\u0438\u044f"),
-            "curl" to ("Biceps Curl" to "\u0421\u0433\u0438\u0431\u0430\u043d\u0438\u044f \u043d\u0430 \u0431\u0438\u0446\u0435\u043f\u0441"),
-            "tricep_extension" to ("Triceps Extension" to "\u0420\u0430\u0437\u0433\u0438\u0431\u0430\u043d\u0438\u044f \u043d\u0430 \u0442\u0440\u0438\u0446\u0435\u043f\u0441"),
-            "leg_press" to ("Leg Press" to "\u0416\u0438\u043c \u043d\u043e\u0433\u0430\u043c\u0438")
-        )
     }
 
     private data class CacheEntry(val bundle: AiBootstrapResponse, val timestamp: Long)
 }
 
 internal const val MacroCalorieTolerance = 40
+private const val MaxWorkoutsPerPlan = 5
+private const val MaxSetsPerWorkout = 6
+private const val MinMealsPerDay = 3
+
+private val allowedExerciseIds = setOf(
+    "squat",
+    "bench",
+    "deadlift",
+    "ohp",
+    "row",
+    "pullup",
+    "lunge",
+    "dip",
+    "pushup",
+    "curl",
+    "tricep_extension",
+    "plank",
+    "hip_thrust",
+    "leg_press",
+    "run",
+    "bike",
+    "yoga"
+)
+
+private val exerciseAliasMap = mapOf(
+    "back_squat" to "squat",
+    "bench_press" to "bench",
+    "bent_over_row" to "row",
+    "barbell_row" to "row",
+    "pull_up" to "pullup",
+    "pullups" to "pullup",
+    "walking_lunge" to "lunge",
+    "parallel_bar_dip" to "dip",
+    "parallel_bar_dips" to "dip",
+    "push_up" to "pushup",
+    "push_ups" to "pushup",
+    "bicep_curl" to "curl",
+    "biceps_curl" to "curl",
+    "biceps_curls" to "curl",
+    "triceps_extension" to "tricep_extension",
+    "triceps_extensions" to "tricep_extension",
+    "hipthrust" to "hip_thrust",
+    "hip_thrusts" to "hip_thrust",
+    "plank_hold" to "plank",
+    "legpress" to "leg_press",
+    "cycling" to "bike"
+)
 
 private val cp1251Charset: Charset = Charset.forName("windows-1251")
 private val cyrillicRange = '\u0400'..'\u04FF'
@@ -563,25 +586,44 @@ private fun looksLikeCp1251Garbage(raw: String): Boolean =
 
 internal fun normalizeTrainingPlan(plan: AiTrainingResponse): AiTrainingResponse {
     val weekStart = expectedWeekStart(plan.weekIndex)
-    return plan.copy(
-        workouts = plan.workouts.mapIndexed { index, workout ->
+    val usedWorkoutIds = mutableSetOf<String>()
+    val workouts = plan.workouts
+        .take(MaxWorkoutsPerPlan)
+        .mapIndexed { index, workout ->
             val safeDate = normalizeWorkoutDate(workout.date, weekStart, index)
-            workout.copy(
-                date = safeDate,
-                id = sanitizeText(workout.id).ifEmpty { workout.id },
-                sets = workout.sets.map { set ->
-                    val trimmedId = sanitizeText(set.exerciseId).ifEmpty { set.exerciseId }
+            val rawId = sanitizeText(workout.id).ifEmpty { "w_${plan.weekIndex}_$index" }
+            val safeId = uniqueWorkoutId(rawId, plan.weekIndex, index, usedWorkoutIds)
+
+            val normalizedSets = workout.sets
+                .mapNotNull { set ->
+                    val canonical = canonicalExerciseIdOrNull(set.exerciseId) ?: return@mapNotNull null
+                    val reps = set.reps.coerceAtLeast(1)
                     val weight = set.weightKg?.takeIf { it >= 0.0 }
                     val rpe = set.rpe?.takeIf { it > 0.0 }
-                    set.copy(
-                        exerciseId = trimmedId,
+                    AiSet(
+                        exerciseId = canonical,
+                        reps = reps,
                         weightKg = weight,
                         rpe = rpe
                     )
                 }
+                .distinctBy { listOf(it.exerciseId, it.reps, it.weightKg, it.rpe) }
+                .take(MaxSetsPerWorkout)
+
+            val safeSets = if (normalizedSets.isEmpty()) {
+                listOf(AiSet("squat", reps = 8, weightKg = null, rpe = 7.0))
+            } else {
+                normalizedSets
+            }
+
+            AiWorkout(
+                id = safeId,
+                date = safeDate,
+                sets = safeSets
             )
         }
-    )
+
+    return plan.copy(workouts = workouts)
 }
 
 internal fun normalizeNutritionPlan(plan: AiNutritionResponse, locale: Locale): AiNutritionResponse {
@@ -610,7 +652,12 @@ internal fun normalizeNutritionPlan(plan: AiNutritionResponse, locale: Locale): 
                 )
             }
         }
-        val safeMeals = if (cleanedMeals.isEmpty()) fallbackMeals else cleanedMeals
+        val ruLocale = locale.language.equals("ru", ignoreCase = true)
+        val cyrillicDetected = cleanedMeals.any { meal ->
+            hasCyrillic(meal.name) || meal.ingredients.any(::hasCyrillic)
+        }
+        val baseMeals = if (cleanedMeals.isEmpty() || (ruLocale && !cyrillicDetected)) fallbackMeals else cleanedMeals
+        val safeMeals = ensureMinimumMealsPerDay(baseMeals, fallbackMeals, MinMealsPerDay)
         normalizedMealsByDay[dayKey] = safeMeals
     }
 
@@ -740,21 +787,127 @@ private fun normalizeWorkoutDate(raw: String, weekStart: LocalDate, index: Int):
     return safeDate.toString()
 }
 
+private fun uniqueWorkoutId(
+    rawId: String,
+    weekIndex: Int,
+    index: Int,
+    used: MutableSet<String>
+): String {
+    val normalized = normalizeExerciseToken(rawId).ifEmpty { "w_${weekIndex}_$index" }
+    var candidate = normalized
+    var suffix = 1
+    while (!used.add(candidate)) {
+        candidate = "${normalized}_$suffix"
+        suffix += 1
+    }
+    return candidate
+}
+
+private fun canonicalExerciseIdOrNull(raw: String): String? {
+    val trimmed = sanitizeText(raw)
+    if (trimmed.isEmpty()) return null
+
+    val explicitId = Regex("""\(([^()]+)\)\s*$""")
+        .find(trimmed)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.let(::normalizeExerciseToken)
+        ?.let { token -> if (token in allowedExerciseIds) token else exerciseAliasMap[token] }
+    if (explicitId != null) return explicitId
+
+    val token = normalizeExerciseToken(trimmed)
+    return when {
+        token in allowedExerciseIds -> token
+        else -> exerciseAliasMap[token]
+    }
+}
+
+private fun normalizeExerciseToken(raw: String): String =
+    sanitizeText(raw)
+        .lowercase(Locale.US)
+        .replace('-', '_')
+        .replace(' ', '_')
+        .replace(Regex("_+"), "_")
+        .trim('_')
+
+private fun hasCyrillic(text: String): Boolean = text.any { it in cyrillicRange }
+
+private fun ensureMinimumMealsPerDay(
+    meals: List<AiMeal>,
+    fallbackMeals: List<AiMeal>,
+    minCount: Int
+): List<AiMeal> {
+    if (meals.size >= minCount) return meals
+
+    val normalizedExisting = meals.map { meal ->
+        normalizeExerciseToken(meal.name)
+    }.toMutableSet()
+
+    val padded = meals.toMutableList()
+    fallbackMeals.forEach { fallback ->
+        if (padded.size >= minCount) return@forEach
+        val key = normalizeExerciseToken(fallback.name)
+        if (key !in normalizedExisting) {
+            padded += fallback
+            normalizedExisting += key
+        }
+    }
+
+    if (padded.size < minCount) {
+        var index = 0
+        while (padded.size < minCount && fallbackMeals.isNotEmpty()) {
+            padded += fallbackMeals[index % fallbackMeals.size]
+            index += 1
+        }
+    }
+
+    return padded
+}
+
 internal fun validateTrainingPlan(plan: AiTrainingResponse): String? {
     if (plan.workouts.isEmpty()) return "workouts array must contain at least one workout"
     if (plan.workouts.any { it.sets.isEmpty() }) return "each workout must include at least one set"
+
+    val workoutIds = mutableSetOf<String>()
+    plan.workouts.forEachIndexed { workoutIndex, workout ->
+        val id = normalizeExerciseToken(workout.id)
+        if (id.isBlank()) return "workout[$workoutIndex].id must not be blank"
+        if (!workoutIds.add(id)) return "workout ids must be unique"
+
+        if (workout.sets.size > MaxSetsPerWorkout * 2) {
+            return "workout[$workoutIndex] has too many sets (${workout.sets.size})"
+        }
+        val seenSets = mutableSetOf<String>()
+        workout.sets.forEachIndexed { setIndex, set ->
+            val canonicalExercise = canonicalExerciseIdOrNull(set.exerciseId)
+                ?: return "workout[$workoutIndex].sets[$setIndex].exerciseId is not supported"
+            if (set.reps <= 0) return "workout[$workoutIndex].sets[$setIndex].reps must be positive"
+            val fingerprint = "$canonicalExercise|${set.reps}|${set.weightKg ?: "bw"}|${set.rpe ?: "-"}"
+            if (!seenSets.add(fingerprint)) {
+                return "workout[$workoutIndex] contains duplicate sets"
+            }
+        }
+    }
     return null
 }
 
 internal fun validateNutritionPlan(plan: AiNutritionResponse): String? {
     if (plan.mealsByDay.isEmpty()) return "mealsByDay must contain entries for the week"
-    val validMeals = plan.mealsByDay.values
-        .flatten()
-        .count { meal ->
+    val requiredDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val missingDays = requiredDays.filter { day -> day !in plan.mealsByDay.keys }
+    if (missingDays.isNotEmpty()) return "mealsByDay missing required days: ${missingDays.joinToString(",")}"
+
+    requiredDays.forEach { day ->
+        val meals = plan.mealsByDay[day].orEmpty()
+        if (meals.size < MinMealsPerDay) {
+            return "$day must include at least $MinMealsPerDay meals"
+        }
+        val validMeals = meals.count { meal ->
             meal.name.isNotBlank() && meal.ingredients.any { it.isNotBlank() }
         }
-    if (validMeals == 0) {
-        return "mealsByDay must include at least one meal with a name and ingredients."
+        if (validMeals == 0) {
+            return "$day must include at least one valid meal with name and ingredients"
+        }
     }
     return null
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.ui.screens.SettingsPresenter
 import com.vtempe.ui.screens.SettingsState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val profileRepository: ProfileRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val ensureCoachData: EnsureCoachData
 ) : ViewModel(), SettingsPresenter {
     private val _state = MutableStateFlow(SettingsState())
     override val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -52,6 +54,9 @@ class SettingsViewModel(
             androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.getEmptyLocaleList())
         } else {
             androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(tag))
+        }
+        viewModelScope.launch {
+            runCatching { ensureCoachData(weekIndex = 0, force = true) }
         }
     }
 }

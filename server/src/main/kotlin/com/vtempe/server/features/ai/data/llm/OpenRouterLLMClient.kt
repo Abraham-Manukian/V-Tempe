@@ -92,7 +92,12 @@ class OpenRouterLLMClient(
         }
         response.error?.let { err ->
             val code = err.codeAsString ?: "unknown"
-            throw IllegalStateException("OpenRouter error $code: ${err.message}")
+            val status = err.codeAsString?.toIntOrNull()
+            val message = "OpenRouter error $code: ${err.message}"
+            if (status == HttpStatusCode.TooManyRequests.value) {
+                throw RateLimitException(message)
+            }
+            throw IllegalStateException(message)
         }
         val content = response.choices.firstOrNull()?.message?.content?.trim()
             ?: error("OpenRouter response did not contain choices")
