@@ -9,13 +9,52 @@ import kotlin.math.abs
 
 internal const val MacroCalorieTolerance = 40
 private const val MinMealsPerDay = 3
+private val RequiredDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+private val dayKeyAliases = mapOf(
+    "mon" to "Mon",
+    "monday" to "Mon",
+    "пн" to "Mon",
+    "понедельник" to "Mon",
+    "tue" to "Tue",
+    "tues" to "Tue",
+    "tuesday" to "Tue",
+    "вт" to "Tue",
+    "вторник" to "Tue",
+    "wed" to "Wed",
+    "wednesday" to "Wed",
+    "ср" to "Wed",
+    "среда" to "Wed",
+    "thu" to "Thu",
+    "thurs" to "Thu",
+    "thursday" to "Thu",
+    "чт" to "Thu",
+    "четверг" to "Thu",
+    "fri" to "Fri",
+    "friday" to "Fri",
+    "пт" to "Fri",
+    "пятница" to "Fri",
+    "sat" to "Sat",
+    "saturday" to "Sat",
+    "сб" to "Sat",
+    "суббота" to "Sat",
+    "sun" to "Sun",
+    "sunday" to "Sun",
+    "вс" to "Sun",
+    "воскресенье" to "Sun",
+)
 
 internal fun normalizeNutritionPlan(plan: AiNutritionResponse, locale: Locale): AiNutritionResponse {
     val fallbackMeals = templateMeals(locale)
     val normalizedMealsByDay = linkedMapOf<String, List<AiMeal>>()
+    val mealsByCanonicalDay = plan.mealsByDay.entries
+        .mapNotNull { (rawDay, meals) ->
+            canonicalDayKey(rawDay)?.let { canonical -> canonical to meals }
+        }
+        .toMap()
 
-    plan.mealsByDay.forEach { (dayRaw, meals) ->
-        val dayKey = sanitizeText(dayRaw).ifEmpty { dayRaw.trim() }.ifEmpty { "Day" }
+    RequiredDays.forEach { dayKey ->
+        val meals = mealsByCanonicalDay[dayKey].orEmpty()
         val cleanedMeals = meals.mapNotNull { meal ->
             val name = sanitizeText(meal.name)
             val ingredients = meal.ingredients.map(::sanitizeText).filter { it.isNotEmpty() }
@@ -59,11 +98,10 @@ internal fun normalizeNutritionPlan(plan: AiNutritionResponse, locale: Locale): 
 
 internal fun validateNutritionPlan(plan: AiNutritionResponse): String? {
     if (plan.mealsByDay.isEmpty()) return "mealsByDay must contain entries for the week"
-    val requiredDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val missingDays = requiredDays.filter { day -> day !in plan.mealsByDay.keys }
+    val missingDays = RequiredDays.filter { day -> day !in plan.mealsByDay.keys }
     if (missingDays.isNotEmpty()) return "mealsByDay missing required days: ${missingDays.joinToString(",")}"
 
-    requiredDays.forEach { day ->
+    RequiredDays.forEach { day ->
         val meals = plan.mealsByDay[day].orEmpty()
         if (meals.size < MinMealsPerDay) {
             return "$day must include at least $MinMealsPerDay meals"
@@ -76,6 +114,12 @@ internal fun validateNutritionPlan(plan: AiNutritionResponse): String? {
         }
     }
     return null
+}
+
+private fun canonicalDayKey(raw: String): String? {
+    val token = sanitizeText(raw).lowercase(Locale.US)
+    if (token.isBlank()) return null
+    return dayKeyAliases[token]
 }
 
 internal fun normalizeMacros(macros: Macros): Macros {

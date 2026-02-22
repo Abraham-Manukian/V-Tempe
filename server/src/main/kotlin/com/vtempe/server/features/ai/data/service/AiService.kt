@@ -124,22 +124,41 @@ class AiService(
                 callModel = llmClient::generateJson,
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
-                    validateBundle(bundle)?.let(::listOf) ?: emptyList()
+                    val normalizedCandidate = normalizeBundle(bundle, locale)
+                    validateBundle(normalizedCandidate)?.let(::listOf) ?: emptyList()
                 },
                 extractionMode = ExtractionMode.FirstJsonObject
             )
 
             val normalized = normalizeBundle(generated, locale)
             cacheMutex.withLock {
-                bundleCache[requestId] = CacheEntry(normalized, System.currentTimeMillis())
+                bundleCache[requestId] = CacheEntry(
+                    bundle = normalized,
+                    timestamp = System.currentTimeMillis(),
+                    ttlMs = BundleCacheTtlMs
+                )
                 inFlightBundles.remove(requestId)?.complete(normalized)
             }
             normalized
         } catch (t: Throwable) {
+            val fallbackBundle = normalizeBundle(
+                AiBootstrapResponse(
+                    trainingPlan = fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag)),
+                    nutritionPlan = fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag)),
+                    sleepAdvice = fallbackAdvice(AiAdviceRequest(profile, localeTag))
+                ),
+                locale
+            )
+            logger.warn("LLM bundle fallback activated for requestId={}", requestId, t)
             cacheMutex.withLock {
-                inFlightBundles.remove(requestId)?.completeExceptionally(t)
+                bundleCache[requestId] = CacheEntry(
+                    bundle = fallbackBundle,
+                    timestamp = System.currentTimeMillis(),
+                    ttlMs = FallbackCacheTtlMs
+                )
+                inFlightBundles.remove(requestId)?.complete(fallbackBundle)
             }
-            throw t
+            fallbackBundle
         }
     }
 
@@ -147,7 +166,7 @@ class AiService(
         val now = System.currentTimeMillis()
         return cacheMutex.withLock {
             bundleCache[requestId]?.let { entry ->
-                if (now - entry.timestamp <= BundleCacheTtlMs) {
+                if (isFresh(entry, now)) {
                     entry.bundle
                 } else {
                     bundleCache.remove(requestId)
@@ -160,7 +179,7 @@ class AiService(
     private suspend fun lockInFlightBundle(requestId: String): PendingBundle {
         return cacheMutex.withLock {
             bundleCache[requestId]?.let { entry ->
-                if (System.currentTimeMillis() - entry.timestamp <= BundleCacheTtlMs) {
+                if (isFresh(entry)) {
                     return@withLock PendingBundle(
                         deferred = CompletableDeferred<AiBootstrapResponse>().apply { complete(entry.bundle) },
                         isOwner = false
@@ -198,17 +217,25 @@ class AiService(
         return "${fingerprint.hashCode()}|$weekIndex|$localeTag"
     }
 
+    private fun isFresh(entry: CacheEntry, now: Long = System.currentTimeMillis()): Boolean =
+        now - entry.timestamp <= entry.ttlMs
+
     companion object {
         private val LlmTimeoutMs = Env["AI_LLM_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(30_000L) ?: 240_000L
         private const val DefaultLocale = "en-US"
         private const val BundleCacheTtlMs = 30 * 60 * 1000L
+        private const val FallbackCacheTtlMs = 2 * 60 * 1000L
 
         private val bundleCache = ConcurrentHashMap<String, CacheEntry>()
         private val cacheMutex = Mutex()
         private val inFlightBundles = ConcurrentHashMap<String, CompletableDeferred<AiBootstrapResponse>>()
     }
 
-    private data class CacheEntry(val bundle: AiBootstrapResponse, val timestamp: Long)
+    private data class CacheEntry(
+        val bundle: AiBootstrapResponse,
+        val timestamp: Long,
+        val ttlMs: Long
+    )
     private data class PendingBundle(
         val deferred: CompletableDeferred<AiBootstrapResponse>,
         val isOwner: Boolean

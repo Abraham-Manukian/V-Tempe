@@ -22,6 +22,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 import java.net.Proxy
+import org.slf4j.LoggerFactory
 
 private const val REQUEST_TIMEOUT_MS = 180_000L
 private const val SOCKET_TIMEOUT_MS = 180_000L
@@ -71,8 +72,29 @@ class OpenRouterLLMClient(
     }
 
     override suspend fun generateJson(prompt: String): String {
+        val response = try {
+            requestCompletion(model = resolvedModel, prompt = prompt)
+        } catch (ex: Throwable) {
+            if (!shouldFallbackToAutoModel(ex)) throw ex
+            logger.warn(
+                "Model '{}' failed with provider 400. Falling back to '{}'",
+                resolvedModel,
+                DEFAULT_MODEL
+            )
+            requestCompletion(model = DEFAULT_MODEL, prompt = prompt)
+        }
+
+        val content = response.choices.firstOrNull()?.message?.content?.trim()
+            ?: error("OpenRouter response did not contain choices")
+        if (content.isEmpty()) {
+            error("OpenRouter response was empty")
+        }
+        return content
+    }
+
+    private suspend fun requestCompletion(model: String, prompt: String): ChatCompletionResponseDto {
         val body = ChatCompletionRequestDto(
-            model = resolvedModel,
+            model = model,
             messages = listOf(
                 ChatMessageDto(role = "system", content = SYSTEM_PROMPT),
                 ChatMessageDto(role = "user", content = prompt)
@@ -90,6 +112,7 @@ class OpenRouterLLMClient(
         } catch (ex: HttpRequestTimeoutException) {
             throw IllegalStateException("OpenRouter request timed out: ${ex.message}", ex)
         }
+
         response.error?.let { err ->
             val code = err.codeAsString ?: "unknown"
             val status = err.codeAsString?.toIntOrNull()
@@ -99,12 +122,15 @@ class OpenRouterLLMClient(
             }
             throw IllegalStateException(message)
         }
-        val content = response.choices.firstOrNull()?.message?.content?.trim()
-            ?: error("OpenRouter response did not contain choices")
-        if (content.isEmpty()) {
-            error("OpenRouter response was empty")
-        }
-        return content
+        return response
+    }
+
+    private fun shouldFallbackToAutoModel(error: Throwable): Boolean {
+        if (resolvedModel.equals(DEFAULT_MODEL, ignoreCase = true)) return false
+        val message = error.message?.lowercase().orEmpty()
+        val provider400FromBody = message.contains("openrouter error 400") && message.contains("provider returned error")
+        val provider400FromHttp = message.contains("openrouter http 400") && message.contains("provider returned error")
+        return provider400FromBody || provider400FromHttp
     }
     private suspend fun mapResponseException(ex: ResponseException): Throwable {
         val status = ex.response.status
@@ -146,6 +172,7 @@ class OpenRouterLLMClient(
         private const val SYSTEM_PROMPT =
             "You must reply with a single valid JSON object that exactly matches the user's schema. " +
             "Do not add explanations, markdown, apologies, or text outside the JSON object."
+        private val logger = LoggerFactory.getLogger(OpenRouterLLMClient::class.java)
     }
 }
 
