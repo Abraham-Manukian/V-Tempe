@@ -94,6 +94,23 @@
     <!-- Workout -->
     <string name="workout_add_set_title">Добавить сет</string>
     <string name="workout_exercise_label">Упражнение</string>
+    <string name="workout_exercise_squat">Приседания со штангой</string>
+    <string name="workout_exercise_bench">Жим лёжа</string>
+    <string name="workout_exercise_deadlift">Становая тяга</string>
+    <string name="workout_exercise_ohp">Жим стоя</string>
+    <string name="workout_exercise_row">Тяга в наклоне</string>
+    <string name="workout_exercise_pullup">Подтягивания</string>
+    <string name="workout_exercise_lunge">Выпады</string>
+    <string name="workout_exercise_dip">Отжимания на брусьях</string>
+    <string name="workout_exercise_pushup">Отжимания</string>
+    <string name="workout_exercise_curl">Сгибания на бицепс</string>
+    <string name="workout_exercise_tricep_extension">Разгибания на трицепс</string>
+    <string name="workout_exercise_plank">Планка</string>
+    <string name="workout_exercise_hip_thrust">Ягодичный мост</string>
+    <string name="workout_exercise_leg_press">Жим ногами</string>
+    <string name="workout_exercise_run">Бег</string>
+    <string name="workout_exercise_bike">Велотренажёр</string>
+    <string name="workout_exercise_yoga">Йога</string>
     <string name="workout_reps_label">Повторения</string>
     <string name="workout_weight_label">Вес</string>
     <string name="workout_rpe_label">RPE</string>

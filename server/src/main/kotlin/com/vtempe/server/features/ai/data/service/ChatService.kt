@@ -1,5 +1,10 @@
-﻿package com.vtempe.server.features.ai.data.service
+package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.llm.LLMClient
+import com.vtempe.server.features.ai.data.llm.LlmRepairer
+import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
+import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.config.Env
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapResponse
@@ -8,17 +13,11 @@ import com.vtempe.server.shared.dto.chat.AiChatResponse
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
-import com.vtempe.server.features.ai.data.llm.LLMClient
-import com.vtempe.server.features.ai.data.llm.LlmRepairer
-import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
-import com.vtempe.server.features.ai.data.llm.pipeline.ResponseExtractor
 import java.util.Locale
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.collections.buildList
 import org.slf4j.LoggerFactory
-import org.slf4j.Logger
-
 
 class ChatService(
     private val llmClient: LLMClient,
@@ -26,7 +25,6 @@ class ChatService(
     private val aiService: AiService
 ) {
     private val logger = LoggerFactory.getLogger(ChatService::class.java)
-    private val extractor = ResponseExtractor()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -34,36 +32,35 @@ class ChatService(
         coerceInputValues = true
     }
 
-    suspend fun chat(req: AiChatRequest): AiChatResponse {
-        return runCatching {
-            // 1) обязательно объяви prompt
-            val prompt = buildChatPrompt(req) // или как у тебя называется
+    suspend fun chat(req: AiChatRequest): AiChatResponse = runCatching {
+        val locale = safeLocale(req.locale ?: req.profile.locale)
+        val prompt = buildChatPrompt(req, locale)
+        val requestId = "chat|${req.messages.size}|${req.messages.lastOrNull()?.content?.hashCode() ?: 0}"
 
-            val rawResponse = llmRepairer.generate(
+        val response = withTimeout(LlmTimeoutMs) {
+            llmRepairer.generate(
                 logger = logger,
                 operation = "chat",
                 requestId = requestId,
-                timeoutMs = LlmTimeoutMs,
-                prompt = basePrompt,
-                callModel = { p -> llmClient.generateJson(p) },
-                extraction = com.vtempe.server.features.ai.data.llm.pipeline.FirstJsonObjectExtraction(extractor),
+                basePrompt = prompt,
+                callModel = llmClient::generateJson,
                 strategy = AiChatResponse.serializer(),
-                validator = com.vtempe.server.features.ai.data.llm.pipeline.Validator { resp ->
-                    buildList {
-                        validateChatResponse(resp)?.let { add(it) } // если String?
-                    }
-                }
-            )
-            return normalizeChatResponse(rawResponse, locale)
-        }.getOrElse {
-            logger.warn("LLM chat fallback triggered", it)
-            AiChatResponse(
-                reply = fallbackChatMessage(safeLocale(req.locale)),
-                trainingPlan = null,
-                nutritionPlan = null,
-                sleepAdvice = null,
+                validator = SchemaValidator { resp ->
+                    validateChatResponse(resp)?.let(::listOf) ?: emptyList()
+                },
+                extractionMode = ExtractionMode.FirstJsonObject
             )
         }
+
+        normalizeChatResponse(response, locale)
+    }.getOrElse {
+        logger.warn("LLM chat fallback triggered", it)
+        AiChatResponse(
+            reply = fallbackChatMessage(safeLocale(req.locale ?: req.profile.locale)),
+            trainingPlan = null,
+            nutritionPlan = null,
+            sleepAdvice = null,
+        )
     }
 
     suspend fun bootstrap(req: AiBootstrapRequest): AiBootstrapResponse = runCatching {
@@ -71,107 +68,56 @@ class ChatService(
     }.getOrElse {
         logger.warn("Bootstrap bundle failed", it)
         AiBootstrapResponse(
-            trainingPlan = aiService.training(
-                AiTrainingRequest(
-                    req.profile,
-                    req.weekIndex
-                )
-            ),
-            nutritionPlan = aiService.nutrition(
-                AiNutritionRequest(
-                    req.profile,
-                    req.weekIndex
-                )
-            ),
-            sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile))
+            trainingPlan = aiService.training(AiTrainingRequest(req.profile, req.weekIndex, req.locale)),
+            nutritionPlan = aiService.nutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale)),
+            sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile, req.locale))
         )
     }
 
-    private fun extractChatTextSignals(response: AiChatResponse): List<String> = buildList<String> {
-        add(response.reply)
+    private fun buildChatPrompt(req: AiChatRequest, locale: Locale): String {
+        val localeTag = (req.locale ?: req.profile.locale)?.takeIf { it.isNotBlank() } ?: DefaultLocale
+        val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
+        val profileJson = json.encodeToString(AiProfile.serializer(), req.profile)
+        val profileSummary = buildChatProfileSummary(req.profile)
 
-        response.trainingPlan?.let { plan ->
-            addAll(
-                plan.workouts.flatMap { workout ->
-                    buildList<String> {
-                        add(workout.id)
-                        add(workout.date)
-                        addAll(workout.sets.map { set -> "${set.exerciseId}:${set.reps}" })
-                    }
-                }
-            )
-        }
+        val lastUserMessage = req.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }?.content
+            ?: req.messages.lastOrNull()?.content
+            ?: ""
 
-        response.nutritionPlan?.let { plan ->
-            addAll(
-                plan.mealsByDay.values.flatten().flatMap { meal ->
-                    buildList<String> {
-                        add(meal.name)
-                        addAll(meal.ingredients)
-                    }
-                }
-            )
-            addAll(plan.shoppingList)
-        }
+        val history = req.messages.dropLast(1).joinToString("\n") { "${it.role}: ${it.content}" }
 
-        response.sleepAdvice?.let { advice ->
-            addAll(advice.messages)
-            advice.disclaimer?.let { add(it) }
-        }
-    }
-
-
-    private fun buildChatPrompt(
-        localeTag: String,
-        languageDisplay: String,
-        profileJson: String,
-        profileSummary: String,
-        lastUserMessage: String,
-        history: String
-    ): String = buildString {
-        appendLine("You are a professional AI strength coach, nutritionist, and recovery expert guiding the same athlete long-term.")
-        appendLine("User locale: $languageDisplay ($localeTag). Reply in that language and measurement system.")
-        appendLine()
-        appendLine("PROFILE CONTEXT (JSON):")
-        appendLine(profileJson)
-        appendLine()
-        appendLine("KEY FACTS:")
-        append(profileSummary)
-        appendLine()
-        appendLine("When replying: first acknowledge the latest user message, then provide clear next steps. Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes or new plans; otherwise return null for unchanged sections.")
-        appendLine("Return STRICT JSON matching this schema (no comments or extra text):")
-        appendLine("{\"reply\": String,")
-        appendLine(" \"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{ \"id\": String, \"date\": String(YYYY-MM-DD), \"sets\": [{ \"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double? }] }] } | null,")
-        appendLine(" \"nutritionPlan\": {\"weekIndex\": Int, \"mealsByDay\": { DayLabel: [{ \"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": { \"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int } }] }, \"shoppingList\": [String]} | null,")
-        appendLine(" \"sleepAdvice\": {\"messages\": [String], \"disclaimer\": String?} | null }")
-        appendLine()
-        appendLine("Guidelines:")
-        appendLine("- Set plan sections to null when no update is required; never return empty arrays to signal no change.")
-        appendLine("- Nutrition updates MUST include integer macros fields in every meal object. Example: {\"name\":\"Power Oats\",\"ingredients\":[\"rolled oats\",\"milk\",\"berries\"],\"kcal\":420,\"macros\":{\"proteinGrams\":35,\"fatGrams\":12,\"carbsGrams\":55,\"kcal\":420}}")
-        appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (+/- 20 kcal). Fix kcal rather than omitting fields.")
-        appendLine("Do not include trailing commas or comments; output must be valid JSON.")
-        appendLine("Latest user message: \"$lastUserMessage\".")
-        appendLine("Conversation so far:")
-        if (history.isNotBlank()) {
-            appendLine(history)
-        } else {
-            appendLine("No previous messages provided.")
-        }
-    }
-
-    private fun withChatFeedback(basePrompt: String, attempt: Int, feedback: String?): String = buildString {
-        append(basePrompt)
-        if (feedback != null) {
+        return buildString {
+            appendLine("You are a professional AI strength coach, nutritionist, and recovery expert guiding the same athlete long-term.")
+            appendLine("User locale: $languageDisplay ($localeTag). Reply in that language and measurement system.")
             appendLine()
-            appendLine("Previous attempt issue (#${attempt - 1}): $feedback")
-            appendLine("Return only corrected JSON that satisfies the schema.")
+            appendLine("PROFILE CONTEXT (JSON):")
+            appendLine(profileJson)
+            appendLine()
+            appendLine("KEY FACTS:")
+            append(profileSummary)
+            appendLine()
+            appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
+            appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes or new plans; otherwise return null for unchanged sections.")
+            appendLine("Return STRICT JSON matching this schema (no comments or extra text):")
+            appendLine("{\"reply\": String,")
+            appendLine(" \"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{ \"id\": String, \"date\": String(YYYY-MM-DD), \"sets\": [{ \"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double? }] }] } | null,")
+            appendLine(" \"nutritionPlan\": {\"weekIndex\": Int, \"mealsByDay\": { DayLabel: [{ \"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": { \"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int } }] }, \"shoppingList\": [String]} | null,")
+            appendLine(" \"sleepAdvice\": {\"messages\": [String], \"disclaimer\": String?} | null }")
+            appendLine()
+            appendLine("Guidelines:")
+            appendLine("- Set plan sections to null when no update is required; never return empty arrays to signal no change.")
+            appendLine("- Nutrition updates MUST include integer macros fields in every meal object.")
+            appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (+/- 20 kcal). Fix kcal rather than omitting fields.")
+            appendLine("Do not include trailing commas or comments; output must be valid JSON.")
+            appendLine("Latest user message: \"$lastUserMessage\".")
+            appendLine("Conversation so far:")
+            if (history.isNotBlank()) appendLine(history) else appendLine("No previous messages provided.")
         }
     }
 
     companion object {
-        private const val LlmTimeoutMs = 90_000L
+        private val LlmTimeoutMs = Env["AI_CHAT_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(15_000L) ?: 120_000L
         private const val DefaultLocale = "en-US"
-        private val logger = LoggerFactory.getLogger(ChatService::class.java)
     }
 }
 
@@ -193,11 +139,9 @@ private fun buildChatProfileSummary(profile: AiProfile): String = buildString {
     append("- Nutrition budget level (1 low .. 3 high): ${profile.budgetLevel}")
 }
 
-
-
 private fun fallbackChatMessage(locale: Locale): String =
     if (locale.language.equals("ru", ignoreCase = true)) {
-        "\u0422\u0440\u0435\u043d\u0435\u0440 \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d. \u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437 \u0447\u0443\u0442\u044c \u043f\u043e\u0437\u0436\u0435."
+        "Тренер временно недоступен. Пожалуйста, попробуйте ещё раз чуть позже."
     } else {
         "Coach is temporarily unavailable. Please try again later."
     }
@@ -221,3 +165,4 @@ private fun normalizeChatResponse(response: AiChatResponse, locale: Locale): AiC
     nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale) },
     sleepAdvice = response.sleepAdvice?.let(::normalizeAdvice)
 )
+

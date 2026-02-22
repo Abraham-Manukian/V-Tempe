@@ -64,6 +64,15 @@ class AiResponseCache(
         settings.remove(KEY_BUNDLE_TIMESTAMP)
     }
 
+    fun clearAll() {
+        settings.remove(KEY_TRAINING)
+        settings.remove(KEY_NUTRITION)
+        settings.remove(KEY_ADVICE)
+        settings.remove(KEY_BUNDLE)
+        settings.remove(KEY_CHAT)
+        clearBundleMetadata()
+    }
+
     fun storeChatResponse(dto: ChatResponse) {
         settings.putString(KEY_CHAT, json.encodeToString(dto))
     }

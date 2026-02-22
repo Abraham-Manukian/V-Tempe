@@ -100,7 +100,7 @@ class EnsureCoachData(
         val needsNutrition = needsRefresh || !nutritionRepository.hasPlan(weekIndex)
         val needsAdvice = needsRefresh || !adviceRepository.hasAdvice("sleep")
         if (versionMismatch) {
-            aiResponseCache.clearBundleMetadata()
+            aiResponseCache.clearAll()
         }
         if (!needsTraining && !needsNutrition && !needsAdvice) return true
         return bootstrapCoachData(weekIndex)

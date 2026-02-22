@@ -35,7 +35,7 @@ object AppModule {
         viewModel { SleepViewModel(get(), get()) }
         viewModel { ProgressViewModel(get(), get()) }
         viewModel { PaywallViewModel(get()) }
-        viewModel { SettingsViewModel(get(), get()) }
-        viewModel { ChatViewModel(get()) }
+        viewModel { SettingsViewModel(get(), get(), get()) }
+        viewModel { ChatViewModel(get(), get()) }
     }
 }

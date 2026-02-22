@@ -1,8 +1,10 @@
 package com.vtempe.server.features.ai.data.llm.pipeline
 
 import com.vtempe.server.features.ai.data.llm.decode.Decoder
+import com.vtempe.server.features.ai.data.llm.extract.ExtractionFailure
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.extract.ExtractionResult
+import com.vtempe.server.features.ai.data.llm.extract.ExtractionSuccess
 import com.vtempe.server.features.ai.data.llm.extract.ResponseExtractor
 import com.vtempe.server.features.ai.data.llm.feedback.FeedbackComposer
 import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
@@ -41,14 +43,11 @@ class LlmPipeline(
 
             rawStore.write(operation, requestId, attempt, "raw", raw)
 
-            val extracted = when (extractionMode) {
-                is ExtractionMode.FirstJsonObject -> extractor.firstJsonObject(raw)
-                is ExtractionMode.MarkerAfter -> extractor.jsonAfterMarker(raw, extractionMode.marker)
-            }
+            val extracted = extractCandidate(raw, extractionMode)
 
             val candidate = when (extracted) {
-                is ExtractionResult.Success -> extracted.candidate
-                is ExtractionResult.Failure -> {
+                is ExtractionSuccess -> extracted.candidate
+                is ExtractionFailure -> {
                     val msg = extracted.reason
                     tracker.fail(logger, operation, requestId, attempt, "extract", msg, snippet(raw))
                     fb = feedback.decodeError(msg)
@@ -96,11 +95,24 @@ class LlmPipeline(
         throw IllegalStateException("LLM $operation failed after ${config.maxAttempts} attempts. lastRaw=${snippet(lastRaw) ?: "<empty>"}")
     }
 
-    private fun snippet(s: String): String? =
-        s.replace('\n', ' ').replace('\r', ' ').trim().takeIf { it.isNotEmpty() }?.take(config.rawSnippetLimit)
-}
+    private fun extractCandidate(raw: String, extractionMode: ExtractionMode): ExtractionResult =
+        when (extractionMode) {
+            is ExtractionMode.FirstJsonObject -> extractor.firstJsonObject(raw)
+            is ExtractionMode.MarkerAfter -> {
+                when (val markerResult = extractor.jsonAfterMarker(raw, extractionMode.marker)) {
+                    is ExtractionSuccess -> markerResult
+                    is ExtractionFailure -> {
+                        when (val firstObjectResult = extractor.firstJsonObject(raw)) {
+                            is ExtractionSuccess -> firstObjectResult
+                            is ExtractionFailure -> ExtractionFailure(
+                                "${markerResult.reason}; fallback first-json failed: ${firstObjectResult.reason}"
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
-sealed class ExtractionMode {
-    data object FirstJsonObject : ExtractionMode()
-    data class MarkerAfter(val marker: String) : ExtractionMode()
+private fun snippet(s: String): String? =
+        s.replace('\n', ' ').replace('\r', ' ').trim().takeIf { it.isNotEmpty() }?.take(config.rawSnippetLimit)
 }

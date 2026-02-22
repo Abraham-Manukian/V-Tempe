@@ -338,13 +338,29 @@ private fun AddSetSheet(
 
 @Composable
 private fun exerciseLabel(exerciseId: String): String {
-    val resource = when {
-        exerciseId.contains("run", ignoreCase = true) -> Res.string.workout_exercise_label
-        exerciseId.contains("bike", ignoreCase = true) -> Res.string.workout_exercise_label
-        exerciseId.contains("yoga", ignoreCase = true) -> Res.string.workout_exercise_label
+    val normalized = exerciseId.trim().lowercase().replace('-', '_').replace(' ', '_')
+    val resource = when (normalized) {
+        "squat", "back_squat" -> Res.string.workout_exercise_squat
+        "bench", "bench_press" -> Res.string.workout_exercise_bench
+        "deadlift" -> Res.string.workout_exercise_deadlift
+        "ohp" -> Res.string.workout_exercise_ohp
+        "row", "bent_over_row", "barbell_row" -> Res.string.workout_exercise_row
+        "pullup", "pull_up", "pullups" -> Res.string.workout_exercise_pullup
+        "lunge", "walking_lunge" -> Res.string.workout_exercise_lunge
+        "dip", "parallel_bar_dip", "parallel_bar_dips" -> Res.string.workout_exercise_dip
+        "pushup", "push_up" -> Res.string.workout_exercise_pushup
+        "curl", "bicep_curl", "biceps_curl" -> Res.string.workout_exercise_curl
+        "tricep_extension", "triceps_extension", "triceps_extensions" -> Res.string.workout_exercise_tricep_extension
+        "plank", "plank_hold" -> Res.string.workout_exercise_plank
+        "hip_thrust", "hipthrust" -> Res.string.workout_exercise_hip_thrust
+        "leg_press", "legpress" -> Res.string.workout_exercise_leg_press
+        "run", "running" -> Res.string.workout_exercise_run
+        "bike", "cycling" -> Res.string.workout_exercise_bike
+        "yoga" -> Res.string.workout_exercise_yoga
         else -> null
     }
-    return resource?.let { stringResource(it) } ?: exerciseId.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    return resource?.let { stringResource(it) }
+        ?: exerciseId.replace('_', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }
 
 @Composable

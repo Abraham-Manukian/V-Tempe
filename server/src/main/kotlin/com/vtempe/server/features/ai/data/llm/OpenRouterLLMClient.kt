@@ -22,9 +22,10 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 import java.net.Proxy
+import org.slf4j.LoggerFactory
 
-private const val REQUEST_TIMEOUT_MS = 90_000L
-private const val SOCKET_TIMEOUT_MS = 90_000L
+private const val REQUEST_TIMEOUT_MS = 180_000L
+private const val SOCKET_TIMEOUT_MS = 180_000L
 private const val CONNECT_TIMEOUT_MS = 20_000L
 
 class OpenRouterLLMClient(
@@ -34,12 +35,22 @@ class OpenRouterLLMClient(
     temperature: Double? = null,
     siteUrl: String? = null,
     appName: String? = null,
+    requestTimeoutMs: Long = REQUEST_TIMEOUT_MS,
+    socketTimeoutMs: Long = SOCKET_TIMEOUT_MS,
+    connectTimeoutMs: Long = CONNECT_TIMEOUT_MS,
+    topP: Double? = null,
+    maxTokens: Int? = null,
 ) : LLMClient {
     private val resolvedBaseUrl = (baseUrl ?: DEFAULT_BASE_URL).trimEnd('/')
     private val resolvedTemperature = temperature ?: DEFAULT_TEMPERATURE
     private val resolvedSiteUrl = siteUrl ?: DEFAULT_SITE_URL
     private val resolvedAppName = appName ?: DEFAULT_APP_NAME
     private val resolvedModel = model
+    private val resolvedRequestTimeoutMs = requestTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedSocketTimeoutMs = socketTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedConnectTimeoutMs = connectTimeoutMs.coerceAtLeast(1_000L)
+    private val resolvedTopP = topP
+    private val resolvedMaxTokens = maxTokens
 
     private val http = HttpClient(OkHttp) {
         engine {
@@ -47,9 +58,9 @@ class OpenRouterLLMClient(
         }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         install(HttpTimeout) {
-            requestTimeoutMillis = REQUEST_TIMEOUT_MS
-            socketTimeoutMillis = SOCKET_TIMEOUT_MS
-            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            requestTimeoutMillis = resolvedRequestTimeoutMs
+            socketTimeoutMillis = resolvedSocketTimeoutMs
+            connectTimeoutMillis = resolvedConnectTimeoutMs
         }
         defaultRequest {
             bearerAuth(apiKey)
@@ -61,13 +72,36 @@ class OpenRouterLLMClient(
     }
 
     override suspend fun generateJson(prompt: String): String {
+        val response = try {
+            requestCompletion(model = resolvedModel, prompt = prompt)
+        } catch (ex: Throwable) {
+            if (!shouldFallbackToAutoModel(ex)) throw ex
+            logger.warn(
+                "Model '{}' failed with provider 400. Falling back to '{}'",
+                resolvedModel,
+                DEFAULT_MODEL
+            )
+            requestCompletion(model = DEFAULT_MODEL, prompt = prompt)
+        }
+
+        val content = response.choices.firstOrNull()?.message?.content?.trim()
+            ?: error("OpenRouter response did not contain choices")
+        if (content.isEmpty()) {
+            error("OpenRouter response was empty")
+        }
+        return content
+    }
+
+    private suspend fun requestCompletion(model: String, prompt: String): ChatCompletionResponseDto {
         val body = ChatCompletionRequestDto(
-            model = resolvedModel,
+            model = model,
             messages = listOf(
                 ChatMessageDto(role = "system", content = SYSTEM_PROMPT),
                 ChatMessageDto(role = "user", content = prompt)
             ),
-            temperature = resolvedTemperature
+            temperature = resolvedTemperature,
+            topP = resolvedTopP,
+            maxTokens = resolvedMaxTokens
         )
         val response: ChatCompletionResponseDto = try {
             http.post("$resolvedBaseUrl/chat/completions") {
@@ -78,16 +112,25 @@ class OpenRouterLLMClient(
         } catch (ex: HttpRequestTimeoutException) {
             throw IllegalStateException("OpenRouter request timed out: ${ex.message}", ex)
         }
+
         response.error?.let { err ->
             val code = err.codeAsString ?: "unknown"
-            throw IllegalStateException("OpenRouter error $code: ${err.message}")
+            val status = err.codeAsString?.toIntOrNull()
+            val message = "OpenRouter error $code: ${err.message}"
+            if (status == HttpStatusCode.TooManyRequests.value) {
+                throw RateLimitException(message)
+            }
+            throw IllegalStateException(message)
         }
-        val content = response.choices.firstOrNull()?.message?.content?.trim()
-            ?: error("OpenRouter response did not contain choices")
-        if (content.isEmpty()) {
-            error("OpenRouter response was empty")
-        }
-        return content
+        return response
+    }
+
+    private fun shouldFallbackToAutoModel(error: Throwable): Boolean {
+        if (resolvedModel.equals(DEFAULT_MODEL, ignoreCase = true)) return false
+        val message = error.message?.lowercase().orEmpty()
+        val provider400FromBody = message.contains("openrouter error 400") && message.contains("provider returned error")
+        val provider400FromHttp = message.contains("openrouter http 400") && message.contains("provider returned error")
+        return provider400FromBody || provider400FromHttp
     }
     private suspend fun mapResponseException(ex: ResponseException): Throwable {
         val status = ex.response.status
@@ -129,6 +172,7 @@ class OpenRouterLLMClient(
         private const val SYSTEM_PROMPT =
             "You must reply with a single valid JSON object that exactly matches the user's schema. " +
             "Do not add explanations, markdown, apologies, or text outside the JSON object."
+        private val logger = LoggerFactory.getLogger(OpenRouterLLMClient::class.java)
     }
 }
 

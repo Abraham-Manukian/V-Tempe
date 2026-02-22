@@ -25,8 +25,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CancellationException
 import io.ktor.utils.io.errors.IOException
 
-private const val DEFAULT_REQUEST_TIMEOUT_MS = 30_000L
-private const val DEFAULT_SOCKET_TIMEOUT_MS = 30_000L
+private const val DEFAULT_REQUEST_TIMEOUT_MS = 180_000L
+private const val DEFAULT_SOCKET_TIMEOUT_MS = 180_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 15_000L
 
 class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
