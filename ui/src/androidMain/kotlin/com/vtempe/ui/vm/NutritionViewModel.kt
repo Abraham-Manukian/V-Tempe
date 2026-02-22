@@ -6,6 +6,7 @@ import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.ui.screens.NutritionPresenter
 import com.vtempe.ui.screens.NutritionState
+import com.vtempe.ui.screens.resolveNutritionSelectedDay
 import com.vtempe.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,13 @@ class NutritionViewModel(
         viewModelScope.launch {
             nutritionRepository.observePlan().collect { plan ->
                 if (plan != null) {
-                    _state.value = _state.value.copy(ui = UiState.Data(plan))
+                    _state.value = _state.value.copy(
+                        ui = UiState.Data(plan),
+                        selectedDay = resolveNutritionSelectedDay(
+                            selectedDay = _state.value.selectedDay,
+                            availableDays = plan.mealsByDay.keys
+                        )
+                    )
                 } else if (_state.value.ui !is UiState.Data) {
                     _state.value = _state.value.copy(ui = UiState.Loading)
                 }

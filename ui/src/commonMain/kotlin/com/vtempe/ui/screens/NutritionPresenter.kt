@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 data class NutritionState(
     val ui: UiState<NutritionPlan> = UiState.Loading,
-    val selectedDay: String = "Mon"
+    val selectedDay: String = currentWeekdayKey()
 )
 
 interface NutritionPresenter {

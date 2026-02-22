@@ -29,7 +29,13 @@ private class IosNutritionPresenter(
         scope.launch {
             nutritionRepository.observePlan().collect { plan ->
                 if (plan != null) {
-                    mutableState.value = mutableState.value.copy(ui = UiState.Data(plan))
+                    mutableState.value = mutableState.value.copy(
+                        ui = UiState.Data(plan),
+                        selectedDay = resolveNutritionSelectedDay(
+                            selectedDay = mutableState.value.selectedDay,
+                            availableDays = plan.mealsByDay.keys
+                        )
+                    )
                 } else if (mutableState.value.ui !is UiState.Data) {
                     mutableState.value = mutableState.value.copy(ui = UiState.Loading)
                 }
