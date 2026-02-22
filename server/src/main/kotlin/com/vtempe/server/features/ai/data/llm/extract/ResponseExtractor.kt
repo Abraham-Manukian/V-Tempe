@@ -5,22 +5,22 @@ class ResponseExtractor {
     fun firstJsonObject(raw: String): ExtractionResult {
         val src = raw.replace("\r", "")
         val start = src.indexOf('{')
-        if (start < 0) return ExtractionResult.Failure("No '{' found in output")
+        if (start < 0) return ExtractionFailure("No '{' found in output")
 
         val (obj, ok) = extractBalancedObject(src, start)
-        return if (ok) ExtractionResult.Success(obj) else ExtractionResult.Failure("Could not extract balanced JSON object")
+        return if (ok) ExtractionSuccess(obj) else ExtractionFailure("Could not extract balanced JSON object")
     }
 
     fun jsonAfterMarker(raw: String, marker: String): ExtractionResult {
         val src = raw.replace("\r", "")
         val m = src.indexOf(marker)
-        if (m < 0) return ExtractionResult.Failure("Expected marker '$marker'")
+        if (m < 0) return ExtractionFailure("Expected marker '$marker'")
 
         val start = src.indexOf('{', m + marker.length)
-        if (start < 0) return ExtractionResult.Failure("Marker '$marker' found but no '{' after it")
+        if (start < 0) return ExtractionFailure("Marker '$marker' found but no '{' after it")
 
         val (obj, ok) = extractBalancedObject(src, start)
-        return if (ok) ExtractionResult.Success(obj) else ExtractionResult.Failure("Could not extract balanced JSON after '$marker'")
+        return if (ok) ExtractionSuccess(obj) else ExtractionFailure("Could not extract balanced JSON after '$marker'")
     }
 
     private fun extractBalancedObject(source: String, startIndex: Int): Pair<String, Boolean> {
