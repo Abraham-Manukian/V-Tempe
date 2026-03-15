@@ -7,8 +7,9 @@ class ResponseExtractor {
         val start = src.indexOf('{')
         if (start < 0) return ExtractionFailure("No '{' found in output")
 
-        val (obj, ok) = extractBalancedObject(src, start)
-        return if (ok) ExtractionSuccess(obj) else ExtractionFailure("Could not extract balanced JSON object")
+        val (obj, _) = extractBalancedObject(src, start)
+        // Even if braces are unbalanced, pass candidate to sanitizer/decoder phase.
+        return ExtractionSuccess(obj)
     }
 
     fun jsonAfterMarker(raw: String, marker: String): ExtractionResult {
@@ -19,8 +20,8 @@ class ResponseExtractor {
         val start = src.indexOf('{', m + marker.length)
         if (start < 0) return ExtractionFailure("Marker '$marker' found but no '{' after it")
 
-        val (obj, ok) = extractBalancedObject(src, start)
-        return if (ok) ExtractionSuccess(obj) else ExtractionFailure("Could not extract balanced JSON after '$marker'")
+        val (obj, _) = extractBalancedObject(src, start)
+        return ExtractionSuccess(obj)
     }
 
     private fun extractBalancedObject(source: String, startIndex: Int): Pair<String, Boolean> {

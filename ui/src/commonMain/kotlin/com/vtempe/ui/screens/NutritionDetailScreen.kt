@@ -1,4 +1,4 @@
-﻿@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
@@ -63,7 +63,7 @@ fun NutritionDetailScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // РћС‚СЃС‚СѓРї РїРѕРґ "РїР°СЂСЏС‰РёР№" С‚РѕРї Р±Р°СЂ
+            // Отступ под "парящий" топ бар
             Spacer(Modifier.height(topBarHeight + 16.dp))
 
             Row(
@@ -158,7 +158,7 @@ fun NutritionDetailScreen(
                 }
             }
             
-            // РћС‚СЃС‚СѓРї РїРѕРґ "РїР°СЂСЏС‰РёР№" Р±РѕС‚С‚РѕРј Р±Р°СЂ
+            // Отступ под "парящий" боттом бар
             Spacer(Modifier.height(bottomBarHeight + 32.dp))
         }
     }

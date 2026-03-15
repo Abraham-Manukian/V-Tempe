@@ -1,6 +1,7 @@
 ﻿package com.vtempe.shared.data.network.dto
 
 import com.vtempe.shared.domain.model.Advice
+import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
@@ -27,10 +28,11 @@ internal data class AiProfileDto(
     val weeklySchedule: Map<String, Boolean>,
     val injuries: List<String> = emptyList(),
     val healthNotes: List<String> = emptyList(),
-    val budgetLevel: Int = 2
+    val budgetLevel: Int = 2,
+    val llmMode: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile) = AiProfileDto(
+        fun fromDomain(profile: Profile, llmMode: AiModelMode) = AiProfileDto(
             age = profile.age,
             sex = profile.sex.name,
             heightCm = profile.heightCm,
@@ -43,7 +45,8 @@ internal data class AiProfileDto(
             weeklySchedule = profile.weeklySchedule,
             injuries = profile.constraints.injuries,
             healthNotes = profile.constraints.healthNotes,
-            budgetLevel = profile.budgetLevel
+            budgetLevel = profile.budgetLevel,
+            llmMode = llmMode.wireValue
         )
     }
 }
@@ -55,8 +58,8 @@ internal data class AiTrainingRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?) =
-            AiTrainingRequestDto(AiProfileDto.fromDomain(profile), weekIndex, locale)
+        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
+            AiTrainingRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
     }
 }
 
@@ -67,8 +70,8 @@ internal data class AiNutritionRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?) =
-            AiNutritionRequestDto(AiProfileDto.fromDomain(profile), weekIndex, locale)
+        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
+            AiNutritionRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
     }
 }
 
@@ -78,8 +81,8 @@ internal data class AiAdviceRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, locale: String?) =
-            AiAdviceRequestDto(AiProfileDto.fromDomain(profile), locale)
+        fun fromDomain(profile: Profile, locale: String?, llmMode: AiModelMode) =
+            AiAdviceRequestDto(AiProfileDto.fromDomain(profile, llmMode), locale)
     }
 }
 
@@ -243,8 +246,8 @@ internal data class AiBootstrapRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?) =
-            AiBootstrapRequestDto(AiProfileDto.fromDomain(profile), weekIndex, locale)
+        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
+            AiBootstrapRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
     }
 }
 

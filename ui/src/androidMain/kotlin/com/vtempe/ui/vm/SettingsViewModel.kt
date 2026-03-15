@@ -2,6 +2,7 @@
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -24,14 +25,23 @@ class SettingsViewModel(
     init { refresh() }
 
     override fun refresh() {
-        viewModelScope.launch { _state.value = SettingsState(profileRepository.getProfile()) }
+        viewModelScope.launch {
+            _state.value = SettingsState(
+                profile = profileRepository.getProfile(),
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
+        }
     }
 
     override fun reset(onDone: () -> Unit) {
         viewModelScope.launch {
             _state.value = _state.value.copy(saving = true)
             profileRepository.clearAll()
-            _state.value = SettingsState(profile = null, saving = false)
+            _state.value = SettingsState(
+                profile = null,
+                saving = false,
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
             onDone()
         }
     }
@@ -40,7 +50,11 @@ class SettingsViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(saving = true)
             profileRepository.upsertProfile(profile)
-            _state.value = SettingsState(profile, saving = false)
+            _state.value = SettingsState(
+                profile = profile,
+                saving = false,
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
         }
     }
 
@@ -58,6 +72,11 @@ class SettingsViewModel(
         viewModelScope.launch {
             runCatching { ensureCoachData(weekIndex = 0, force = true) }
         }
+    }
+
+    override fun setAiModelMode(mode: AiModelMode) {
+        preferencesRepository.setAiModelMode(mode)
+        _state.value = _state.value.copy(aiModelMode = mode)
     }
 }
 

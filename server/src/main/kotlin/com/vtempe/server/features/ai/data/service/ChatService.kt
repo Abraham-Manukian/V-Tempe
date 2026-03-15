@@ -2,6 +2,7 @@ package com.vtempe.server.features.ai.data.service
 
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
+import com.vtempe.server.features.ai.data.llm.RateLimitException
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
 import com.vtempe.server.config.Env
@@ -20,7 +21,8 @@ import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
 class ChatService(
-    private val llmClient: LLMClient,
+    private val paidLlmClient: LLMClient,
+    private val freeLlmClient: LLMClient,
     private val llmRepairer: LlmRepairer,
     private val aiService: AiService
 ) {
@@ -43,18 +45,33 @@ class ChatService(
                 operation = "chat",
                 requestId = requestId,
                 basePrompt = prompt,
-                callModel = llmClient::generateJson,
+                callModel = { currentPrompt -> generateWithFallback(req.profile, currentPrompt, requestId) },
                 strategy = AiChatResponse.serializer(),
                 validator = SchemaValidator { resp ->
-                    validateChatResponse(resp)?.let(::listOf) ?: emptyList()
+                    val normalized = normalizeChatResponse(resp, locale, req.profile)
+                    val errors = validateChatResponse(normalized, req.profile, locale)
+                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
+                    if (criticalErrors.isNotEmpty()) {
+                        AiQualityMetrics.recordValidation(logger, "chat", requestId, criticalErrors)
+                    }
+                    val warningErrors = AiQualityErrorPolicy.warningErrors(errors)
+                    if (warningErrors.isNotEmpty()) {
+                        logger.info(
+                            "LLM chat requestId={} accepted with relaxed quality warnings={}",
+                            requestId,
+                            warningErrors.joinToString(" | ")
+                        )
+                    }
+                    criticalErrors
                 },
                 extractionMode = ExtractionMode.FirstJsonObject
             )
         }
 
-        normalizeChatResponse(response, locale)
+        normalizeChatResponse(response, locale, req.profile)
     }.getOrElse {
         logger.warn("LLM chat fallback triggered", it)
+        AiQualityMetrics.recordFallback(logger, "chat", it)
         AiChatResponse(
             reply = fallbackChatMessage(safeLocale(req.locale ?: req.profile.locale)),
             trainingPlan = null,
@@ -79,6 +96,7 @@ class ChatService(
         val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
         val profileJson = json.encodeToString(AiProfile.serializer(), req.profile)
         val profileSummary = buildChatProfileSummary(req.profile)
+        val restrictionsSummary = nutritionRestrictionsPrompt(req.profile)
 
         val lastUserMessage = req.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }?.content
             ?: req.messages.lastOrNull()?.content
@@ -96,6 +114,9 @@ class ChatService(
             appendLine("KEY FACTS:")
             append(profileSummary)
             appendLine()
+            appendLine("NUTRITION RESTRICTIONS (NON-NEGOTIABLE):")
+            appendLine(restrictionsSummary)
+            appendLine()
             appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
             appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes or new plans; otherwise return null for unchanged sections.")
             appendLine("Return STRICT JSON matching this schema (no comments or extra text):")
@@ -107,6 +128,7 @@ class ChatService(
             appendLine("Guidelines:")
             appendLine("- Set plan sections to null when no update is required; never return empty arrays to signal no change.")
             appendLine("- Nutrition updates MUST include integer macros fields in every meal object.")
+            appendLine("- Nutrition updates must strictly obey allergy/intolerance restrictions above.")
             appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (+/- 20 kcal). Fix kcal rather than omitting fields.")
             appendLine("Do not include trailing commas or comments; output must be valid JSON.")
             appendLine("Latest user message: \"$lastUserMessage\".")
@@ -118,6 +140,36 @@ class ChatService(
     companion object {
         private val LlmTimeoutMs = Env["AI_CHAT_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(15_000L) ?: 120_000L
         private const val DefaultLocale = "en-US"
+    }
+
+    private suspend fun generateWithFallback(profile: AiProfile, prompt: String, requestId: String): String {
+        val mode = profile.llmMode?.trim()?.lowercase()
+        if (mode == "free") return freeLlmClient.generateJson(prompt)
+
+        return runCatching {
+            paidLlmClient.generateJson(prompt)
+        }.recoverCatching { ex ->
+            if (!shouldFallbackToFree(ex)) throw ex
+            logger.warn(
+                "LLM chat switching to free client requestId={} reason={}",
+                requestId,
+                ex.message ?: ex::class.simpleName
+            )
+            freeLlmClient.generateJson(prompt)
+        }.getOrThrow()
+    }
+
+    private fun shouldFallbackToFree(error: Throwable): Boolean {
+        if (error is RateLimitException) return true
+        val message = error.message?.lowercase().orEmpty()
+        if (message.contains(" 429") || message.contains("rate limit")) return true
+        if (message.contains(" 402") || message.contains("insufficient credits") || message.contains("payment required")) return true
+        if (message.contains(" 401") || message.contains("unauthorized")) return true
+        if (message.contains(" 403") || message.contains("forbidden")) return true
+        return message.contains("timed out") ||
+            message.contains("timeout") ||
+            message.contains("connection reset") ||
+            message.contains("provider returned error")
     }
 }
 
@@ -146,23 +198,33 @@ private fun fallbackChatMessage(locale: Locale): String =
         "Coach is temporarily unavailable. Please try again later."
     }
 
-internal fun validateChatResponse(response: AiChatResponse): String? {
-    if (response.reply.isBlank()) return "reply must contain user-facing text"
+internal fun validateChatResponse(
+    response: AiChatResponse,
+    profile: AiProfile,
+    locale: Locale
+): List<String> {
+    val errors = mutableListOf<String>()
+    if (response.reply.isBlank()) errors += "reply must contain user-facing text"
     response.trainingPlan?.let { plan ->
-        validateTrainingPlan(plan)?.let { return "trainingPlan: $it" }
+        validateTrainingPlan(plan)?.let { errors += "trainingPlan: $it" }
     }
     response.nutritionPlan?.let { plan ->
-        validateNutritionPlan(plan)?.let { return "nutritionPlan: $it" }
+        errors += validateNutritionPlan(plan, profile, locale).map { "nutritionPlan: $it" }
     }
     response.sleepAdvice?.let { advice ->
-        validateSleepAdvice(advice)?.let { return "sleepAdvice: $it" }
+        validateSleepAdvice(advice)?.let { errors += "sleepAdvice: $it" }
     }
-    return null
+    return errors.distinct()
 }
 
-private fun normalizeChatResponse(response: AiChatResponse, locale: Locale): AiChatResponse = response.copy(
+private fun normalizeChatResponse(
+    response: AiChatResponse,
+    locale: Locale,
+    profile: AiProfile
+): AiChatResponse = response.copy(
+    reply = sanitizeText(response.reply),
     trainingPlan = response.trainingPlan?.let(::normalizeTrainingPlan),
-    nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale) },
+    nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
     sleepAdvice = response.sleepAdvice?.let(::normalizeAdvice)
 )
 

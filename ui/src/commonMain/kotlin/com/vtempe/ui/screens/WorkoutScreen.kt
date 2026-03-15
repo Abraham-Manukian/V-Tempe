@@ -1,4 +1,4 @@
-﻿@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
@@ -101,7 +101,7 @@ fun WorkoutScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = topBarHeight + 16.dp,
-                    bottom = bottomBarHeight + 80.dp, // РћСЃС‚Р°РІР»СЏРµРј РјРµСЃС‚Рѕ РїРѕРґ FAB Рё РѕС‚СЃС‚СѓРї
+                    bottom = bottomBarHeight + 80.dp, // Оставляем место под FAB и отступ
                     start = 20.dp,
                     end = 20.dp
                 ),

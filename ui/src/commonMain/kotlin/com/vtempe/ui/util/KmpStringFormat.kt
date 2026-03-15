@@ -1,16 +1,16 @@
-﻿package com.vtempe.ui.util
+package com.vtempe.ui.util
 
 import kotlin.math.pow
 import kotlin.math.round
 
 /**
- * РњРёРЅРёРјР°Р»СЊРЅС‹Р№ С„РѕСЂРјР°С‚С‚РµСЂ РґР»СЏ СЃС‚СЂРѕРє РёР· Compose Resources РЅР° Kotlin/Native (iOS),
- * РїРѕС‚РѕРјСѓ С‡С‚Рѕ `String.format(...)`/`java.util.Formatter` РЅРµРґРѕСЃС‚СѓРїРЅС‹.
+ * Минимальный форматтер для строк из Compose Resources на Kotlin/Native (iOS),
+ * потому что `String.format(...)`/`java.util.Formatter` недоступны.
  *
- * РџРѕРґРґРµСЂР¶РёРІР°РµС‚:
+ * Поддерживает:
  * - `%%` -> `%`
  * - `%d`, `%s`, `%f`
- * - РїРѕР·РёС†РёРѕРЅРЅС‹Рµ: `%1$d`, `%2$s`, `%3$.1f` (С‚РѕС‡РЅРѕСЃС‚СЊ РґР»СЏ `f`)
+ * - позиционные: `%1$d`, `%2$s`, `%3$.1f` (точность для `f`)
  */
 fun String.kmpFormat(vararg args: Any?): String = kmpFormatTemplate(this, *args)
 

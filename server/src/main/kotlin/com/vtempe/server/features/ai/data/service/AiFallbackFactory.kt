@@ -43,7 +43,7 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
 
 internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
     val locale = safeLocale(req.locale ?: req.profile.locale)
-    val meals = templateMeals(locale)
+    val meals = templateMeals(locale, req.profile)
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val planMeals = days.associateWith { day -> if (day == "Sun") meals.take(3) else meals }
     val shopping = meals.flatMap { it.ingredients }

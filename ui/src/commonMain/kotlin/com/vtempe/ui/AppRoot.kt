@@ -36,7 +36,7 @@ val LocalBottomBarHeight = compositionLocalOf { 0.dp }
 @Composable
 fun AppRoot() {
     VTempeTheme {
-        var currentRoute by remember { mutableStateOf(Routes.Onboarding) }
+        var currentRoute by remember { mutableStateOf(Routes.Splash) }
         val tabRoutes = bottomDestinations.map { it.route }
         val isTabRoute = currentRoute in tabRoutes
         val showTopBar = currentRoute != Routes.Onboarding && currentRoute != Routes.Splash

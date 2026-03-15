@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.core.designsystem.theme.AppThemeColor
+import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.ui.platform.SettingsPlatformActions
 import com.vtempe.ui.platform.rememberSettingsPlatformActions
@@ -245,6 +246,28 @@ fun SettingsScreen(
                 }
             }
 
+            PreferenceCard(title = stringResource(Res.string.settings_ai_model_title)) {
+                Text(
+                    text = if (state.aiModelMode == AiModelMode.FREE) {
+                        stringResource(Res.string.settings_ai_model_current_free)
+                    } else {
+                        stringResource(Res.string.settings_ai_model_current_paid)
+                    },
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OptionRow {
+                    OptionButton(
+                        text = stringResource(Res.string.settings_ai_model_paid),
+                        selected = state.aiModelMode == AiModelMode.PAID
+                    ) { presenter.setAiModelMode(AiModelMode.PAID) }
+                    OptionButton(
+                        text = stringResource(Res.string.settings_ai_model_free),
+                        selected = state.aiModelMode == AiModelMode.FREE
+                    ) { presenter.setAiModelMode(AiModelMode.FREE) }
+                }
+            }
+
             if (state.saving) {
                 Text(stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
             }
@@ -316,13 +339,13 @@ private fun OptionRow(content: @Composable RowScope.() -> Unit) {
 }
 
 @Composable
-private fun OptionButton(text: String, onClick: () -> Unit) {
+private fun OptionButton(text: String, selected: Boolean = false, onClick: () -> Unit) {
     FilledTonalButton(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = AiPalette.Primary.copy(alpha = 0.18f),
-            contentColor = AiPalette.DeepAccent
+            containerColor = if (selected) AiPalette.DeepAccent else AiPalette.Primary.copy(alpha = 0.18f),
+            contentColor = if (selected) AiPalette.OnDeepAccent else AiPalette.DeepAccent
         )
     ) {
         Text(text, fontWeight = FontWeight.SemiBold)

@@ -3,6 +3,7 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -29,14 +30,23 @@ private class IosSettingsPresenter(
     }
 
     override fun refresh() {
-        scope.launch { mutableState.value = SettingsState(profileRepository.getProfile()) }
+        scope.launch {
+            mutableState.value = SettingsState(
+                profile = profileRepository.getProfile(),
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
+        }
     }
 
     override fun reset(onDone: () -> Unit) {
         scope.launch {
             mutableState.value = mutableState.value.copy(saving = true)
             profileRepository.clearAll()
-            mutableState.value = SettingsState(profile = null, saving = false)
+            mutableState.value = SettingsState(
+                profile = null,
+                saving = false,
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
             onDone()
         }
     }
@@ -45,7 +55,11 @@ private class IosSettingsPresenter(
         scope.launch {
             mutableState.value = mutableState.value.copy(saving = true)
             profileRepository.upsertProfile(profile)
-            mutableState.value = SettingsState(profile, saving = false)
+            mutableState.value = SettingsState(
+                profile = profile,
+                saving = false,
+                aiModelMode = preferencesRepository.getAiModelMode()
+            )
         }
     }
 
@@ -55,6 +69,11 @@ private class IosSettingsPresenter(
 
     override fun setLanguage(tag: String?) {
         preferencesRepository.setLanguageTag(tag)
+    }
+
+    override fun setAiModelMode(mode: AiModelMode) {
+        preferencesRepository.setAiModelMode(mode)
+        mutableState.value = mutableState.value.copy(aiModelMode = mode)
     }
 
     fun close() {

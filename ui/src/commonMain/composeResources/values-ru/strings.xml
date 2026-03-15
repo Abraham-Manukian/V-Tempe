@@ -208,6 +208,16 @@
     <string name="chat_title">AI‑коуч</string>
     <string name="chat_hint">Спросите у коуча:</string>
     <string name="chat_send">Отправить</string>
+    <string name="chat_today">Сегодня</string>
+    <string name="chat_role_you">Ты</string>
+    <string name="chat_role_coach">AI-коуч</string>
+    <string name="chat_quick_show_workout">Показать тренировку</string>
+    <string name="chat_quick_make_home_plan">Домашний план</string>
+    <string name="chat_quick_show_workout_prompt">Покажи мою текущую тренировку и объясни нагрузку.</string>
+    <string name="chat_quick_make_home_plan_prompt">Адаптируй мой план под домашние тренировки без зала.</string>
+    <string name="chat_error_unavailable">Тренер временно недоступен. Попробуйте еще раз чуть позже.</string>
+    <string name="chat_empty_title">С чего начнем?</string>
+    <string name="chat_empty_body">Напиши цель, самочувствие и доступное оборудование. Я подстрою программу под тебя.</string>
 </resources>
 
 

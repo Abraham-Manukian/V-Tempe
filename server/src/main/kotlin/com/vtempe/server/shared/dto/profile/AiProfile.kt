@@ -17,5 +17,6 @@ data class AiProfile(
     val healthNotes: List<String> = emptyList(),
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
     val locale: String? = null,
-    val budgetLevel: Int? = 2
+    val budgetLevel: Int? = 2,
+    val llmMode: String? = null
 )

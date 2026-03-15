@@ -1,4 +1,4 @@
-﻿@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
@@ -43,7 +43,7 @@ fun HomeScreen(
 ) {
     val uiState by presenter.state.collectAsState()
     
-    // РџРѕР»СѓС‡Р°РµРј РґРёРЅР°РјРёС‡РµСЃРєСѓСЋ РІС‹СЃРѕС‚Сѓ Р±Р°СЂРѕРІ
+    // Получаем динамическую высоту баров
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
 

@@ -47,6 +47,8 @@ interface PreferencesRepository {
     fun setTheme(theme: String?)
     fun getUnits(): String?
     fun setUnits(units: String?)
+    fun getAiModelMode(): AiModelMode
+    fun setAiModelMode(mode: AiModelMode)
 }
 
 interface AiTrainerRepository {

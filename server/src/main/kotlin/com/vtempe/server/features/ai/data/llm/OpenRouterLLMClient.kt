@@ -31,6 +31,8 @@ private const val CONNECT_TIMEOUT_MS = 20_000L
 class OpenRouterLLMClient(
     apiKey: String,
     model: String = DEFAULT_MODEL,
+    fallbackModels: List<String> = emptyList(),
+    enableAutoFallback: Boolean = false,
     baseUrl: String? = null,
     temperature: Double? = null,
     siteUrl: String? = null,
@@ -46,6 +48,12 @@ class OpenRouterLLMClient(
     private val resolvedSiteUrl = siteUrl ?: DEFAULT_SITE_URL
     private val resolvedAppName = appName ?: DEFAULT_APP_NAME
     private val resolvedModel = model
+    private val resolvedFallbackModels = fallbackModels
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+        .filterNot { it.equals(model, ignoreCase = true) }
+    private val resolvedEnableAutoFallback = enableAutoFallback
     private val resolvedRequestTimeoutMs = requestTimeoutMs.coerceAtLeast(1_000L)
     private val resolvedSocketTimeoutMs = socketTimeoutMs.coerceAtLeast(1_000L)
     private val resolvedConnectTimeoutMs = connectTimeoutMs.coerceAtLeast(1_000L)
@@ -72,24 +80,34 @@ class OpenRouterLLMClient(
     }
 
     override suspend fun generateJson(prompt: String): String {
-        val response = try {
-            requestCompletion(model = resolvedModel, prompt = prompt)
-        } catch (ex: Throwable) {
-            if (!shouldFallbackToAutoModel(ex)) throw ex
-            logger.warn(
-                "Model '{}' failed with provider 400. Falling back to '{}'",
-                resolvedModel,
-                DEFAULT_MODEL
-            )
-            requestCompletion(model = DEFAULT_MODEL, prompt = prompt)
+        val modelCandidates = buildModelCandidates()
+        var lastError: Throwable? = null
+
+        for ((index, currentModel) in modelCandidates.withIndex()) {
+            try {
+                val response = requestCompletion(model = currentModel, prompt = prompt)
+                val content = response.choices.firstOrNull()?.message?.content?.trim()
+                    ?: error("OpenRouter response did not contain choices")
+                if (content.isEmpty()) {
+                    error("OpenRouter response was empty")
+                }
+                return content
+            } catch (ex: Throwable) {
+                lastError = ex
+                val hasNext = index < modelCandidates.lastIndex
+                if (!hasNext || !shouldTryNextModel(ex)) {
+                    throw ex
+                }
+                logger.warn(
+                    "Model '{}' failed ({}). Trying fallback model '{}'",
+                    currentModel,
+                    ex.message ?: ex::class.simpleName,
+                    modelCandidates[index + 1]
+                )
+            }
         }
 
-        val content = response.choices.firstOrNull()?.message?.content?.trim()
-            ?: error("OpenRouter response did not contain choices")
-        if (content.isEmpty()) {
-            error("OpenRouter response was empty")
-        }
-        return content
+        throw lastError ?: IllegalStateException("OpenRouter completion failed without a concrete error")
     }
 
     private suspend fun requestCompletion(model: String, prompt: String): ChatCompletionResponseDto {
@@ -125,12 +143,38 @@ class OpenRouterLLMClient(
         return response
     }
 
-    private fun shouldFallbackToAutoModel(error: Throwable): Boolean {
-        if (resolvedModel.equals(DEFAULT_MODEL, ignoreCase = true)) return false
+    private fun buildModelCandidates(): List<String> {
+        val candidates = linkedSetOf<String>()
+        candidates += resolvedModel
+        candidates += resolvedFallbackModels
+        if (resolvedModel.equals(DEFAULT_MODEL, ignoreCase = true) || resolvedEnableAutoFallback) {
+            candidates += DEFAULT_MODEL
+        }
+        return candidates.toList()
+    }
+
+    private fun shouldTryNextModel(error: Throwable): Boolean {
         val message = error.message?.lowercase().orEmpty()
-        val provider400FromBody = message.contains("openrouter error 400") && message.contains("provider returned error")
-        val provider400FromHttp = message.contains("openrouter http 400") && message.contains("provider returned error")
-        return provider400FromBody || provider400FromHttp
+        val status = parseStatusCode(message)
+        if (
+            status == HttpStatusCode.Unauthorized.value ||
+            status == HttpStatusCode.PaymentRequired.value ||
+            status == HttpStatusCode.Forbidden.value
+        ) {
+            return false
+        }
+        if (status != null && status in RETRYABLE_OR_MODEL_ERRORS) return true
+        return message.contains("provider returned error") ||
+            message.contains("model not found") ||
+            message.contains("unsupported model") ||
+            message.contains("timed out") ||
+            message.contains("timeout") ||
+            message.contains("connection reset")
+    }
+
+    private fun parseStatusCode(message: String): Int? {
+        val match = OPENROUTER_STATUS_REGEX.find(message) ?: return null
+        return match.groupValues.getOrNull(1)?.toIntOrNull()
     }
     private suspend fun mapResponseException(ex: ResponseException): Throwable {
         val status = ex.response.status
@@ -172,6 +216,9 @@ class OpenRouterLLMClient(
         private const val SYSTEM_PROMPT =
             "You must reply with a single valid JSON object that exactly matches the user's schema. " +
             "Do not add explanations, markdown, apologies, or text outside the JSON object."
+        private val OPENROUTER_STATUS_REGEX =
+            Regex("""openrouter\s+(?:http|error)\s+(\d{3})""", RegexOption.IGNORE_CASE)
+        private val RETRYABLE_OR_MODEL_ERRORS = setOf(400, 404, 408, 409, 422, 425, 429, 500, 502, 503, 504)
         private val logger = LoggerFactory.getLogger(OpenRouterLLMClient::class.java)
     }
 }

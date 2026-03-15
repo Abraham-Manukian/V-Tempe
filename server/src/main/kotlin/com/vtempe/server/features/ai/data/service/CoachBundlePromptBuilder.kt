@@ -15,6 +15,7 @@ internal fun buildBundlePrompt(
     val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
     val profileJson = json.encodeToString(AiProfile.serializer(), request.profile)
     val preferencesSummary = buildPreferencesSummary(request.profile)
+    val restrictionsSummary = nutritionRestrictionsPrompt(request.profile)
     return buildString {
         appendLine("You are an elite strength coach, nutritionist, and recovery specialist guiding this athlete long-term.")
         appendLine("User language: $languageDisplay. Reply strictly in this language and measurement system.")
@@ -26,6 +27,9 @@ internal fun buildBundlePrompt(
         appendLine()
         appendLine("KEY FACTS ABOUT THE ATHLETE:")
         append(preferencesSummary)
+        appendLine()
+        appendLine("NUTRITION RESTRICTIONS (NON-NEGOTIABLE):")
+        appendLine(restrictionsSummary)
         appendLine()
         appendLine("RESPONSE SCHEMA (STRICT JSON):")
         appendLine("{\"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]},")
@@ -55,6 +59,7 @@ internal fun buildBundlePrompt(
         appendLine("- Set daily macros before splitting into meals: protein 1.6-2.2 g/kg bodyweight, fat >= 0.8 g/kg, carbs fill the remaining calories. Distribute totals across meals proportionally and keep integers.")
         appendLine("- The sum of meals for any day must stay within +/-5% of the goal-adjusted daily calories and macros you calculated.")
         appendLine("- Ingredients must be plain text strings (no numbering or markdown). Keep meal names varied, localized, and practical.")
+        appendLine("- Never include ingredients that violate allergies/intolerances or restricted foods listed above.")
         appendLine("- Each meal MUST include integer macros {proteinGrams, fatGrams, carbsGrams, kcal}. No field may be null or omitted.")
         appendLine("- Example meal object: {\"name\":\"Power Oats\",\"ingredients\":[\"rolled oats\",\"milk\",\"berries\"],\"kcal\":420,\"macros\":{\"proteinGrams\":35,\"fatGrams\":12,\"carbsGrams\":55,\"kcal\":420}}")
         appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (allowed difference +/-20 kcal). If it does not match, adjust kcal to satisfy the formula.")

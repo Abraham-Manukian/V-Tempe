@@ -179,6 +179,11 @@
     <string name="settings_language_title">Language</string>
     <string name="settings_language_ru">Russian</string>
     <string name="settings_language_system">System default</string>
+    <string name="settings_ai_model_title">AI model</string>
+    <string name="settings_ai_model_paid">Paid (GPT-5 mini)</string>
+    <string name="settings_ai_model_free">Free (Gemma 3 27B)</string>
+    <string name="settings_ai_model_current_paid">Current: paid model</string>
+    <string name="settings_ai_model_current_free">Current: free model</string>
     <string name="settings_weight_label">Weight</string>
     <string name="settings_weight_value">%1$.1f kg</string>
     <string name="settings_height_label">Height</string>
@@ -208,6 +213,16 @@
     <string name="chat_title">AI Coach</string>
     <string name="chat_hint">Ask your coach…</string>
     <string name="chat_send">Send</string>
+    <string name="chat_today">Today</string>
+    <string name="chat_role_you">You</string>
+    <string name="chat_role_coach">AI coach</string>
+    <string name="chat_quick_show_workout">Show workout</string>
+    <string name="chat_quick_make_home_plan">Home version</string>
+    <string name="chat_quick_show_workout_prompt">Show my current workout and explain load.</string>
+    <string name="chat_quick_make_home_plan_prompt">Adapt my plan for home training without gym equipment.</string>
+    <string name="chat_error_unavailable">Coach is temporarily unavailable. Please try again in a moment.</string>
+    <string name="chat_empty_title">What can I help with?</string>
+    <string name="chat_empty_body">Tell me your goal, condition, and available equipment. I will adapt your plan.</string>
 </resources>
 
 

@@ -26,9 +26,10 @@ class NetworkAiTrainerRepository(
 ) : AiTrainerRepository {
 
     private fun currentLocale(): String? = preferences.getLanguageTag()?.takeIf { it.isNotBlank() }
+    private fun currentLlmMode() = preferences.getAiModelMode()
 
     override suspend fun generateTrainingPlan(profile: Profile, weekIndex: Int): DataResult<TrainingPlan> {
-        val request = AiTrainingRequestDto.fromDomain(profile, weekIndex, currentLocale())
+        val request = AiTrainingRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
         return when (val result = api.postResult<AiTrainingRequestDto, TrainingPlanDto>("/ai/training", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -46,7 +47,7 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun generateNutritionPlan(profile: Profile, weekIndex: Int): DataResult<NutritionPlan> {
-        val request = AiNutritionRequestDto.fromDomain(profile, weekIndex, currentLocale())
+        val request = AiNutritionRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
         return when (val result = api.postResult<AiNutritionRequestDto, NutritionPlanDto>("/ai/nutrition", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -64,7 +65,7 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun getSleepAdvice(profile: Profile): DataResult<Advice> {
-        val request = AiAdviceRequestDto.fromDomain(profile, currentLocale())
+        val request = AiAdviceRequestDto.fromDomain(profile, currentLocale(), currentLlmMode())
         return when (val result = api.postResult<AiAdviceRequestDto, AdviceDto>("/ai/sleep", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -82,7 +83,7 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun bootstrap(profile: Profile, weekIndex: Int): DataResult<CoachBundle> {
-        val request = AiBootstrapRequestDto.fromDomain(profile, weekIndex, currentLocale())
+        val request = AiBootstrapRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
         val result = api.postResult<AiBootstrapRequestDto, AiBootstrapResponseDto>("/ai/bootstrap", request)
         return when (result) {
             is DataResult.Success -> {

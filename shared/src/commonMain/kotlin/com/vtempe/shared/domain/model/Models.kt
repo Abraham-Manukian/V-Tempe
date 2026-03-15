@@ -7,6 +7,15 @@ import kotlinx.serialization.Serializable
 enum class Goal { LOSE_FAT, GAIN_MUSCLE, MAINTAIN }
 @Serializable
 enum class Sex { MALE, FEMALE, OTHER }
+enum class AiModelMode(val wireValue: String) {
+    PAID("paid"),
+    FREE("free");
+
+    companion object {
+        fun fromWire(raw: String?): AiModelMode =
+            entries.firstOrNull { it.wireValue.equals(raw?.trim(), ignoreCase = true) } ?: PAID
+    }
+}
 
 @Serializable
 data class Constraints(

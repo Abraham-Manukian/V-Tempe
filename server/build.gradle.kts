@@ -28,5 +28,9 @@ kotlin {
 
 application {
     mainClass.set("com.vtempe.server.app.ApplicationKt")
+    applicationDefaultJvmArgs = listOf(
+        "-Dfile.encoding=UTF-8",
+        "-Dsun.jnu.encoding=UTF-8"
+    )
 }
 

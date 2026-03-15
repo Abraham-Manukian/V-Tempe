@@ -3,6 +3,7 @@ package com.vtempe.server.features.ai.data.service
 import com.vtempe.server.shared.dto.nutrition.AiMeal
 import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
 import com.vtempe.server.shared.dto.nutrition.Macros
+import com.vtempe.server.shared.dto.profile.AiProfile
 import java.util.Locale
 import kotlin.collections.linkedMapOf
 import kotlin.math.abs
@@ -44,8 +45,12 @@ private val dayKeyAliases = mapOf(
     "воскресенье" to "Sun",
 )
 
-internal fun normalizeNutritionPlan(plan: AiNutritionResponse, locale: Locale): AiNutritionResponse {
-    val fallbackMeals = templateMeals(locale)
+internal fun normalizeNutritionPlan(
+    plan: AiNutritionResponse,
+    locale: Locale,
+    profile: AiProfile? = null
+): AiNutritionResponse {
+    val fallbackMeals = templateMeals(locale, profile)
     val normalizedMealsByDay = linkedMapOf<String, List<AiMeal>>()
     val mealsByCanonicalDay = plan.mealsByDay.entries
         .mapNotNull { (rawDay, meals) ->
@@ -116,6 +121,17 @@ internal fun validateNutritionPlan(plan: AiNutritionResponse): String? {
     return null
 }
 
+internal fun validateNutritionPlan(
+    plan: AiNutritionResponse,
+    profile: AiProfile,
+    locale: Locale
+): List<String> {
+    val errors = mutableListOf<String>()
+    validateNutritionPlan(plan)?.let(errors::add)
+    errors += validateNutritionPlanQuality(plan, profile, locale)
+    return errors.distinct()
+}
+
 private fun canonicalDayKey(raw: String): String? {
     val token = sanitizeText(raw).lowercase(Locale.US)
     if (token.isBlank()) return null
@@ -140,9 +156,9 @@ internal fun computeKcal(proteinGrams: Int, carbsGrams: Int, fatGrams: Int): Int
         carbsGrams.coerceAtLeast(0) * 4 +
         fatGrams.coerceAtLeast(0) * 9
 
-internal fun templateMeals(locale: Locale): List<AiMeal> {
+internal fun templateMeals(locale: Locale, profile: AiProfile? = null): List<AiMeal> {
     val isRu = locale.language.equals("ru", ignoreCase = true)
-    return if (isRu) {
+    val baseMeals = if (isRu) {
         listOf(
             AiMeal(
                 name = "\u041e\u0432\u0441\u044f\u043d\u043a\u0430 \u0441 \u044f\u0433\u043e\u0434\u0430\u043c\u0438",
@@ -216,6 +232,7 @@ internal fun templateMeals(locale: Locale): List<AiMeal> {
             )
         )
     }
+    return sanitizeTemplateMealsForRestrictions(baseMeals, profile, locale)
 }
 
 private fun ensureMinimumMealsPerDay(

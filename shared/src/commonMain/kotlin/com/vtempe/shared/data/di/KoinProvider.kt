@@ -1,10 +1,10 @@
-﻿package com.vtempe.shared.data.di
+package com.vtempe.shared.data.di
 
 import org.koin.core.Koin
 
 /**
- * Р”Р»СЏ iOS: РІ Kotlin/Native РЅРµ РІСЃРµРіРґР° СѓРґРѕР±РЅРѕ/РґРѕСЃС‚СѓРїРЅРѕ РґРѕСЃС‚Р°РІР°С‚СЊ С‚РµРєСѓС‰РёР№ Koin РёР· GlobalContext.
- * РџРѕСЌС‚РѕРјСѓ СЃРѕС…СЂР°РЅСЏРµРј СЃСЃС‹Р»РєСѓ РЅР° Koin РїСЂРё РёРЅРёС†РёР°Р»РёР·Р°С†РёРё (СЃРј. app-ios).
+ * Для iOS: в Kotlin/Native не всегда удобно/доступно доставать текущий Koin из GlobalContext.
+ * Поэтому сохраняем ссылку на Koin при инициализации (см. app-ios).
  */
 object KoinProvider {
     var koin: Koin? = null

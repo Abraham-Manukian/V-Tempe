@@ -1,4 +1,4 @@
-﻿@file:OptIn(
+@file:OptIn(
     org.jetbrains.compose.resources.ExperimentalResourceApi::class,
     androidx.compose.foundation.layout.ExperimentalLayoutApi::class
 )
@@ -172,7 +172,7 @@ private fun NutritionContent(
         ),
         verticalArrangement = Arrangement.spacedBy(0.dp) // Spacing handled inside items for the headers
     ) {
-        // --- Р”РЅРё РЅРµРґРµР»Рё (Hide when scrolling) ---
+        // --- Дни недели (Hide when scrolling) ---
         item {
             if (isCompactWidth) {
                 FlowRow(
