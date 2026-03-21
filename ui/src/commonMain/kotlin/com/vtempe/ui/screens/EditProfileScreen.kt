@@ -51,6 +51,7 @@ fun EditProfileScreen(
     val height = remember { mutableStateOf("") }
     val weight = remember { mutableStateOf("") }
     val goal = remember { mutableStateOf(Goal.MAINTAIN) }
+    val trainingMode = remember { mutableStateOf(TRAINING_MODE_GYM) }
     
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -61,6 +62,12 @@ fun EditProfileScreen(
             height.value = it.heightCm.toString()
             weight.value = it.weightKg.toString()
             goal.value = it.goal
+            trainingMode.value = when (it.trainingMode.lowercase()) {
+                TRAINING_MODE_HOME -> TRAINING_MODE_HOME
+                TRAINING_MODE_OUTDOOR -> TRAINING_MODE_OUTDOOR
+                TRAINING_MODE_MIXED -> TRAINING_MODE_MIXED
+                else -> TRAINING_MODE_GYM
+            }
         }
     }
 
@@ -136,6 +143,25 @@ fun EditProfileScreen(
                             Text(label, color = Color(0xFF1C1C28))
                         }
                     }
+                    Text(
+                        stringResource(Res.string.label_training_mode),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    listOf(
+                        TRAINING_MODE_GYM to stringResource(Res.string.training_mode_gym),
+                        TRAINING_MODE_HOME to stringResource(Res.string.training_mode_home),
+                        TRAINING_MODE_OUTDOOR to stringResource(Res.string.training_mode_outdoor),
+                        TRAINING_MODE_MIXED to stringResource(Res.string.training_mode_mixed)
+                    ).forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RadioButton(selected = trainingMode.value == mode, onClick = { trainingMode.value = mode })
+                            Text(label, color = Color(0xFF1C1C28))
+                        }
+                    }
                 }
             }
             Button(
@@ -148,7 +174,8 @@ fun EditProfileScreen(
                             age = ageInt,
                             heightCm = heightInt,
                             weightKg = weightDouble,
-                            goal = goal.value
+                            goal = goal.value,
+                            trainingMode = trainingMode.value
                         )
                         presenter.save(updated)
                         presenter.refresh()

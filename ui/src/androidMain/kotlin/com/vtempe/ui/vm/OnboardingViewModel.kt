@@ -93,7 +93,8 @@ class OnboardingViewModel(
                 dietaryPreferences = s.dietaryPreferences.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                 allergies = s.allergies.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                 weeklySchedule = s.days,
-                budgetLevel = 2
+                budgetLevel = 2,
+                trainingMode = s.trainingMode
             )
             // ensure language preference persisted even if user didn't tap chips again
             setLanguage(s.languageTag)

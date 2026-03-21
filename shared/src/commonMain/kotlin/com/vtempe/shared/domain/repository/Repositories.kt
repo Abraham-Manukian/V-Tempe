@@ -14,6 +14,9 @@ interface TrainingRepository {
     suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan
     suspend fun logSet(workoutId: String, set: WorkoutSet)
     fun observeWorkouts(): Flow<List<Workout>>
+    fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>>
+    suspend fun saveWorkoutProgress(progress: WorkoutProgress)
+    suspend fun recentWorkoutSummaries(limit: Int = 6): List<WorkoutSummary>
     suspend fun savePlan(plan: TrainingPlan)
     suspend fun hasPlan(weekIndex: Int): Boolean
 }
@@ -70,7 +73,8 @@ data class CoachResponse(
     val reply: String,
     val trainingPlan: TrainingPlan? = null,
     val nutritionPlan: NutritionPlan? = null,
-    val sleepAdvice: Advice? = null
+    val sleepAdvice: Advice? = null,
+    val actions: List<CoachAction> = emptyList()
 )
 
 interface ChatRepository {

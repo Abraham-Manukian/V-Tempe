@@ -13,6 +13,7 @@ import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileSettingsRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SettingsPreferencesRepository
+import com.vtempe.shared.data.repo.WorkoutProgressStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,18 +34,20 @@ object DI {
         // Settings storage
         single { Settings() }
         single { AiResponseCache(get()) }
+        single { WorkoutProgressStore(get(), get()) }
 
         // Repositories
         single<PreferencesRepository> { SettingsPreferencesRepository(get()) }
         single<ProfileRepository> { ProfileRepositoryDb(get()) }
-        single<AiTrainerRepository> { NetworkAiTrainerRepository(get(), get(), get()) }
-        single<ChatRepository> { NetworkChatRepository(get(), get(), get()) }
+        single<AiTrainerRepository> { NetworkAiTrainerRepository(get(), get(), get(), get()) }
+        single<ChatRepository> { NetworkChatRepository(get(), get(), get(), get()) }
         single<TrainingRepository> {
             TrainingRepositoryDb(
                 db = get(),
                 ai = get(),
                 validateSubscription = get(),
-                cache = get()
+                cache = get(),
+                progressStore = get()
             )
         }
         single<NutritionRepository> {
@@ -82,6 +85,7 @@ class InMemoryProfileRepository : ProfileRepository {
 
 class LocalTrainingRepository : TrainingRepository {
     private val workouts = MutableStateFlow<List<Workout>>(emptyList())
+    private val progress = MutableStateFlow<Map<String, WorkoutProgress>>(emptyMap())
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val w = List(3) { day ->
@@ -98,13 +102,48 @@ class LocalTrainingRepository : TrainingRepository {
         return TrainingPlan(weekIndex = weekIndex, workouts = w)
     }
     override suspend fun logSet(workoutId: String, set: WorkoutSet) {
-        val updated = workouts.value.map { if (it.id == workoutId) it.copy(sets = it.sets + set) else it }
-        workouts.value = updated
+        val current = progress.value[workoutId] ?: WorkoutProgress(workoutId = workoutId)
+        val updated = current.copy(
+            extraSets = current.extraSets + ExtraWorkoutSet(
+                exerciseId = set.exerciseId,
+                reps = set.reps,
+                weightKg = set.weightKg,
+                rpe = set.rpe
+            ),
+            updatedAtEpochMs = Clock.System.now().toEpochMilliseconds(),
+            submitted = false
+        )
+        progress.value = progress.value + (workoutId to updated)
     }
     override suspend fun savePlan(plan: TrainingPlan) {
         workouts.value = plan.workouts
     }
     override fun observeWorkouts(): Flow<List<Workout>> = workouts.asStateFlow()
+    override fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>> = progress.asStateFlow()
+    override suspend fun saveWorkoutProgress(progress: WorkoutProgress) {
+        this.progress.value = this.progress.value + (progress.workoutId to progress)
+    }
+    override suspend fun recentWorkoutSummaries(limit: Int): List<WorkoutSummary> = workouts.value
+        .mapNotNull { workout ->
+            val workoutProgress = progress.value[workout.id] ?: return@mapNotNull null
+            val completedItems = workoutProgress.performedSets.count { it.completed }
+            if (completedItems == 0 && workoutProgress.extraSets.isEmpty() && workoutProgress.notes.isBlank()) {
+                return@mapNotNull null
+            }
+            WorkoutSummary(
+                workoutId = workout.id,
+                date = workout.date.toString(),
+                completionRate = if (workout.sets.isEmpty()) 0.0 else completedItems.toDouble() / workout.sets.size.toDouble(),
+                completedItems = completedItems,
+                plannedItems = workout.sets.size,
+                totalVolumeKg = 0.0,
+                averageRpe = null,
+                notes = workoutProgress.notes
+            )
+        }
+        .sortedByDescending { it.date }
+        .take(limit)
+
     override suspend fun hasPlan(weekIndex: Int): Boolean = workouts.value.isNotEmpty()
 }
 

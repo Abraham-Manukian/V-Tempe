@@ -95,7 +95,8 @@ private class IosOnboardingPresenter(
                 dietaryPreferences = s.dietaryPreferences.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                 allergies = s.allergies.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                 weeklySchedule = s.days,
-                budgetLevel = 2
+                budgetLevel = 2,
+                trainingMode = s.trainingMode
             )
             setLanguage(s.languageTag)
             profileRepository.upsertProfile(profile)

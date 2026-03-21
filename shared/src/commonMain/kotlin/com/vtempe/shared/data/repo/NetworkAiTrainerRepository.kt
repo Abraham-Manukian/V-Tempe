@@ -22,14 +22,21 @@ import io.github.aakira.napier.Napier
 class NetworkAiTrainerRepository(
     private val api: ApiClient,
     private val preferences: PreferencesRepository,
-    private val cache: AiResponseCache
+    private val cache: AiResponseCache,
+    private val progressStore: WorkoutProgressStore
 ) : AiTrainerRepository {
 
     private fun currentLocale(): String? = preferences.getLanguageTag()?.takeIf { it.isNotBlank() }
     private fun currentLlmMode() = preferences.getAiModelMode()
 
     override suspend fun generateTrainingPlan(profile: Profile, weekIndex: Int): DataResult<TrainingPlan> {
-        val request = AiTrainingRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
+        val request = AiTrainingRequestDto.fromDomain(
+            profile = profile,
+            weekIndex = weekIndex,
+            locale = currentLocale(),
+            llmMode = currentLlmMode(),
+            recentWorkouts = progressStore.recentSummaries()
+        )
         return when (val result = api.postResult<AiTrainingRequestDto, TrainingPlanDto>("/ai/training", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -47,7 +54,13 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun generateNutritionPlan(profile: Profile, weekIndex: Int): DataResult<NutritionPlan> {
-        val request = AiNutritionRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
+        val request = AiNutritionRequestDto.fromDomain(
+            profile = profile,
+            weekIndex = weekIndex,
+            locale = currentLocale(),
+            llmMode = currentLlmMode(),
+            recentWorkouts = progressStore.recentSummaries()
+        )
         return when (val result = api.postResult<AiNutritionRequestDto, NutritionPlanDto>("/ai/nutrition", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -65,7 +78,12 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun getSleepAdvice(profile: Profile): DataResult<Advice> {
-        val request = AiAdviceRequestDto.fromDomain(profile, currentLocale(), currentLlmMode())
+        val request = AiAdviceRequestDto.fromDomain(
+            profile = profile,
+            locale = currentLocale(),
+            llmMode = currentLlmMode(),
+            recentWorkouts = progressStore.recentSummaries()
+        )
         return when (val result = api.postResult<AiAdviceRequestDto, AdviceDto>("/ai/sleep", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -83,7 +101,13 @@ class NetworkAiTrainerRepository(
     }
 
     override suspend fun bootstrap(profile: Profile, weekIndex: Int): DataResult<CoachBundle> {
-        val request = AiBootstrapRequestDto.fromDomain(profile, weekIndex, currentLocale(), currentLlmMode())
+        val request = AiBootstrapRequestDto.fromDomain(
+            profile = profile,
+            weekIndex = weekIndex,
+            locale = currentLocale(),
+            llmMode = currentLlmMode(),
+            recentWorkouts = progressStore.recentSummaries()
+        )
         val result = api.postResult<AiBootstrapRequestDto, AiBootstrapResponseDto>("/ai/bootstrap", request)
         return when (result) {
             is DataResult.Success -> {

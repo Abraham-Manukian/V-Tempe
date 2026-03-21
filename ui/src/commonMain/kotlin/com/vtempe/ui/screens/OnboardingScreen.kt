@@ -94,6 +94,12 @@ fun OnboardingScreen(
         "en-US" to stringResource(Res.string.language_en),
         "ru-RU" to stringResource(Res.string.language_ru)
     )
+    val trainingModeOptions = listOf(
+        TRAINING_MODE_GYM to stringResource(Res.string.training_mode_gym),
+        TRAINING_MODE_HOME to stringResource(Res.string.training_mode_home),
+        TRAINING_MODE_OUTDOOR to stringResource(Res.string.training_mode_outdoor),
+        TRAINING_MODE_MIXED to stringResource(Res.string.training_mode_mixed)
+    )
 
     val inputColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = AiPalette.Primary,
@@ -268,6 +274,27 @@ fun OnboardingScreen(
                         }
 
                         3 -> {
+                            StepTitle(stringResource(Res.string.label_training_mode))
+                            Text(
+                                text = stringResource(Res.string.training_mode_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                trainingModeOptions.forEach { (mode, label) ->
+                                    ModernChip(
+                                        selected = state.trainingMode == mode,
+                                        label = label,
+                                        onClick = { presenter.update { it.copy(trainingMode = mode) } }
+                                    )
+                                }
+                            }
+                        }
+
+                        4 -> {
                             StepTitle(stringResource(Res.string.label_equipment_presets))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -291,7 +318,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        4 -> {
+                        5 -> {
                             StepTitle(stringResource(Res.string.label_dietary_prefs))
                             OutlinedTextField(
                                 value = state.dietaryPreferences,

@@ -9,10 +9,34 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.CoachBundle
 import com.vtempe.shared.domain.repository.CoachResponse
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+
+@Serializable
+internal data class RecentWorkoutDto(
+    val date: String,
+    val completionRate: Double,
+    val completedItems: Int,
+    val plannedItems: Int,
+    val totalVolumeKg: Double,
+    val averageRpe: Double? = null,
+    val notes: String = ""
+) {
+    companion object {
+        fun fromDomain(summary: WorkoutSummary) = RecentWorkoutDto(
+            date = summary.date,
+            completionRate = summary.completionRate,
+            completedItems = summary.completedItems,
+            plannedItems = summary.plannedItems,
+            totalVolumeKg = summary.totalVolumeKg,
+            averageRpe = summary.averageRpe,
+            notes = summary.notes
+        )
+    }
+}
 
 @Serializable
 internal data class AiProfileDto(
@@ -29,10 +53,16 @@ internal data class AiProfileDto(
     val injuries: List<String> = emptyList(),
     val healthNotes: List<String> = emptyList(),
     val budgetLevel: Int = 2,
-    val llmMode: String? = null
+    val trainingMode: String = "AUTO",
+    val llmMode: String? = null,
+    val recentWorkouts: List<RecentWorkoutDto> = emptyList()
 ) {
     companion object {
-        fun fromDomain(profile: Profile, llmMode: AiModelMode) = AiProfileDto(
+        fun fromDomain(
+            profile: Profile,
+            llmMode: AiModelMode,
+            recentWorkouts: List<WorkoutSummary> = emptyList()
+        ) = AiProfileDto(
             age = profile.age,
             sex = profile.sex.name,
             heightCm = profile.heightCm,
@@ -46,7 +76,9 @@ internal data class AiProfileDto(
             injuries = profile.constraints.injuries,
             healthNotes = profile.constraints.healthNotes,
             budgetLevel = profile.budgetLevel,
-            llmMode = llmMode.wireValue
+            trainingMode = profile.trainingMode,
+            llmMode = llmMode.wireValue,
+            recentWorkouts = recentWorkouts.map(RecentWorkoutDto::fromDomain)
         )
     }
 }
@@ -58,8 +90,13 @@ internal data class AiTrainingRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
-            AiTrainingRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
+        fun fromDomain(
+            profile: Profile,
+            weekIndex: Int,
+            locale: String?,
+            llmMode: AiModelMode,
+            recentWorkouts: List<WorkoutSummary> = emptyList()
+        ) = AiTrainingRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
     }
 }
 
@@ -70,8 +107,13 @@ internal data class AiNutritionRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
-            AiNutritionRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
+        fun fromDomain(
+            profile: Profile,
+            weekIndex: Int,
+            locale: String?,
+            llmMode: AiModelMode,
+            recentWorkouts: List<WorkoutSummary> = emptyList()
+        ) = AiNutritionRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
     }
 }
 
@@ -81,8 +123,12 @@ internal data class AiAdviceRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, locale: String?, llmMode: AiModelMode) =
-            AiAdviceRequestDto(AiProfileDto.fromDomain(profile, llmMode), locale)
+        fun fromDomain(
+            profile: Profile,
+            locale: String?,
+            llmMode: AiModelMode,
+            recentWorkouts: List<WorkoutSummary> = emptyList()
+        ) = AiAdviceRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), locale)
     }
 }
 
@@ -246,8 +292,13 @@ internal data class AiBootstrapRequestDto(
     val locale: String? = null
 ) {
     companion object {
-        fun fromDomain(profile: Profile, weekIndex: Int, locale: String?, llmMode: AiModelMode) =
-            AiBootstrapRequestDto(AiProfileDto.fromDomain(profile, llmMode), weekIndex, locale)
+        fun fromDomain(
+            profile: Profile,
+            weekIndex: Int,
+            locale: String?,
+            llmMode: AiModelMode,
+            recentWorkouts: List<WorkoutSummary> = emptyList()
+        ) = AiBootstrapRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
     }
 }
 
@@ -277,13 +328,15 @@ data class ChatResponse(
     val reply: String,
     val trainingPlan: TrainingPlanDto? = null,
     val nutritionPlan: NutritionPlanDto? = null,
-    val sleepAdvice: AdviceDto? = null
+    val sleepAdvice: AdviceDto? = null,
+    val actions: List<ChatActionDto> = emptyList()
 ) {
     fun toDomain(): CoachResponse = CoachResponse(
         reply = reply,
         trainingPlan = trainingPlan?.toDomain(),
         nutritionPlan = nutritionPlan?.toDomain(),
-        sleepAdvice = sleepAdvice?.toDomain()
+        sleepAdvice = sleepAdvice?.toDomain(),
+        actions = actions.mapNotNull(ChatActionDto::toDomain)
     )
 }
 

@@ -44,6 +44,7 @@ private data class PersistedProfile(
     val allergies: List<String> = emptyList(),
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
     val budgetLevel: Int = 2,
+    val trainingMode: String = "AUTO",
 ) {
     fun toDomain(): Profile = Profile(
         id = id,
@@ -58,7 +59,8 @@ private data class PersistedProfile(
         dietaryPreferences = dietaryPreferences,
         allergies = allergies,
         weeklySchedule = weeklySchedule,
-        budgetLevel = budgetLevel
+        budgetLevel = budgetLevel,
+        trainingMode = trainingMode
     )
 
     companion object {
@@ -75,7 +77,8 @@ private data class PersistedProfile(
             dietaryPreferences = p.dietaryPreferences,
             allergies = p.allergies,
             weeklySchedule = p.weeklySchedule,
-            budgetLevel = p.budgetLevel
+            budgetLevel = p.budgetLevel,
+            trainingMode = p.trainingMode
         )
     }
 }

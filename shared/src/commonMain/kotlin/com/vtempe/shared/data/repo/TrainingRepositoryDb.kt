@@ -7,7 +7,9 @@ import com.vtempe.shared.db.AppDatabase
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
@@ -25,7 +27,8 @@ class TrainingRepositoryDb(
     private val db: AppDatabase,
     private val ai: com.vtempe.shared.domain.repository.AiTrainerRepository,
     private val validateSubscription: com.vtempe.shared.domain.usecase.ValidateSubscription,
-    private val cache: AiResponseCache
+    private val cache: AiResponseCache,
+    private val progressStore: WorkoutProgressStore
 ) : TrainingRepository {
 
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan {
@@ -61,7 +64,7 @@ class TrainingRepositoryDb(
     }
 
     override suspend fun logSet(workoutId: String, set: WorkoutSet) {
-        db.workoutQueries.insertSet(workoutId, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+        progressStore.appendExtraSet(workoutId, set)
     }
 
     override suspend fun savePlan(plan: TrainingPlan) {
@@ -95,6 +98,15 @@ class TrainingRepositoryDb(
                     Workout(id = id, date = date, sets = sets)
                 }
             }
+
+    override fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>> = progressStore.observe()
+
+    override suspend fun saveWorkoutProgress(progress: WorkoutProgress) {
+        progressStore.save(progress)
+    }
+
+    override suspend fun recentWorkoutSummaries(limit: Int): List<WorkoutSummary> =
+        progressStore.recentSummaries(limit)
 
     private fun persistPlan(plan: TrainingPlan) {
         db.workoutQueries.transaction {

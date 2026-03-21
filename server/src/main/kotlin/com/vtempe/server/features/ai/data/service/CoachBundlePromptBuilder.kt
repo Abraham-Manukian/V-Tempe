@@ -1,5 +1,7 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
+import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
 import com.vtempe.server.shared.dto.profile.AiProfile
 import java.util.Locale
@@ -10,12 +12,20 @@ internal fun buildBundlePrompt(
     locale: Locale,
     measurementSystem: String,
     weightUnit: String,
-    request: AiBootstrapRequest
+    request: AiBootstrapRequest,
+    exerciseCatalog: ExerciseCatalog,
+    trainingPlanResolver: TrainingPlanResolver
 ): String {
     val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
     val profileJson = json.encodeToString(AiProfile.serializer(), request.profile)
     val preferencesSummary = buildPreferencesSummary(request.profile)
     val restrictionsSummary = nutritionRestrictionsPrompt(request.profile)
+    val trainingResolverPrompt = buildTrainingResolverPrompt(
+        exerciseCatalog = exerciseCatalog,
+        trainingPlanResolver = trainingPlanResolver,
+        trainingModeRaw = request.profile.trainingMode,
+        equipment = request.profile.equipment
+    )
     return buildString {
         appendLine("You are an elite strength coach, nutritionist, and recovery specialist guiding this athlete long-term.")
         appendLine("User language: $languageDisplay. Reply strictly in this language and measurement system.")
@@ -37,7 +47,7 @@ internal fun buildBundlePrompt(
         appendLine(" \"sleepAdvice\": {\"messages\": [String], \"disclaimer\": String}}")
         appendLine()
         appendLine("VALID RESPONSE EXAMPLE (structure only, replace with real data):")
-        appendLine("{\"trainingPlan\":{\"weekIndex\":0,\"workouts\":[{\"id\":\"w_0_0\",\"date\":\"2025-01-06\",\"sets\":[{\"exerciseId\":\"squat\",\"reps\":8,\"weightKg\":60.0,\"rpe\":7.5}]}]},")
+        appendLine("{\"trainingPlan\":{\"weekIndex\":0,\"workouts\":[{\"id\":\"w_0_0\",\"date\":\"2025-01-06\",\"sets\":[{\"exerciseId\":\"pattern:knee_dominant\",\"reps\":8,\"weightKg\":60.0,\"rpe\":7.5}]}]},")
         appendLine("\"nutritionPlan\":{\"weekIndex\":0,\"mealsByDay\":{\"Mon\":[{\"name\":\"Oats with berries\",\"ingredients\":[\"rolled oats\",\"milk\",\"berries\"],\"kcal\":420,\"macros\":{\"proteinGrams\":35,\"fatGrams\":12,\"carbsGrams\":55,\"kcal\":420}}]},\"shoppingList\":[\"rolled oats\",\"milk\",\"berries\"]},")
         appendLine("\"sleepAdvice\":{\"messages\":[\"Keep a consistent sleep schedule.\"],\"disclaimer\":\"Not medical advice\"}}")
         appendLine("")
@@ -49,7 +59,7 @@ internal fun buildBundlePrompt(
         appendLine("- Use ISO dates (YYYY-MM-DD). Plan for week index ${request.weekIndex} (upcoming week).")
         appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit (use null for bodyweight).")
         appendLine("- Provide balanced push/pull/legs/core coverage. 4-6 exercises per workout, vary rep ranges 4-12, include RPE 6.5-9.0.")
-        appendLine("- exerciseId must be chosen from: [squat, bench, deadlift, ohp, row, pullup, lunge, dip, pushup, curl, tricep_extension, plank, hip_thrust, leg_press].")
+        appendLine(trainingResolverPrompt)
         appendLine("- Every workout.id must be unique inside trainingPlan. Never repeat workout IDs.")
         appendLine("- Limit workouts to at most 5 in the plan and sets to at most 6 per workout to keep the JSON concise.")
         appendLine()
@@ -73,7 +83,7 @@ internal fun buildBundlePrompt(
         appendLine("GLOBAL VALIDATION RULES:")
         appendLine("- Training workout dates must be ISO (YYYY-MM-DD) and use future week index ${request.weekIndex}.")
         appendLine("- Day keys in mealsByDay must be exactly Mon,Tue,Wed,Thu,Fri,Sat,Sun in that order.")
-        appendLine("- exerciseId values must stay within [squat, bench, deadlift, ohp, row, pullup, lunge, dip, pushup, curl, tricep_extension, plank, hip_thrust, leg_press].")
+        appendLine("- exerciseId values must stay within the resolver slot tokens declared above.")
         appendLine("- For every meal, kcal must follow 4*protein + 4*carbs + 9*fat within +/-20 as already stated.")
         appendLine("- Daily meal frequencies you output must respect the goal ranges listed above; reject plans that fall outside the permitted meal counts.")
         appendLine("- All dates in nutrition or training contexts must be valid calendar dates (ISO format).")
@@ -87,6 +97,7 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
     appendLine("- Demographics: ${profile.age} y/o ${profile.sex.lowercase(Locale.US)} | ${profile.heightCm} cm | $weightFormatted kg")
     appendLine("- Goal: ${profile.goal}")
     appendLine("- Experience level (1-5): ${profile.experienceLevel}")
+    appendLine("- Training mode preference: ${profile.trainingMode}")
 
     val equipment = if (profile.equipment.isNotEmpty()) {
         profile.equipment.joinToString(", ")
@@ -118,5 +129,18 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
         appendLine("- Allergies to avoid: ${profile.allergies.joinToString(", ")}")
     }
     appendLine("- Nutrition budget level (1 low .. 3 high): ${profile.budgetLevel ?: 2}")
+    if (profile.recentWorkouts.isNotEmpty()) {
+        appendLine("- Recent workout outcomes to use for progression/regression decisions:")
+        profile.recentWorkouts.take(5).forEachIndexed { index, workout ->
+            val completion = (workout.completionRate * 100.0).coerceIn(0.0, 100.0)
+            val avgRpe = workout.averageRpe?.let { String.format(Locale.US, "%.1f", it) } ?: "n/a"
+            val notes = workout.notes.takeIf { it.isNotBlank() } ?: "none"
+            appendLine(
+                "  ${index + 1}. ${workout.date}: ${workout.completedItems}/${workout.plannedItems} done, " +
+                    "completion ${String.format(Locale.US, "%.0f", completion)}%, " +
+                    "volume ${String.format(Locale.US, "%.1f", workout.totalVolumeKg)} kg, avg RPE $avgRpe, notes: $notes"
+            )
+        }
+    }
 }
 

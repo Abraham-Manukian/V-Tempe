@@ -21,24 +21,28 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
         val date = today.plusDays(day.toLong()).toString()
         val sets = when (day) {
             0 -> listOf(
-                set("squat", 6, 60.0, 7.0),
-                set("bench", 8, 45.0, 7.0),
-                set("row", 10, 40.0, 7.0)
+                set("pattern:knee_dominant", 6, 60.0, 7.0),
+                set("pattern:horizontal_push", 8, 45.0, 7.0),
+                set("pattern:horizontal_pull", 10, 40.0, 7.0)
             )
             1 -> listOf(
-                set("deadlift", 4, 90.0, 7.5),
-                set("ohp", 8, 30.0, 7.0),
-                set("pullup", 6, null, 7.0)
+                set("pattern:hinge", 4, 90.0, 7.5),
+                set("pattern:vertical_push", 8, 30.0, 7.0),
+                set("pattern:vertical_pull", 6, null, 7.0)
             )
             else -> listOf(
-                set("lunge", 10, 25.0, 7.0),
-                set("hip_thrust", 12, 50.0, 7.0),
-                set("plank", 45, null, 6.5)
+                set("pattern:single_leg", 10, 25.0, 7.0),
+                set("pattern:horizontal_push", 12, 20.0, 7.0),
+                set("pattern:core", 45, null, 6.5)
             )
         }
         AiWorkout(id = id, date = date, sets = sets)
     }
-    return AiTrainingResponse(req.weekIndex, workouts)
+    return normalizeTrainingPlan(
+        plan = AiTrainingResponse(req.weekIndex, workouts),
+        profile = req.profile,
+        trainingPlanResolver = builtInTrainingPlanResolver
+    )
 }
 
 internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {

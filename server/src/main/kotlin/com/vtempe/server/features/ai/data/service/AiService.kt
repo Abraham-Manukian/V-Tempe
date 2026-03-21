@@ -6,6 +6,8 @@ import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.RateLimitException
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
+import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
 import com.vtempe.server.shared.dto.advice.AiAdviceResponse
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
@@ -28,7 +30,9 @@ import org.slf4j.LoggerFactory
 class AiService(
     private val paidLlmClient: LLMClient,
     private val freeLlmClient: LLMClient,
-    private val llmRepairer: LlmRepairer
+    private val llmRepairer: LlmRepairer,
+    private val exerciseCatalog: ExerciseCatalog,
+    private val trainingPlanResolver: TrainingPlanResolver
 ) {
 
     private val logger = LoggerFactory.getLogger(AiService::class.java)
@@ -146,7 +150,9 @@ class AiService(
             locale = locale,
             measurementSystem = measurementSystem,
             weightUnit = weightUnit,
-            request = AiBootstrapRequest(profile, weekIndex, localeTag)
+            request = AiBootstrapRequest(profile, weekIndex, localeTag),
+            exerciseCatalog = exerciseCatalog,
+            trainingPlanResolver = trainingPlanResolver
         )
 
         return try {
@@ -158,7 +164,7 @@ class AiService(
                 callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "coach-bundle", requestId) },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
-                    val normalizedCandidate = normalizeBundle(bundle, locale, profile)
+                    val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver)
                     val errors = validateBundle(normalizedCandidate, profile, locale)
                     val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                     if (criticalErrors.isNotEmpty()) {
@@ -177,7 +183,7 @@ class AiService(
                 extractionMode = ExtractionMode.FirstJsonObject
             )
 
-            val normalized = normalizeBundle(generated, locale, profile)
+            val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver)
             cacheMutex.withLock {
                 bundleCache[requestId] = CacheEntry(
                     bundle = normalized,
@@ -218,7 +224,8 @@ class AiService(
                     sleepAdvice = fallbackAdvice(AiAdviceRequest(profile, localeTag))
                 ),
                 locale,
-                profile
+                profile,
+                trainingPlanResolver
             )
             logger.warn("LLM bundle fallback activated for requestId={}", requestId, t)
             AiQualityMetrics.recordFallback(logger, "coach-bundle", t)
@@ -311,7 +318,8 @@ class AiService(
                         sleepAdvice = advice
                     ),
                     locale,
-                    profile
+                    profile,
+                    trainingPlanResolver
                 )
                 val errors = validateBundle(bundle, profile, locale)
                 val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
@@ -360,12 +368,12 @@ class AiService(
             callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "training-section", sectionRequestId) },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
-                val normalized = normalizeTrainingPlan(plan)
-                validateTrainingPlan(normalized)?.let(::listOf) ?: emptyList()
+                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver)
+                validateTrainingPlan(normalized, exerciseCatalog)?.let(::listOf) ?: emptyList()
             },
             extractionMode = ExtractionMode.FirstJsonObject
         )
-        return normalizeTrainingPlan(generated)
+        return normalizeTrainingPlan(generated, profile, trainingPlanResolver)
     }
 
     private suspend fun generateNutritionSection(
@@ -453,13 +461,20 @@ class AiService(
     ): String {
         val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
         val profileJson = json.encodeToString(AiProfile.serializer(), profile)
+        val trainingResolverPrompt = buildTrainingResolverPrompt(
+            exerciseCatalog = exerciseCatalog,
+            trainingPlanResolver = trainingPlanResolver,
+            trainingModeRaw = profile.trainingMode,
+            equipment = profile.equipment
+        )
         return buildString {
             appendLine("You are an elite strength coach.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply with JSON only.")
             appendLine("Measurement system: $measurementSystem. Use $weightUnit for load.")
+            appendLine("If PROFILE JSON contains recentWorkouts, use it to progress, hold, or regress load, volume, and exercise difficulty.")
             appendLine("Return ONLY this JSON schema:")
             appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")
-            appendLine("Allowed exerciseId values: [squat, bench, deadlift, ohp, row, pullup, lunge, dip, pushup, curl, tricep_extension, plank, hip_thrust, leg_press].")
+            appendLine(trainingResolverPrompt)
             appendLine("Max 5 workouts, max 6 sets per workout, no duplicate workout IDs.")
             appendLine("Plan for weekIndex=$weekIndex and use valid ISO dates in that week.")
             appendLine("PROFILE JSON:")
@@ -562,7 +577,7 @@ class AiService(
         if (training == null) {
             errors += "trainingPlan was null"
         } else {
-            validateTrainingPlan(training)?.let { errors += "trainingPlan: $it" }
+            validateTrainingPlan(training, exerciseCatalog)?.let { errors += "trainingPlan: $it" }
         }
 
         val nutrition = bundle.nutritionPlan

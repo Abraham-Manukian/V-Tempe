@@ -15,6 +15,8 @@ import com.vtempe.server.features.ai.data.llm.pipeline.PipelineConfig
 import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmErrorTracker
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmRawStore
+import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
+import com.vtempe.server.features.ai.data.resolver.DefaultTrainingPlanResolver
 import com.vtempe.server.features.ai.data.service.AiService
 import com.vtempe.server.features.ai.data.service.ChatService
 import com.vtempe.server.features.ai.data.usecase.BootstrapUseCaseImpl
@@ -27,6 +29,8 @@ import com.vtempe.server.features.ai.domain.usecase.ChatUseCase
 import com.vtempe.server.features.ai.domain.usecase.NutritionUseCase
 import com.vtempe.server.features.ai.domain.usecase.SleepUseCase
 import com.vtempe.server.features.ai.domain.usecase.TrainingUseCase
+import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
+import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -147,13 +151,17 @@ val serverModule = module {
 
     // --- Repairer (class, not object) ---
     single { LlmRepairer(get()) }
+    single<ExerciseCatalog> { BuiltInExerciseCatalog() }
+    single<TrainingPlanResolver> { DefaultTrainingPlanResolver(get()) }
 
     // --- Services ---
     single {
         AiService(
             paidLlmClient = get(named("llm-paid")),
             freeLlmClient = get(named("llm-free")),
-            llmRepairer = get()
+            llmRepairer = get(),
+            exerciseCatalog = get(),
+            trainingPlanResolver = get()
         )
     }
     single {
@@ -161,7 +169,9 @@ val serverModule = module {
             paidLlmClient = get(named("llm-paid")),
             freeLlmClient = get(named("llm-free")),
             llmRepairer = get(),
-            aiService = get()
+            aiService = get(),
+            exerciseCatalog = get(),
+            trainingPlanResolver = get()
         )
     }
 

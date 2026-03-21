@@ -1,5 +1,8 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
+import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
+import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.training.AiSet
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
@@ -11,51 +14,11 @@ import java.time.temporal.TemporalAdjusters
 private const val MaxWorkoutsPerPlan = 5
 private const val MaxSetsPerWorkout = 6
 
-private val allowedExerciseIds = setOf(
-    "squat",
-    "bench",
-    "deadlift",
-    "ohp",
-    "row",
-    "pullup",
-    "lunge",
-    "dip",
-    "pushup",
-    "curl",
-    "tricep_extension",
-    "plank",
-    "hip_thrust",
-    "leg_press",
-    "run",
-    "bike",
-    "yoga"
-)
-
-private val exerciseAliasMap = mapOf(
-    "back_squat" to "squat",
-    "bench_press" to "bench",
-    "bent_over_row" to "row",
-    "barbell_row" to "row",
-    "pull_up" to "pullup",
-    "pullups" to "pullup",
-    "walking_lunge" to "lunge",
-    "parallel_bar_dip" to "dip",
-    "parallel_bar_dips" to "dip",
-    "push_up" to "pushup",
-    "push_ups" to "pushup",
-    "bicep_curl" to "curl",
-    "biceps_curl" to "curl",
-    "biceps_curls" to "curl",
-    "triceps_extension" to "tricep_extension",
-    "triceps_extensions" to "tricep_extension",
-    "hipthrust" to "hip_thrust",
-    "hip_thrusts" to "hip_thrust",
-    "plank_hold" to "plank",
-    "legpress" to "leg_press",
-    "cycling" to "bike"
-)
-
-internal fun normalizeTrainingPlan(plan: AiTrainingResponse): AiTrainingResponse {
+internal fun normalizeTrainingPlan(
+    plan: AiTrainingResponse,
+    profile: AiProfile? = null,
+    trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver
+): AiTrainingResponse {
     val weekStart = expectedWeekStart(plan.weekIndex)
     val usedWorkoutIds = mutableSetOf<String>()
     val workouts = plan.workouts
@@ -64,10 +27,18 @@ internal fun normalizeTrainingPlan(plan: AiTrainingResponse): AiTrainingResponse
             val safeDate = normalizeWorkoutDate(workout.date, weekStart, index)
             val rawId = sanitizeText(workout.id).ifEmpty { "w_${plan.weekIndex}_$index" }
             val safeId = uniqueWorkoutId(rawId, plan.weekIndex, index, usedWorkoutIds)
+            val usedExerciseIds = mutableSetOf<String>()
 
             val normalizedSets = workout.sets
-                .mapNotNull { set ->
-                    val canonical = canonicalExerciseIdOrNull(set.exerciseId) ?: return@mapNotNull null
+                .mapIndexedNotNull { setIndex, set ->
+                    val canonical = trainingPlanResolver.resolveExerciseId(
+                        rawToken = set.exerciseId,
+                        trainingModeRaw = profile?.trainingMode,
+                        equipment = profile?.equipment.orEmpty(),
+                        usedExerciseIds = usedExerciseIds,
+                        rotationSeed = (index * 31) + setIndex
+                    ) ?: return@mapIndexedNotNull null
+                    usedExerciseIds += canonical
                     val reps = set.reps.coerceAtLeast(1)
                     val weight = set.weightKg?.takeIf { it >= 0.0 }
                     val rpe = set.rpe?.takeIf { it > 0.0 }
@@ -82,7 +53,13 @@ internal fun normalizeTrainingPlan(plan: AiTrainingResponse): AiTrainingResponse
                 .take(MaxSetsPerWorkout)
 
             val safeSets = if (normalizedSets.isEmpty()) {
-                listOf(AiSet("squat", reps = 8, weightKg = null, rpe = 7.0))
+                val fallbackExerciseId = trainingPlanResolver.resolveExerciseId(
+                    rawToken = "pattern:knee_dominant",
+                    trainingModeRaw = profile?.trainingMode,
+                    equipment = profile?.equipment.orEmpty(),
+                    rotationSeed = index
+                ) ?: "lunge"
+                listOf(AiSet(fallbackExerciseId, reps = 8, weightKg = null, rpe = 7.0))
             } else {
                 normalizedSets
             }
@@ -97,10 +74,14 @@ internal fun normalizeTrainingPlan(plan: AiTrainingResponse): AiTrainingResponse
     return plan.copy(workouts = workouts)
 }
 
-internal fun validateTrainingPlan(plan: AiTrainingResponse): String? {
+internal fun validateTrainingPlan(
+    plan: AiTrainingResponse,
+    exerciseCatalog: ExerciseCatalog = builtInExerciseCatalog
+): String? {
     if (plan.workouts.isEmpty()) return "workouts array must contain at least one workout"
     if (plan.workouts.any { it.sets.isEmpty() }) return "each workout must include at least one set"
 
+    val allowedExerciseIds = exerciseCatalog.supportedExerciseIds()
     val workoutIds = mutableSetOf<String>()
     plan.workouts.forEachIndexed { workoutIndex, workout ->
         val id = normalizeExerciseToken(workout.id)
@@ -112,8 +93,10 @@ internal fun validateTrainingPlan(plan: AiTrainingResponse): String? {
         }
         val seenSets = mutableSetOf<String>()
         workout.sets.forEachIndexed { setIndex, set ->
-            val canonicalExercise = canonicalExerciseIdOrNull(set.exerciseId)
-                ?: return "workout[$workoutIndex].sets[$setIndex].exerciseId is not supported"
+            val canonicalExercise = normalizeExerciseToken(set.exerciseId)
+            if (canonicalExercise !in allowedExerciseIds) {
+                return "workout[$workoutIndex].sets[$setIndex].exerciseId is not supported"
+            }
             if (set.reps <= 0) return "workout[$workoutIndex].sets[$setIndex].reps must be positive"
             val fingerprint = "$canonicalExercise|${set.reps}|${set.weightKg ?: "bw"}|${set.rpe ?: "-"}"
             if (!seenSets.add(fingerprint)) {
@@ -155,23 +138,4 @@ private fun uniqueWorkoutId(
         suffix += 1
     }
     return candidate
-}
-
-private fun canonicalExerciseIdOrNull(raw: String): String? {
-    val trimmed = sanitizeText(raw)
-    if (trimmed.isEmpty()) return null
-
-    val explicitId = Regex("""\(([^()]+)\)\s*$""")
-        .find(trimmed)
-        ?.groupValues
-        ?.getOrNull(1)
-        ?.let(::normalizeExerciseToken)
-        ?.let { token -> if (token in allowedExerciseIds) token else exerciseAliasMap[token] }
-    if (explicitId != null) return explicitId
-
-    val token = normalizeExerciseToken(trimmed)
-    return when {
-        token in allowedExerciseIds -> token
-        else -> exerciseAliasMap[token]
-    }
 }

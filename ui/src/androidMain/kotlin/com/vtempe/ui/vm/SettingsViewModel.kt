@@ -50,6 +50,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(saving = true)
             profileRepository.upsertProfile(profile)
+            runCatching { ensureCoachData(weekIndex = 0, force = true) }
             _state.value = SettingsState(
                 profile = profile,
                 saving = false,

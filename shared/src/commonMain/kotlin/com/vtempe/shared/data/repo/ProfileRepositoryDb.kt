@@ -27,7 +27,8 @@ class ProfileRepositoryDb(
             dietaryPreferences = prefs,
             allergies = allergies,
             weeklySchedule = schedule,
-            budgetLevel = row.budgetLevel.toInt()
+            budgetLevel = row.budgetLevel.toInt(),
+            trainingMode = "AUTO"
         )
     }
 
