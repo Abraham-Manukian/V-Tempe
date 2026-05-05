@@ -125,7 +125,8 @@
     <string name="workout_exercise_yoga">Йога</string>
     <string name="workout_reps_label">Повторения</string>
     <string name="workout_weight_label">Вес</string>
-    <string name="workout_rpe_label">RPE</string>
+    <string name="workout_rpe_label">Усилие</string>
+    <string name="workout_rpe_scale">1–10</string>
     <string name="workout_add_button">Добавить</string>
     <string name="workout_rest_timer_title">Таймер отдыха</string>
     <string name="workout_rest_start">Старт</string>
@@ -169,7 +170,8 @@
     <string name="workout_rest_seconds_compact">%1$dс</string>
     <string name="workout_use_preset">Применить</string>
     <string name="workout_training_controls">Зафиксировать подход</string>
-    <string name="workout_save_result">Сохранить результат</string>
+    <string name="workout_save_result">Сохранить · без отдыха</string>
+    <string name="workout_start">Начать</string>
     <string name="workout_mark_not_done">Снять выполнение</string>
     <string name="workout_mark_set_done">Отметить подход</string>
     <string name="workout_ask_coach">Спросить тренера</string>
@@ -177,6 +179,8 @@
     <string name="workout_extra_sets_title">Дополнительные подходы</string>
     <string name="workout_feedback_help">Сохрани, как ощущалась сессия, чтобы следующий AI-план учитывал реальную усталость, объём и заметки.</string>
     <string name="workout_feedback_saved">Сохранено. AI сможет учесть этот результат в следующий раз.</string>
+    <string name="workout_rest_skip">Пропустить</string>
+    <string name="workout_done_start_rest">Готово · Отдых</string>
 
     <!-- Nutrition -->
     <string name="action_refresh">Обновить</string>

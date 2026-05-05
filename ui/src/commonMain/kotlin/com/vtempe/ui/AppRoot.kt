@@ -38,9 +38,14 @@ fun AppRoot() {
     VTempeTheme {
         var currentRoute by remember { mutableStateOf(Routes.Splash) }
         var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
+        var isActiveWorkout by remember { mutableStateOf(false) }
         val tabRoutes = bottomDestinations.map { it.route }
         val isTabRoute = currentRoute in tabRoutes
-        val showTopBar = currentRoute != Routes.Onboarding && currentRoute != Routes.Splash
+        val showTopBar = currentRoute != Routes.Onboarding && currentRoute != Routes.Splash && !isActiveWorkout
+
+        LaunchedEffect(currentRoute) {
+            if (currentRoute != Routes.Workout) isActiveWorkout = false
+        }
 
         val density = LocalDensity.current
         var topBarHeight by remember { mutableStateOf(0.dp) }
@@ -67,7 +72,9 @@ fun AppRoot() {
                             onAskCoach = { prompt ->
                                 pendingChatPrompt = prompt
                                 currentRoute = Routes.Chat
-                            }
+                            },
+                            onEnterActiveWorkout = { isActiveWorkout = true },
+                            onExitActiveWorkout = { isActiveWorkout = false }
                         )
                     }
                 }
@@ -120,13 +127,19 @@ private fun AppNavigationHost(
     pendingChatPrompt: String?,
     onPromptConsumed: () -> Unit,
     onAskCoach: (String) -> Unit,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    onEnterActiveWorkout: () -> Unit,
+    onExitActiveWorkout: () -> Unit
 ) {
     when (currentRoute) {
         Routes.Splash -> SplashScreen(onReady = onNavigate)
         Routes.Onboarding -> OnboardingScreen(onDone = { onNavigate(Routes.Home) })
         Routes.Home -> HomeScreen(onNavigate = onNavigate)
-        Routes.Workout -> WorkoutScreen(onAskCoach = onAskCoach)
+        Routes.Workout -> WorkoutScreen(
+            onAskCoach = onAskCoach,
+            onEnterActiveWorkout = onEnterActiveWorkout,
+            onExitActiveWorkout = onExitActiveWorkout
+        )
         Routes.Nutrition -> NutritionScreen(onOpenMeal = { day, index ->
             onNavigate(Routes.nutritionDetail(day, index))
         })

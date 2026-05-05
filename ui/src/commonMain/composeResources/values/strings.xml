@@ -123,7 +123,8 @@
     <string name="workout_exercise_yoga">Yoga</string>
     <string name="workout_reps_label">Reps</string>
     <string name="workout_weight_label">Weight</string>
-    <string name="workout_rpe_label">RPE</string>
+    <string name="workout_rpe_label">Effort</string>
+    <string name="workout_rpe_scale">1–10</string>
     <string name="workout_add_button">Add</string>
     <string name="workout_rest_timer_title">Rest timer</string>
     <string name="workout_rest_start">Start</string>
@@ -167,7 +168,8 @@
     <string name="workout_rest_seconds_compact">%1$ds</string>
     <string name="workout_use_preset">Use preset</string>
     <string name="workout_training_controls">Log this set</string>
-    <string name="workout_save_result">Save result</string>
+    <string name="workout_save_result">Save · skip rest</string>
+    <string name="workout_start">Start</string>
     <string name="workout_mark_not_done">Mark as not done</string>
     <string name="workout_mark_set_done">Mark set done</string>
     <string name="workout_ask_coach">Ask coach</string>
@@ -175,6 +177,8 @@
     <string name="workout_extra_sets_title">Extra sets</string>
     <string name="workout_feedback_help">Save how the session felt so the next AI plan can react to real fatigue, volume, and notes.</string>
     <string name="workout_feedback_saved">Saved. AI can use this workout result next time.</string>
+    <string name="workout_rest_skip">Skip</string>
+    <string name="workout_done_start_rest">Done · Start rest</string>
 
     <!-- Nutrition -->
     <string name="action_refresh">Refresh</string>
