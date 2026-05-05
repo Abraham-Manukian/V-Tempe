@@ -74,6 +74,7 @@ internal data class ChatProfileDto(
     val healthNotes: List<String> = emptyList(),
     val budgetLevel: Int = 2,
     val trainingMode: String = "AUTO",
+    val coachTrainerId: String = "mia",
     val llmMode: String? = null,
     val recentWorkouts: List<com.vtempe.shared.data.network.dto.RecentWorkoutDto> = emptyList(),
 ) {
@@ -96,6 +97,7 @@ internal data class ChatProfileDto(
             healthNotes = p.constraints.healthNotes,
             budgetLevel = p.budgetLevel,
             trainingMode = p.trainingMode,
+            coachTrainerId = p.coachTrainerId,
             llmMode = llmMode.wireValue,
             recentWorkouts = recentWorkouts.map(com.vtempe.shared.data.network.dto.RecentWorkoutDto::fromDomain)
         )

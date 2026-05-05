@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.domain.repository.ChatMessage
+import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.CoroutineScope
@@ -16,13 +17,23 @@ import kotlinx.coroutines.launch
 import com.vtempe.shared.data.di.KoinProvider
 
 private class IosChatPresenter(
-    private val ask: AskAiTrainer
+    private val ask: AskAiTrainer,
+    private val profileRepository: ProfileRepository
 ) : ChatPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
     private val mutableState = MutableStateFlow(ChatState())
     override val state: StateFlow<ChatState> = mutableState
+
+    init {
+        scope.launch {
+            val coachId = profileRepository.getProfile()?.coachTrainerId
+            if (!coachId.isNullOrBlank()) {
+                mutableState.update { it.copy(coachTrainerId = coachId) }
+            }
+        }
+    }
     override fun updateInput(text: String) {
         mutableState.update { current ->
             val normalizedState = when (current.sendState) {
@@ -79,7 +90,10 @@ private class IosChatPresenter(
 actual fun rememberChatPresenter(): ChatPresenter {
     val presenter = remember {
         val koin = requireNotNull(KoinProvider.koin) { "Koin is not started" }
-        IosChatPresenter(ask = koin.get<AskAiTrainer>())
+        IosChatPresenter(
+            ask = koin.get<AskAiTrainer>(),
+            profileRepository = koin.get<ProfileRepository>()
+        )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }
     return presenter

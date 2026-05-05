@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
@@ -23,6 +24,7 @@ private class IosWorkoutPresenter(
     private val trainingRepository: TrainingRepository,
     private val logWorkoutSet: LogWorkoutSet,
     private val ensureCoachData: EnsureCoachData,
+    private val profileRepository: ProfileRepository,
 ) : WorkoutPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -50,6 +52,12 @@ private class IosWorkoutPresenter(
             }
         }
         scope.launch { runCatching { ensureCoachData() } }
+        scope.launch {
+            val coachId = profileRepository.getProfile()?.coachTrainerId
+            if (!coachId.isNullOrBlank()) {
+                mutableState.value = mutableState.value.copy(coachTrainerId = coachId)
+            }
+        }
     }
 
     override fun select(workoutId: String) {
@@ -140,7 +148,8 @@ actual fun rememberWorkoutPresenter(): WorkoutPresenter {
         IosWorkoutPresenter(
             trainingRepository = koin.get<TrainingRepository>(),
             logWorkoutSet = koin.get<LogWorkoutSet>(),
-            ensureCoachData = koin.get<EnsureCoachData>()
+            ensureCoachData = koin.get<EnsureCoachData>(),
+            profileRepository = koin.get<ProfileRepository>()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.vtempe.shared.data.network.dto.TrainingPlanDto
 import com.vtempe.shared.db.AppDatabase
+import com.vtempe.shared.domain.exercise.ExerciseLibrary
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
@@ -123,13 +124,19 @@ class TrainingRepositoryDb(
     }
 
     private fun seedFallbackExercises() {
-        db.exerciseQueries.upsertExercise("squat", "\u041F\u0440\u0438\u0441\u0435\u0434\u0430\u043D\u0438\u044F\u0020\u0441\u043E\u0020\u0448\u0442\u0430\u043D\u0433\u043E\u0439", "[\"legs\"]", 2L)
-        db.exerciseQueries.upsertExercise("bench", "\u0416\u0438\u043C\u0020\u043B\u0451\u0436\u0430", "[\"chest\"]", 2L)
-        db.exerciseQueries.upsertExercise("deadlift", "\u0421\u0442\u0430\u043D\u043E\u0432\u0430\u044F\u0020\u0442\u044F\u0433\u0430", "[\"back\",\"legs\"]", 3L)
-        db.exerciseQueries.upsertExercise("ohp", "\u0416\u0438\u043C\u0020\u0441\u0442\u043E\u044F", "[\"shoulders\"]", 2L)
-        db.exerciseQueries.upsertExercise("row", "\u0422\u044F\u0433\u0430\u0020\u0432\u0020\u043D\u0430\u043A\u043B\u043E\u043D\u0435", "[\"back\"]", 2L)
-        db.exerciseQueries.upsertExercise("pullup", "\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u043D\u0438\u044F", "[\"back\"]", 2L)
-        db.exerciseQueries.upsertExercise("lunge", "\u0412\u044B\u043F\u0430\u0434\u044B", "[\"legs\"]", 1L)
+        ExerciseLibrary.all().forEach { exercise ->
+            val muscleGroupsJson = exercise.muscleGroups.joinToString(
+                prefix = "[\"",
+                separator = "\",\"",
+                postfix = "\"]"
+            )
+            db.exerciseQueries.upsertExercise(
+                exercise.id,
+                exercise.name.en,
+                muscleGroupsJson,
+                exercise.difficulty.toLong()
+            )
+        }
     }
 
     private fun buildOfflinePlan(weekIndex: Int): TrainingPlan {

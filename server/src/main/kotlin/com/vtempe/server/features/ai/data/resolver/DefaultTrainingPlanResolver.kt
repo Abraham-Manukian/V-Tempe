@@ -48,7 +48,16 @@ class DefaultTrainingPlanResolver(
         exerciseCatalog.findByIdOrAlias(token)?.let { explicit ->
             val compatibleCandidates = exerciseCatalog.candidatesFor(explicit.primaryPattern, mode, normalizedEquipment)
             val concreteCompatible = compatibleCandidates.any { it.id == explicit.id }
-            return if (concreteCompatible) {
+            return if (
+                concreteCompatible &&
+                explicit.id !in usedExerciseIds &&
+                !shouldPreferResolverCandidateOverExplicit(
+                    explicit = explicit,
+                    pattern = explicit.primaryPattern,
+                    mode = mode,
+                    compatibleCandidates = compatibleCandidates
+                )
+            ) {
                 explicit.id
             } else {
                 selectCandidate(explicit.primaryPattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed)
@@ -71,8 +80,68 @@ class DefaultTrainingPlanResolver(
 
         val freshCandidates = candidates.filterNot { usedExerciseIds.contains(it.id) }
         val pool = freshCandidates.ifEmpty { candidates }
-        val index = rotationSeed.absoluteValue % pool.size
-        return pool[index].id
+        val ranked = pool
+            .map { candidate -> candidateScore(candidate, pattern, mode, pool) to candidate }
+            .sortedBy { it.first }
+
+        val bestScore = ranked.first().first
+        val finalists = ranked.filter { it.first == bestScore }.map { it.second }
+        val index = rotationSeed.absoluteValue % finalists.size
+        return finalists[index].id
+    }
+
+    private fun candidateScore(
+        candidate: com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem,
+        pattern: MovementPattern,
+        mode: TrainingMode,
+        pool: List<com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem>
+    ): Int {
+        var score = candidate.priority
+
+        val shouldPreferEquipmentBacked =
+            (mode == TrainingMode.GYM || mode == TrainingMode.MIXED) &&
+                pattern in setOf(
+                    MovementPattern.HORIZONTAL_PUSH,
+                    MovementPattern.HORIZONTAL_PULL,
+                    MovementPattern.VERTICAL_PUSH,
+                    MovementPattern.VERTICAL_PULL,
+                    MovementPattern.ARM_FLEXION,
+                    MovementPattern.ARM_EXTENSION,
+                    MovementPattern.CONDITIONING
+                )
+
+        if (shouldPreferEquipmentBacked) {
+            val hasEquipmentBackedAlternative = pool.any { it.requiredEquipment.isNotEmpty() }
+            if (hasEquipmentBackedAlternative && candidate.requiredEquipment.isEmpty()) {
+                score += 100
+            }
+        }
+
+        return score
+    }
+
+    private fun shouldPreferResolverCandidateOverExplicit(
+        explicit: com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem,
+        pattern: MovementPattern,
+        mode: TrainingMode,
+        compatibleCandidates: List<com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem>
+    ): Boolean {
+        if (mode != TrainingMode.GYM && mode != TrainingMode.MIXED) return false
+        val hasEquipmentBackedAlternative = compatibleCandidates.any { it.requiredEquipment.isNotEmpty() }
+        if (!hasEquipmentBackedAlternative) return false
+
+        val prefersEquipmentBacked =
+            pattern in setOf(
+                MovementPattern.HORIZONTAL_PUSH,
+                MovementPattern.HORIZONTAL_PULL,
+                MovementPattern.VERTICAL_PUSH,
+                MovementPattern.VERTICAL_PULL,
+                MovementPattern.ARM_FLEXION,
+                MovementPattern.ARM_EXTENSION,
+                MovementPattern.CONDITIONING
+            )
+
+        return prefersEquipmentBacked && explicit.requiredEquipment.isEmpty()
     }
 
     private fun canonicalEquipmentTag(raw: String): String? {

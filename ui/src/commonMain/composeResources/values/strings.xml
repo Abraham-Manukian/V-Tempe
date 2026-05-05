@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">V-Tempe</string>
 
     <!-- Navigation -->
@@ -55,6 +55,12 @@
     <string name="goal_gain_muscle">Bulk</string>
     <string name="label_experience">Experience: %1$d</string>
     <string name="label_training_mode">Training style</string>
+    <string name="label_coach_trainer">Choose your coach</string>
+    <string name="coach_trainer_hint">This coach will appear in exercise demos and chat.</string>
+    <string name="coach_trainer_avatar_hint">Exercise demos and chat avatar</string>
+    <string name="coach_artur_name">Artur</string>
+    <string name="coach_mia_name">Mia</string>
+    <string name="coach_vtempe_name">V-Tempe</string>
     <string name="training_mode_hint">Choose where you train most often so the coach can map patterns to real exercises.</string>
     <string name="training_mode_gym">Gym</string>
     <string name="training_mode_home">Home</string>
@@ -133,6 +139,42 @@
     <string name="workout_weight_display">%1$.1f kg</string>
     <string name="workout_weight_bodyweight">Bodyweight</string>
     <string name="workout_set_summary">%1$d reps · %2$s</string>
+    <string name="workout_rpe_suffix"> · RPE %1$s</string>
+    <string name="workout_plan_title">Workout plan</string>
+    <string name="workout_plan_intro">Keep the familiar card view. Tap any card to open a detailed session with exercise visuals, cues, timers, and result logging.</string>
+    <string name="workout_start_first">Start first workout</string>
+    <string name="workout_empty_title">No workout loaded yet</string>
+    <string name="workout_empty_body">Finish onboarding or wait for coach sync to generate your first plan.</string>
+    <string name="workout_more_exercises">+%1$d more exercises inside</string>
+    <string name="workout_coach_notes_added">Coach notes added</string>
+    <string name="workout_extra_sets_count">%1$d extra sets</string>
+    <string name="workout_saved">Saved</string>
+    <string name="workout_open_details">Open workout details</string>
+    <string name="workout_details_title">Workout details</string>
+    <string name="workout_stat_done">Done</string>
+    <string name="workout_stat_progress">Progress</string>
+    <string name="workout_stat_session">Session</string>
+    <string name="workout_summary_help">Each card below shows the movement visually, explains the technique, and lets you save actual reps, weight, and effort for AI adaptation.</string>
+    <string name="workout_status_done">Done</string>
+    <string name="workout_status_planned">Planned</string>
+    <string name="workout_image_fullscreen_hint">Open full screen</string>
+    <string name="workout_target_set">Target for this set</string>
+    <string name="workout_how_to_perform">How to perform</string>
+    <string name="workout_step_line">%1$d. %2$s</string>
+    <string name="workout_coach_cue">Coach cue</string>
+    <string name="workout_suggested_rest">Suggested rest</string>
+    <string name="workout_rest_seconds_display">%1$d s</string>
+    <string name="workout_rest_seconds_compact">%1$ds</string>
+    <string name="workout_use_preset">Use preset</string>
+    <string name="workout_training_controls">Log this set</string>
+    <string name="workout_save_result">Save result</string>
+    <string name="workout_mark_not_done">Mark as not done</string>
+    <string name="workout_mark_set_done">Mark set done</string>
+    <string name="workout_ask_coach">Ask coach</string>
+    <string name="workout_ask_coach_prompt">Explain %1$s technique and what I should watch during this set.</string>
+    <string name="workout_extra_sets_title">Extra sets</string>
+    <string name="workout_feedback_help">Save how the session felt so the next AI plan can react to real fatigue, volume, and notes.</string>
+    <string name="workout_feedback_saved">Saved. AI can use this workout result next time.</string>
 
     <!-- Nutrition -->
     <string name="action_refresh">Refresh</string>

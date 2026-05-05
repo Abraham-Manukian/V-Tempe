@@ -1,11 +1,12 @@
 ﻿package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.Sex
 import kotlinx.coroutines.flow.StateFlow
 
-const val ONBOARDING_TOTAL_STEPS = 7
+const val ONBOARDING_TOTAL_STEPS = 8
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
@@ -21,6 +22,7 @@ data class OnboardingState(
     val dietaryPreferences: String = "",
     val allergies: String = "",
     val trainingMode: String = TRAINING_MODE_GYM,
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT,
     val selectedEquipment: Set<String> = emptySet(),
     val customEquipment: String = "",
     val days: Map<String, Boolean> = mapOf(

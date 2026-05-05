@@ -37,6 +37,7 @@ val LocalBottomBarHeight = compositionLocalOf { 0.dp }
 fun AppRoot() {
     VTempeTheme {
         var currentRoute by remember { mutableStateOf(Routes.Splash) }
+        var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
         val tabRoutes = bottomDestinations.map { it.route }
         val isTabRoute = currentRoute in tabRoutes
         val showTopBar = currentRoute != Routes.Onboarding && currentRoute != Routes.Splash
@@ -60,7 +61,13 @@ fun AppRoot() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         AppNavigationHost(
                             currentRoute = currentRoute,
-                            onNavigate = { dest -> currentRoute = dest }
+                            pendingChatPrompt = pendingChatPrompt,
+                            onPromptConsumed = { pendingChatPrompt = null },
+                            onNavigate = { dest -> currentRoute = dest },
+                            onAskCoach = { prompt ->
+                                pendingChatPrompt = prompt
+                                currentRoute = Routes.Chat
+                            }
                         )
                     }
                 }
@@ -110,13 +117,16 @@ fun AppRoot() {
 @Composable
 private fun AppNavigationHost(
     currentRoute: String,
+    pendingChatPrompt: String?,
+    onPromptConsumed: () -> Unit,
+    onAskCoach: (String) -> Unit,
     onNavigate: (String) -> Unit
 ) {
     when (currentRoute) {
         Routes.Splash -> SplashScreen(onReady = onNavigate)
         Routes.Onboarding -> OnboardingScreen(onDone = { onNavigate(Routes.Home) })
         Routes.Home -> HomeScreen(onNavigate = onNavigate)
-        Routes.Workout -> WorkoutScreen()
+        Routes.Workout -> WorkoutScreen(onAskCoach = onAskCoach)
         Routes.Nutrition -> NutritionScreen(onOpenMeal = { day, index ->
             onNavigate(Routes.nutritionDetail(day, index))
         })
@@ -125,7 +135,10 @@ private fun AppNavigationHost(
         Routes.Paywall -> PaywallScreen()
         Routes.Settings -> SettingsScreen(onEditProfile = { onNavigate(Routes.EditProfile) })
         Routes.EditProfile -> EditProfileScreen(onDone = { onNavigate(Routes.Settings) })
-        Routes.Chat -> ChatScreen()
+        Routes.Chat -> ChatScreen(
+            initialPrompt = pendingChatPrompt,
+            onPromptConsumed = onPromptConsumed
+        )
         Routes.ShoppingList -> ShoppingListScreen(onBack = { onNavigate(Routes.Nutrition) })
         else -> {
             if (currentRoute.startsWith("nutrition_detail")) {

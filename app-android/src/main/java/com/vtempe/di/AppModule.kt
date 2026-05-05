@@ -30,12 +30,12 @@ object AppModule {
         // ViewModels (Android implementations live in :ui)
         viewModel { OnboardingViewModel(get(), get(), get()) }
         viewModel { HomeViewModel(get(), get()) }
-        viewModel { WorkoutViewModel(get(), get(), get()) }
+        viewModel { WorkoutViewModel(get(), get(), get(), get()) }
         viewModel { NutritionViewModel(get(), get()) }
         viewModel { SleepViewModel(get(), get()) }
         viewModel { ProgressViewModel(get(), get()) }
         viewModel { PaywallViewModel(get()) }
         viewModel { SettingsViewModel(get(), get(), get()) }
-        viewModel { ChatViewModel(get(), get()) }
+        viewModel { ChatViewModel(get(), get(), get()) }
     }
 }

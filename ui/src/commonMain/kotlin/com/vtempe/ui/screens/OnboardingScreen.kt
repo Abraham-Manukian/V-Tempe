@@ -12,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +62,7 @@ import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.Sex
 import com.vtempe.ui.util.kmpFormat
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -274,6 +277,28 @@ fun OnboardingScreen(
                         }
 
                         3 -> {
+                            StepTitle(stringResource(Res.string.label_coach_trainer))
+                            Text(
+                                text = stringResource(Res.string.coach_trainer_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                coachTrainerOptions.forEach { coach ->
+                                    CoachChoiceCard(
+                                        coach = coach,
+                                        selected = state.coachTrainerId == coach.id,
+                                        onClick = {
+                                            presenter.update {
+                                                it.copy(coachTrainerId = coach.id)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        4 -> {
                             StepTitle(stringResource(Res.string.label_training_mode))
                             Text(
                                 text = stringResource(Res.string.training_mode_hint),
@@ -294,7 +319,7 @@ fun OnboardingScreen(
                             }
                         }
 
-                        4 -> {
+                        5 -> {
                             StepTitle(stringResource(Res.string.label_equipment_presets))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -318,7 +343,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        5 -> {
+                        6 -> {
                             StepTitle(stringResource(Res.string.label_dietary_prefs))
                             OutlinedTextField(
                                 value = state.dietaryPreferences,
@@ -462,6 +487,49 @@ private fun ModernChip(
         border = null,
         shape = MaterialTheme.shapes.medium
     )
+}
+
+@Composable
+private fun CoachChoiceCard(
+    coach: CoachTrainerUi,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val coachName = stringResource(coach.nameRes)
+    val borderColor = if (selected) AiPalette.Primary else AiPalette.Outline.copy(alpha = 0.18f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(if (selected) AiPalette.Primary.copy(alpha = 0.10f) else AiPalette.SurfaceLight)
+            .border(2.dp, borderColor, MaterialTheme.shapes.large)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Image(
+            painter = painterResource(coach.avatar),
+            contentDescription = coachName,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = coachName,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(Res.string.coach_trainer_avatar_hint),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
 }
 
 @Composable

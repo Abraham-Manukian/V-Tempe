@@ -28,7 +28,8 @@ class ProfileRepositoryDb(
             allergies = allergies,
             weeklySchedule = schedule,
             budgetLevel = row.budgetLevel.toInt(),
-            trainingMode = "AUTO"
+            trainingMode = row.trainingMode,
+            coachTrainerId = CoachTrainerIds.normalize(row.coachTrainerId)
         )
     }
 
@@ -41,7 +42,9 @@ class ProfileRepositoryDb(
             weightKg = profile.weightKg,
             goal = profile.goal.name,
             experienceLevel = profile.experienceLevel.toLong(),
-            budgetLevel = profile.budgetLevel.toLong()
+            budgetLevel = profile.budgetLevel.toLong(),
+            trainingMode = profile.trainingMode,
+            coachTrainerId = CoachTrainerIds.normalize(profile.coachTrainerId)
         )
         // Replace detail tables
         db.profileDetailsQueries.deleteEquipmentForProfile(profile.id)

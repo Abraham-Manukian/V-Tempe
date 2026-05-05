@@ -17,6 +17,18 @@ enum class AiModelMode(val wireValue: String) {
     }
 }
 
+object CoachTrainerIds {
+    const val ARTUR = "artur"
+    const val MIA = "mia"
+    const val VTEMPE = "vtempe"
+    const val DEFAULT = MIA
+
+    val all: List<String> = listOf(ARTUR, MIA, VTEMPE)
+
+    fun normalize(raw: String?): String =
+        all.firstOrNull { it.equals(raw?.trim(), ignoreCase = true) } ?: DEFAULT
+}
+
 @Serializable
 data class Constraints(
     val injuries: List<String> = emptyList(),
@@ -43,7 +55,8 @@ data class Profile(
     val allergies: List<String> = emptyList(),
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
     val budgetLevel: Int = 2, // 1 low .. 3 high
-    val trainingMode: String = "AUTO"
+    val trainingMode: String = "AUTO",
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT
 )
 
 @Serializable

@@ -7,15 +7,17 @@ CREATE TABLE Profile(
   weightKg REAL NOT NULL,
   goal TEXT NOT NULL,
   experienceLevel INTEGER NOT NULL,
-  budgetLevel INTEGER NOT NULL DEFAULT 2
+  budgetLevel INTEGER NOT NULL DEFAULT 2,
+  trainingMode TEXT NOT NULL DEFAULT 'AUTO',
+  coachTrainerId TEXT NOT NULL DEFAULT 'mia'
 );
 
 selectProfile:
 SELECT * FROM Profile LIMIT 1;
 
 upsertProfile:
-INSERT OR REPLACE INTO Profile(id, age, sex, heightCm, weightKg, goal, experienceLevel, budgetLevel)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Profile(id, age, sex, heightCm, weightKg, goal, experienceLevel, budgetLevel, trainingMode, coachTrainerId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteAllProfiles:
 DELETE FROM Profile;

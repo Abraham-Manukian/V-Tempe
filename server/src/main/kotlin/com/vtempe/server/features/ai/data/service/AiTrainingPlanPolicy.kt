@@ -49,7 +49,7 @@ internal fun normalizeTrainingPlan(
                         rpe = rpe
                     )
                 }
-                .distinctBy { listOf(it.exerciseId, it.reps, it.weightKg, it.rpe) }
+                .distinctBy { it.exerciseId }
                 .take(MaxSetsPerWorkout)
 
             val safeSets = if (normalizedSets.isEmpty()) {
@@ -91,11 +91,15 @@ internal fun validateTrainingPlan(
         if (workout.sets.size > MaxSetsPerWorkout * 2) {
             return "workout[$workoutIndex] has too many sets (${workout.sets.size})"
         }
+        val seenExercises = mutableSetOf<String>()
         val seenSets = mutableSetOf<String>()
         workout.sets.forEachIndexed { setIndex, set ->
             val canonicalExercise = normalizeExerciseToken(set.exerciseId)
             if (canonicalExercise !in allowedExerciseIds) {
                 return "workout[$workoutIndex].sets[$setIndex].exerciseId is not supported"
+            }
+            if (!seenExercises.add(canonicalExercise)) {
+                return "workout[$workoutIndex] repeats exercise '$canonicalExercise'; use each exercise only once per workout"
             }
             if (set.reps <= 0) return "workout[$workoutIndex].sets[$setIndex].reps must be positive"
             val fingerprint = "$canonicalExercise|${set.reps}|${set.weightKg ?: "bw"}|${set.rpe ?: "-"}"

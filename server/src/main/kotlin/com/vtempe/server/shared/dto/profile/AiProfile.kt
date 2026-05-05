@@ -19,6 +19,7 @@ data class AiProfile(
     val locale: String? = null,
     val budgetLevel: Int? = 2,
     val trainingMode: String = "AUTO",
+    val coachTrainerId: String = "mia",
     val llmMode: String? = null,
     val recentWorkouts: List<AiRecentWorkout> = emptyList()
 )

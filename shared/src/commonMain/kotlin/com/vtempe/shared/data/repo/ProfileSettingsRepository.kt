@@ -45,6 +45,7 @@ private data class PersistedProfile(
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
     val budgetLevel: Int = 2,
     val trainingMode: String = "AUTO",
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT,
 ) {
     fun toDomain(): Profile = Profile(
         id = id,
@@ -60,7 +61,8 @@ private data class PersistedProfile(
         allergies = allergies,
         weeklySchedule = weeklySchedule,
         budgetLevel = budgetLevel,
-        trainingMode = trainingMode
+        trainingMode = trainingMode,
+        coachTrainerId = CoachTrainerIds.normalize(coachTrainerId)
     )
 
     companion object {
@@ -78,7 +80,8 @@ private data class PersistedProfile(
             allergies = p.allergies,
             weeklySchedule = p.weeklySchedule,
             budgetLevel = p.budgetLevel,
-            trainingMode = p.trainingMode
+            trainingMode = p.trainingMode,
+            coachTrainerId = CoachTrainerIds.normalize(p.coachTrainerId)
         )
     }
 }

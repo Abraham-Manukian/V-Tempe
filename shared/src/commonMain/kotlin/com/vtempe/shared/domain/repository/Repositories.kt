@@ -54,6 +54,14 @@ interface PreferencesRepository {
     fun setAiModelMode(mode: AiModelMode)
 }
 
+interface ExerciseCalibrationRepository {
+    suspend fun get(exerciseId: String): com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord?
+    suspend fun list(): List<com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord>
+    suspend fun upsert(record: com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord)
+    suspend fun clear(exerciseId: String)
+    suspend fun clearAll()
+}
+
 interface AiTrainerRepository {
     suspend fun generateTrainingPlan(profile: Profile, weekIndex: Int): DataResult<TrainingPlan>
     suspend fun generateNutritionPlan(profile: Profile, weekIndex: Int): DataResult<NutritionPlan>

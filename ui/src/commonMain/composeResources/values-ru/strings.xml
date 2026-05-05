@@ -55,6 +55,12 @@
     <string name="goal_gain_muscle">Набрать массу</string>
     <string name="label_experience">Опыт: %1$d</string>
     <string name="label_training_mode">Формат тренировок</string>
+    <string name="label_coach_trainer">Выберите тренера</string>
+    <string name="coach_trainer_hint">Этот тренер будет показываться в демонстрациях упражнений и чате.</string>
+    <string name="coach_trainer_avatar_hint">Демо упражнений и аватар в чате</string>
+    <string name="coach_artur_name">Артур</string>
+    <string name="coach_mia_name">Мия</string>
+    <string name="coach_vtempe_name">V-Tempe</string>
     <string name="training_mode_hint">Выберите, где вы тренируетесь чаще всего, чтобы коуч подбирал реальные упражнения.</string>
     <string name="training_mode_gym">Зал</string>
     <string name="training_mode_home">Дом</string>
@@ -135,6 +141,42 @@
     <string name="workout_weight_display">%1$.1f кг</string>
     <string name="workout_weight_bodyweight">Собственный вес</string>
     <string name="workout_set_summary">%1$d повт. • %2$s</string>
+    <string name="workout_rpe_suffix"> • RPE %1$s</string>
+    <string name="workout_plan_title">План тренировок</string>
+    <string name="workout_plan_intro">Оставляем привычные карточки. Нажми на любую карточку, чтобы открыть подробную сессию с картинками упражнений, подсказками, таймерами и фиксацией результата.</string>
+    <string name="workout_start_first">Начать первую тренировку</string>
+    <string name="workout_empty_title">Тренировка ещё не загружена</string>
+    <string name="workout_empty_body">Заверши онбординг или дождись синхронизации коуча, чтобы получить первый план.</string>
+    <string name="workout_more_exercises">+%1$d упражнений внутри</string>
+    <string name="workout_coach_notes_added">Есть заметки</string>
+    <string name="workout_extra_sets_count">%1$d доп. подходов</string>
+    <string name="workout_saved">Сохранено</string>
+    <string name="workout_open_details">Открыть детали тренировки</string>
+    <string name="workout_details_title">Детали тренировки</string>
+    <string name="workout_stat_done">Сделано</string>
+    <string name="workout_stat_progress">Прогресс</string>
+    <string name="workout_stat_session">Сессия</string>
+    <string name="workout_summary_help">Ниже каждая карточка показывает упражнение визуально, объясняет технику и даёт сохранить фактические повторы, вес и усилие для адаптации AI.</string>
+    <string name="workout_status_done">Готово</string>
+    <string name="workout_status_planned">План</string>
+    <string name="workout_image_fullscreen_hint">Открыть полностью</string>
+    <string name="workout_target_set">Цель этого подхода</string>
+    <string name="workout_how_to_perform">Как выполнять</string>
+    <string name="workout_step_line">%1$d. %2$s</string>
+    <string name="workout_coach_cue">Подсказка тренера</string>
+    <string name="workout_suggested_rest">Рекомендуемый отдых</string>
+    <string name="workout_rest_seconds_display">%1$d с</string>
+    <string name="workout_rest_seconds_compact">%1$dс</string>
+    <string name="workout_use_preset">Применить</string>
+    <string name="workout_training_controls">Зафиксировать подход</string>
+    <string name="workout_save_result">Сохранить результат</string>
+    <string name="workout_mark_not_done">Снять выполнение</string>
+    <string name="workout_mark_set_done">Отметить подход</string>
+    <string name="workout_ask_coach">Спросить тренера</string>
+    <string name="workout_ask_coach_prompt">Объясни технику упражнения %1$s и на что смотреть во время этого подхода.</string>
+    <string name="workout_extra_sets_title">Дополнительные подходы</string>
+    <string name="workout_feedback_help">Сохрани, как ощущалась сессия, чтобы следующий AI-план учитывал реальную усталость, объём и заметки.</string>
+    <string name="workout_feedback_saved">Сохранено. AI сможет учесть этот результат в следующий раз.</string>
 
     <!-- Nutrition -->
     <string name="action_refresh">Обновить</string>
@@ -225,4 +267,3 @@
     <string name="chat_empty_title">С чего начнем?</string>
     <string name="chat_empty_body">Напиши цель, самочувствие и доступное оборудование. Я подстрою программу под тебя.</string>
 </resources>
-

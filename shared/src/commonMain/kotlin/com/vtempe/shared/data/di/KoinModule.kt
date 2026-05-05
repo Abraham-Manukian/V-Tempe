@@ -8,6 +8,7 @@ import com.vtempe.shared.data.repo.TrainingRepositoryDb
 import com.vtempe.shared.data.repo.NetworkAiTrainerRepository
 import com.vtempe.shared.data.repo.NetworkChatRepository
 import com.vtempe.shared.data.repo.AiResponseCache
+import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
 import com.vtempe.shared.data.repo.NutritionRepositoryDb
 import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileSettingsRepository
@@ -35,6 +36,7 @@ object DI {
         single { Settings() }
         single { AiResponseCache(get()) }
         single { WorkoutProgressStore(get(), get()) }
+        single<ExerciseCalibrationRepository> { ExerciseCalibrationSettingsRepository(get()) }
 
         // Repositories
         single<PreferencesRepository> { SettingsPreferencesRepository(get()) }

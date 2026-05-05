@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
@@ -21,6 +22,7 @@ class WorkoutViewModel(
     private val trainingRepository: TrainingRepository,
     private val logWorkoutSet: LogWorkoutSet,
     private val ensureCoachData: EnsureCoachData,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel(), WorkoutPresenter {
     private val _state = MutableStateFlow(WorkoutState())
     override val state: StateFlow<WorkoutState> = _state.asStateFlow()
@@ -44,6 +46,12 @@ class WorkoutViewModel(
             }
         }
         viewModelScope.launch { runCatching { ensureCoachData() } }
+        viewModelScope.launch {
+            val coachId = profileRepository.getProfile()?.coachTrainerId
+            if (!coachId.isNullOrBlank()) {
+                _state.value = _state.value.copy(coachTrainerId = coachId)
+            }
+        }
     }
 
     override fun select(workoutId: String) { _state.value = _state.value.copy(selectedWorkoutId = workoutId) }

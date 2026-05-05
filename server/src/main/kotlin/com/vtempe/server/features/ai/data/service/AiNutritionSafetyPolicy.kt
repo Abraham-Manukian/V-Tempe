@@ -233,6 +233,30 @@ internal fun validateNutritionPlanQuality(
         }
     }
 
+    val repeatedDaySignatures = qualityDays
+        .associateWith { day ->
+            plan.mealsByDay[day].orEmpty().joinToString("||") { meal ->
+                val name = normalizeMealName(meal.name)
+                val ingredients = meal.ingredients
+                    .map(::canonicalText)
+                    .filter { it.isNotBlank() }
+                    .joinToString("|")
+                "$name::$ingredients"
+            }
+        }
+        .filterValues { it.isNotBlank() }
+        .entries
+        .groupBy({ it.value }, { it.key })
+        .values
+        .filter { it.size > 2 }
+
+    if (repeatedDaySignatures.isNotEmpty()) {
+        val summary = repeatedDaySignatures
+            .take(3)
+            .joinToString("; ") { days -> days.joinToString(", ") }
+        errors += "identical daily meal plan repeated across too many days: $summary"
+    }
+
     val allMeals = plan.mealsByDay.values.flatten()
     val repeatedNames = allMeals
         .groupingBy { normalizeMealName(it.name) }
@@ -336,7 +360,7 @@ private fun goalMealRange(goalRaw: String): MealFrequencyRange {
 
 private fun normalizeMealName(raw: String): String =
     canonicalText(raw)
-        .replace(Regex("""[^a-zР°-СЏ0-9\s]"""), " ")
+        .replace(Regex("""[^a-zа-я0-9\s]"""), " ")
         .replace(Regex("""\s+"""), " ")
         .trim()
 

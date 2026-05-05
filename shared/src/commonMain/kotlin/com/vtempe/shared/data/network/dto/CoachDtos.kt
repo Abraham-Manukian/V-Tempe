@@ -54,6 +54,7 @@ internal data class AiProfileDto(
     val healthNotes: List<String> = emptyList(),
     val budgetLevel: Int = 2,
     val trainingMode: String = "AUTO",
+    val coachTrainerId: String = "mia",
     val llmMode: String? = null,
     val recentWorkouts: List<RecentWorkoutDto> = emptyList()
 ) {
@@ -77,6 +78,7 @@ internal data class AiProfileDto(
             healthNotes = profile.constraints.healthNotes,
             budgetLevel = profile.budgetLevel,
             trainingMode = profile.trainingMode,
+            coachTrainerId = profile.coachTrainerId,
             llmMode = llmMode.wireValue,
             recentWorkouts = recentWorkouts.map(RecentWorkoutDto::fromDomain)
         )

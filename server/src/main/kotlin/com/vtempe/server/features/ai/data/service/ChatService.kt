@@ -206,6 +206,7 @@ private fun buildChatProfileSummary(profile: AiProfile): String = buildString {
     appendLine("- Goal: ${profile.goal}")
     appendLine("- Experience level (1-5): ${profile.experienceLevel}")
     appendLine("- Training mode preference: ${profile.trainingMode}")
+    appendLine("- Selected coach visual/persona id: ${profile.coachTrainerId}")
     val equipment = if (profile.equipment.isNotEmpty()) profile.equipment.joinToString(", ") else "bodyweight only"
     appendLine("- Available equipment: $equipment")
     if (profile.injuries.isNotEmpty()) appendLine("- Injuries / limitations: ${profile.injuries.joinToString(", ")}")

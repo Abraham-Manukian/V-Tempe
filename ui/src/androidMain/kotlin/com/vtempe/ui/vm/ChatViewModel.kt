@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.PreferencesRepository
+import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.ui.screens.ChatPresenter
@@ -18,10 +19,20 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(
     private val ask: AskAiTrainer,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val profileRepository: ProfileRepository
 ) : ViewModel(), ChatPresenter {
     private val _state = MutableStateFlow(ChatState())
     override val state: StateFlow<ChatState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val coachId = profileRepository.getProfile()?.coachTrainerId
+            if (!coachId.isNullOrBlank()) {
+                _state.update { it.copy(coachTrainerId = coachId) }
+            }
+        }
+    }
 
     override fun updateInput(text: String) {
         _state.update { current ->
