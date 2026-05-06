@@ -8,7 +8,7 @@ data class HomeState(
     val workouts: List<Workout> = emptyList(),
     val todaySets: Int = 0,
     val totalVolume: Int = 0,
-    val sleepMinutes: Int = 7 * 60 + 20,
+    val sleepMinutes: Int = 0,
     val loading: Boolean = false,
 )
 

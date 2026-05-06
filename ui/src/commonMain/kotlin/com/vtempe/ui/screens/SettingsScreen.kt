@@ -221,7 +221,7 @@ fun SettingsScreen(
                                 .clip(CircleShape)
                                 .background(AiPalette.Primary)
                         )
-                        Text("\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0434\u0440\u0443\u0433\u043e\u0439 \u0446\u0432\u0435\u0442", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(Res.string.settings_choose_theme_color), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -281,7 +281,7 @@ fun SettingsScreen(
                 shape = MaterialTheme.shapes.large,
                 enabled = !state.saving
             ) {
-                Text("\u0417\u0430\u043d\u043e\u0432\u043e \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f", fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.settings_reset_app), fontWeight = FontWeight.Bold)
             }
             
             Spacer(Modifier.height(bottomBarHeight + 16.dp))

@@ -261,6 +261,32 @@
     <string name="edit_profile_title">Edit profile</string>
     <string name="edit_profile_save">Save changes</string>
 
+    <!-- Settings extra -->
+    <string name="settings_choose_theme_color">Choose another color</string>
+    <string name="settings_reset_app">Re-register</string>
+
+    <!-- Progress extra -->
+    <string name="progress_summary_title">Overall</string>
+    <string name="progress_metric_workouts">Workouts</string>
+    <string name="progress_metric_sets">Sets</string>
+    <string name="progress_metric_volume_kg">Volume (kg)</string>
+    <string name="progress_metric_avg_volume">Avg vol./workout</string>
+    <string name="progress_active_days">Active days</string>
+    <string name="progress_best_day">Best day</string>
+    <string name="progress_week_total">Week total</string>
+    <string name="progress_avg_sleep">Avg sleep</string>
+    <string name="progress_sleep_goal">To 8h goal</string>
+    <string name="progress_sleep_hint">Consistent sleep speeds up recovery and strength gains</string>
+    <string name="progress_sleep_no_data">No sleep data yet — will connect once sleep tracking is added.</string>
+    <string name="progress_avg_weight_title">Avg working weight (up to 14 workouts)</string>
+    <string name="progress_weight_change">Change: %1$s kg</string>
+    <string name="progress_calories_title">Calories (7 days)</string>
+    <string name="progress_calories_avg">Average: %1$d kcal/day</string>
+    <string name="progress_week_volume_kg">%1$d kg</string>
+    <string name="progress_sleep_hours_short">%1$d h</string>
+    <string name="progress_best_day_value">%1$s · %2$d</string>
+    <string name="progress_active_days_value">%1$d / 7</string>
+
     <!-- Chat -->
     <string name="chat_title">AI Coach</string>
     <string name="chat_hint">Ask your coach…</string>

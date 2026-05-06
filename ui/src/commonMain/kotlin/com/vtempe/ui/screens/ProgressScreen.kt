@@ -40,6 +40,7 @@ import com.vtempe.core.designsystem.components.LineChart
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import org.jetbrains.compose.resources.stringResource
+import com.vtempe.ui.util.kmpFormat
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -101,19 +102,19 @@ fun ProgressScreen(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text("Общий итог", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
+                            Text(stringResource(Res.string.progress_summary_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 ProgressMetricTile(
                                     modifier = Modifier.weight(1f),
-                                    title = "Тренировки",
+                                    title = stringResource(Res.string.progress_metric_workouts),
                                     value = "${state.totalWorkouts}"
                                 )
                                 ProgressMetricTile(
                                     modifier = Modifier.weight(1f),
-                                    title = "Подходы",
+                                    title = stringResource(Res.string.progress_metric_sets),
                                     value = "${state.totalSets}"
                                 )
                             }
@@ -123,12 +124,12 @@ fun ProgressScreen(
                             ) {
                                 ProgressMetricTile(
                                     modifier = Modifier.weight(1f),
-                                    title = "Объём (кг)",
+                                    title = stringResource(Res.string.progress_metric_volume_kg),
                                     value = "${state.totalVolume}"
                                 )
                                 ProgressMetricTile(
                                     modifier = Modifier.weight(1f),
-                                    title = "Средний объём/трен.",
+                                    title = stringResource(Res.string.progress_metric_avg_volume),
                                     value = "$avgVolumePerWorkout"
                                 )
                             }
@@ -167,18 +168,18 @@ fun ProgressScreen(
                             ) {
                                 HighlightPill(
                                     modifier = Modifier.weight(1f),
-                                    label = "Активные дни",
-                                    value = "$activeDays / 7"
+                                    label = stringResource(Res.string.progress_active_days),
+                                    value = stringResource(Res.string.progress_active_days_value).kmpFormat(activeDays)
                                 )
                                 HighlightPill(
                                     modifier = Modifier.weight(1f),
-                                    label = "Лучш. день",
-                                    value = "${dayLabels[bestDayIndex]} • $bestDayVolume"
+                                    label = stringResource(Res.string.progress_best_day),
+                                    value = stringResource(Res.string.progress_best_day_value).kmpFormat(dayLabels[bestDayIndex], bestDayVolume)
                                 )
                                 HighlightPill(
                                     modifier = Modifier.weight(1f),
-                                    label = "Сумма недели",
-                                    value = "$weeklyTotalVolume кг"
+                                    label = stringResource(Res.string.progress_week_total),
+                                    value = stringResource(Res.string.progress_week_volume_kg).kmpFormat(weeklyTotalVolume)
                                 )
                             }
                             BarChart(
@@ -228,13 +229,13 @@ fun ProgressScreen(
                                 ) {
                                     HighlightPill(
                                         modifier = Modifier.weight(1f),
-                                        label = "Средний сон",
-                                        value = "${sleepAverage.roundToInt()} ч"
+                                        label = stringResource(Res.string.progress_avg_sleep),
+                                        value = stringResource(Res.string.progress_sleep_hours_short).kmpFormat(sleepAverage.roundToInt())
                                     )
                                     HighlightPill(
                                         modifier = Modifier.weight(1f),
-                                        label = "До цели 8ч",
-                                        value = if (sleepTargetGap > 0) "-${sleepTargetGap.roundToInt()} ч" else "+${abs(sleepTargetGap).roundToInt()} ч"
+                                        label = stringResource(Res.string.progress_sleep_goal),
+                                        value = if (sleepTargetGap > 0) "-${sleepTargetGap.roundToInt()} h" else "+${abs(sleepTargetGap).roundToInt()} h"
                                     )
                                 }
                                 BarChart(
@@ -242,39 +243,39 @@ fun ProgressScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(
-                                    "Стабильный сон ускоряет восстановление и рост рабочих весов",
+                                    stringResource(Res.string.progress_sleep_hint),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = contentColor.copy(alpha = 0.85f),
                                 )
                             } else {
                                 Text(
-                                    "Пока нет записей сна — подключим, как только добавим трекинг сна в данные профиля.",
+                                    stringResource(Res.string.progress_sleep_no_data),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = contentColor.copy(alpha = 0.85f),
                                 )
                             }
                             if (state.weightSeries.isNotEmpty()) {
                                 Spacer(Modifier.height(4.dp))
-                                Text("Средний рабочий вес (до 14 тренировок)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
+                                Text(stringResource(Res.string.progress_avg_weight_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
                                 LineChart(
                                     values = state.weightSeries,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(
-                                    "Изменение: ${if (weightDelta >= 0f) "+" else ""}${weightDelta.toOneDecimal()} кг",
+                                    stringResource(Res.string.progress_weight_change).kmpFormat("${if (weightDelta >= 0f) "+" else ""}${weightDelta.toOneDecimal()}"),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = contentColor
                                 )
                             }
                             if (state.caloriesSeries.isNotEmpty()) {
                                 Spacer(Modifier.height(4.dp))
-                                Text("Калории (7 дней)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
+                                Text(stringResource(Res.string.progress_calories_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = contentColor)
                                 BarChart(
                                     data = state.caloriesSeries,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(
-                                    "Среднее: $caloriesAverage ккал/день",
+                                    stringResource(Res.string.progress_calories_avg).kmpFormat(caloriesAverage),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = contentColor
                                 )

@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.StateFlow
 
 data class SleepState(
-    val tips: List<String> = listOf("Sleep 7-9 hours", "Keep a consistent schedule", "Avoid caffeine after 16:00"),
-    val weeklyHours: List<Int> = listOf(7, 7, 6, 8, 7, 9, 8),
+    val tips: List<String> = emptyList(),
+    val weeklyHours: List<Int> = emptyList(),
     val syncing: Boolean = false,
     val disclaimer: String? = "Not medical advice"
 )

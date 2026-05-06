@@ -256,6 +256,32 @@
     <string name="edit_profile_title">Редактирование профиля</string>
     <string name="edit_profile_save">Сохранить изменения</string>
 
+    <!-- Settings extra -->
+    <string name="settings_choose_theme_color">Выбрать другой цвет</string>
+    <string name="settings_reset_app">Заново регистрация</string>
+
+    <!-- Progress extra -->
+    <string name="progress_summary_title">Общий итог</string>
+    <string name="progress_metric_workouts">Тренировки</string>
+    <string name="progress_metric_sets">Подходы</string>
+    <string name="progress_metric_volume_kg">Объём (кг)</string>
+    <string name="progress_metric_avg_volume">Ср. объём/трен.</string>
+    <string name="progress_active_days">Активные дни</string>
+    <string name="progress_best_day">Лучш. день</string>
+    <string name="progress_week_total">Сумма недели</string>
+    <string name="progress_avg_sleep">Средний сон</string>
+    <string name="progress_sleep_goal">До цели 8ч</string>
+    <string name="progress_sleep_hint">Стабильный сон ускоряет восстановление и рост рабочих весов</string>
+    <string name="progress_sleep_no_data">Пока нет записей сна — подключим, как только добавим трекинг сна в данные профиля.</string>
+    <string name="progress_avg_weight_title">Средний рабочий вес (до 14 тренировок)</string>
+    <string name="progress_weight_change">Изменение: %1$s кг</string>
+    <string name="progress_calories_title">Калории (7 дней)</string>
+    <string name="progress_calories_avg">Среднее: %1$d ккал/день</string>
+    <string name="progress_week_volume_kg">%1$d кг</string>
+    <string name="progress_sleep_hours_short">%1$d ч</string>
+    <string name="progress_best_day_value">%1$s · %2$d</string>
+    <string name="progress_active_days_value">%1$d / 7</string>
+
     <!-- Chat -->
     <string name="chat_title">AI‑коуч</string>
     <string name="chat_hint">Спросите у коуча:</string>
