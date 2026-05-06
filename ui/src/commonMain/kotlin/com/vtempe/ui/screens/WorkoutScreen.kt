@@ -86,6 +86,14 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.vtempe.core.designsystem.components.BrandScreen
@@ -1062,7 +1070,8 @@ private fun SetDetailSheet(
     if (showImageFullScreen) {
         ExerciseImageDialog(
             illustration = guide.illustration,
-            contentDescription = exerciseName,
+            exerciseName = exerciseName,
+            cue = guide.cue,
             onDismiss = { showImageFullScreen = false }
         )
     }
@@ -1287,9 +1296,23 @@ private fun WorkoutNotesCard(
 @Composable
 private fun ExerciseImageDialog(
     illustration: DrawableResource,
-    contentDescription: String,
+    exerciseName: String,
+    cue: String,
     onDismiss: () -> Unit
 ) {
+    var appeared by remember { mutableStateOf(false) }
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(450, easing = FastOutSlowInEasing),
+        label = "exerciseOverlayAlpha"
+    )
+    val imageScale by animateFloatAsState(
+        targetValue = if (appeared) 1f else 1.06f,
+        animationSpec = tween(650, easing = FastOutSlowInEasing),
+        label = "exerciseImageScale"
+    )
+    LaunchedEffect(Unit) { appeared = true }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1298,21 +1321,111 @@ private fun ExerciseImageDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss
+                )
         ) {
+            // Full-bleed image with Ken Burns zoom-out entrance
             Image(
                 painter = painterResource(illustration),
-                contentDescription = contentDescription,
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                contentScale = ContentScale.Fit
-            )
-            IconButton(
-                onClick = onDismiss,
+                contentDescription = exerciseName,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp)
-                    .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                    .fillMaxSize()
+                    .scale(imageScale),
+                contentScale = ContentScale.Crop
+            )
+
+            // Top gradient: exercise name + close button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .alpha(overlayAlpha)
             ) {
-                Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.72f), Color.Transparent)
+                            )
+                        )
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 40.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = exerciseName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.18f), CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onDismiss
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Bottom gradient: coach cue
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .alpha(overlayAlpha)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f))
+                            )
+                        )
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.workout_coach_cue).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = cue,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
