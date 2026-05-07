@@ -1,10 +1,10 @@
 package com.vtempe.ui.screens
 
 import com.vtempe.shared.domain.repository.ProfileRepository
-import com.vtempe.ui.navigation.Routes
+import com.vtempe.ui.navigation.Destination
 import org.koin.core.context.GlobalContext
 
-actual suspend fun determineStartDestination(): String {
+actual suspend fun determineStartDestination(): Destination {
     val profileRepository = runCatching {
         GlobalContext.get().get<ProfileRepository>()
     }.getOrNull()
@@ -13,5 +13,5 @@ actual suspend fun determineStartDestination(): String {
         profileRepository?.getProfile() != null
     }.getOrDefault(false)
 
-    return if (hasProfile) Routes.Home else Routes.Onboarding
+    return if (hasProfile) Destination.Home else Destination.Onboarding
 }

@@ -29,12 +29,15 @@ private class IosNutritionPresenter(
         scope.launch {
             nutritionRepository.observePlan().collect { plan ->
                 if (plan != null) {
+                    val day = resolveNutritionSelectedDay(
+                        selectedDay = mutableState.value.selectedDay,
+                        availableDays = plan.mealsByDay.keys
+                    )
                     mutableState.value = mutableState.value.copy(
                         ui = UiState.Data(plan),
-                        selectedDay = resolveNutritionSelectedDay(
-                            selectedDay = mutableState.value.selectedDay,
-                            availableDays = plan.mealsByDay.keys
-                        )
+                        selectedDay = day,
+                        dayMacros = computeDayMacros(plan, day),
+                        weekMacros = computeWeekMacros(plan)
                     )
                 } else if (mutableState.value.ui !is UiState.Data) {
                     mutableState.value = mutableState.value.copy(ui = UiState.Loading)
@@ -59,7 +62,11 @@ private class IosNutritionPresenter(
     }
 
     override fun selectDay(day: String) {
-        mutableState.value = mutableState.value.copy(selectedDay = day)
+        val plan = (mutableState.value.ui as? UiState.Data)?.value
+        mutableState.value = mutableState.value.copy(
+            selectedDay = day,
+            dayMacros = plan?.let { computeDayMacros(it, day) } ?: MacroTotals.EMPTY
+        )
     }
 
     fun close() {

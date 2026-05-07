@@ -1,29 +1,25 @@
 ﻿package com.vtempe.ui.navigation
 
-object Routes {
-    const val Splash = "splash"
-    const val Onboarding = "onboarding"
-    const val Home = "home"
-    const val Workout = "workout"
-    const val Nutrition = "nutrition"
-    const val NutritionDetail = "nutrition_detail/{day}/{index}"
-    const val ShoppingList = "shopping_list"
-    const val Sleep = "sleep"
-    const val Progress = "progress"
-    const val Paywall = "paywall"
-    const val Settings = "settings"
-    const val EditProfile = "edit_profile"
-    const val Chat = "chat"
-
-    val bottomNavRoutes = setOf(
-        Home,
-        Workout,
-        Nutrition,
-        Sleep,
-        Progress
-    )
+sealed class Destination {
+    object Splash : Destination()
+    object Onboarding : Destination()
+    object Home : Destination()
+    object Workout : Destination()
+    object Nutrition : Destination()
+    object Sleep : Destination()
+    object Progress : Destination()
+    object Paywall : Destination()
+    object Settings : Destination()
+    object EditProfile : Destination()
+    object Chat : Destination()
+    object ShoppingList : Destination()
+    data class NutritionDetail(val day: String, val index: Int) : Destination()
 }
 
-fun Routes.nutritionDetail(day: String, index: Int): String =
-    "nutrition_detail/$day/$index"
+val Destination.isBottomNav: Boolean
+    get() = this is Destination.Home ||
+            this is Destination.Workout ||
+            this is Destination.Nutrition ||
+            this is Destination.Sleep ||
+            this is Destination.Progress
 

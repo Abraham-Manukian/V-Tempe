@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.ui.screens.MacroTotals
 import com.vtempe.ui.screens.NutritionPresenter
 import com.vtempe.ui.screens.NutritionState
+import com.vtempe.ui.screens.computeDayMacros
+import com.vtempe.ui.screens.computeWeekMacros
 import com.vtempe.ui.screens.resolveNutritionSelectedDay
 import com.vtempe.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,12 +28,15 @@ class NutritionViewModel(
         viewModelScope.launch {
             nutritionRepository.observePlan().collect { plan ->
                 if (plan != null) {
+                    val day = resolveNutritionSelectedDay(
+                        selectedDay = _state.value.selectedDay,
+                        availableDays = plan.mealsByDay.keys
+                    )
                     _state.value = _state.value.copy(
                         ui = UiState.Data(plan),
-                        selectedDay = resolveNutritionSelectedDay(
-                            selectedDay = _state.value.selectedDay,
-                            availableDays = plan.mealsByDay.keys
-                        )
+                        selectedDay = day,
+                        dayMacros = computeDayMacros(plan, day),
+                        weekMacros = computeWeekMacros(plan)
                     )
                 } else if (_state.value.ui !is UiState.Data) {
                     _state.value = _state.value.copy(ui = UiState.Loading)
@@ -54,7 +60,13 @@ class NutritionViewModel(
         }
     }
 
-    override fun selectDay(day: String) { _state.value = _state.value.copy(selectedDay = day) }
+    override fun selectDay(day: String) {
+        val plan = (_state.value.ui as? UiState.Data)?.value
+        _state.value = _state.value.copy(
+            selectedDay = day,
+            dayMacros = plan?.let { computeDayMacros(it, day) } ?: MacroTotals.EMPTY
+        )
+    }
 }
 
 

@@ -123,6 +123,8 @@ fun NutritionScreen(
                         onTabSelect = { tab = it },
                         plan = uiState.value,
                         selectedDay = state.selectedDay,
+                        dayMacros = state.dayMacros,
+                        weekMacros = state.weekMacros,
                         onDaySelect = { presenter.selectDay(it) },
                         dayOptions = dayOptions,
                         dayLabels = dayLabels,
@@ -144,6 +146,8 @@ private fun NutritionContent(
     onTabSelect: (Int) -> Unit,
     plan: NutritionPlan,
     selectedDay: String,
+    dayMacros: MacroTotals,
+    weekMacros: MacroTotals,
     onDaySelect: (String) -> Unit,
     dayOptions: List<String>,
     dayLabels: Map<String, String>,
@@ -154,15 +158,14 @@ private fun NutritionContent(
     isCompactWidth: Boolean
 ) {
     val dayMeals = plan.mealsByDay[selectedDay].orEmpty()
-    val proteinDay = dayMeals.sumOf { it.macros.proteinGrams }
-    val fatDay = dayMeals.sumOf { it.macros.fatGrams }
-    val carbsDay = dayMeals.sumOf { it.macros.carbsGrams }
-    val kcalDay = dayMeals.sumOf { it.macros.kcal }
-    val allMeals = plan.mealsByDay.values.flatten()
-    val proteinWeek = allMeals.sumOf { it.macros.proteinGrams }
-    val fatWeek = allMeals.sumOf { it.macros.fatGrams }
-    val carbsWeek = allMeals.sumOf { it.macros.carbsGrams }
-    val kcalWeek = allMeals.sumOf { it.macros.kcal }
+    val proteinDay = dayMacros.protein
+    val fatDay = dayMacros.fat
+    val carbsDay = dayMacros.carbs
+    val kcalDay = dayMacros.kcal
+    val proteinWeek = weekMacros.protein
+    val fatWeek = weekMacros.fat
+    val carbsWeek = weekMacros.carbs
+    val kcalWeek = weekMacros.kcal
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
