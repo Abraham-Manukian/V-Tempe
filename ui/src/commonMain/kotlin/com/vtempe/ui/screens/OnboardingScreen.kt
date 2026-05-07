@@ -7,6 +7,13 @@
 package com.vtempe.ui.screens
 
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.ONBOARDING_TOTAL_STEPS
+import com.vtempe.ui.presenter.OnboardingPresenter
+import com.vtempe.ui.presenter.OnboardingState
+import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import com.vtempe.ui.presenter.TRAINING_MODE_HOME
+import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
+import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background

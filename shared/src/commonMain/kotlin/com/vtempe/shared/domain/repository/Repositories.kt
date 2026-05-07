@@ -43,16 +43,26 @@ interface SyncRepository {
     suspend fun syncAll(): Boolean
 }
 
-interface PreferencesRepository {
+/** Narrow interface for classes that only need locale access. */
+interface LanguagePreferences {
     fun getLanguageTag(): String?
     fun setLanguageTag(tag: String?)
-    fun getTheme(): String?
-    fun setTheme(theme: String?)
-    fun getUnits(): String?
-    fun setUnits(units: String?)
+}
+
+/** Narrow interface for classes that only need AI model selection. */
+interface AiModelPreferences {
     fun getAiModelMode(): AiModelMode
     fun setAiModelMode(mode: AiModelMode)
 }
+
+/** Narrow interface for classes that only need measurement units. */
+interface UnitPreferences {
+    fun getUnits(): String?
+    fun setUnits(units: String?)
+}
+
+/** Combined interface used by Settings and Onboarding screens. */
+interface PreferencesRepository : LanguagePreferences, AiModelPreferences, UnitPreferences
 
 interface ExerciseCalibrationRepository {
     suspend fun get(exerciseId: String): com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord?

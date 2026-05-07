@@ -6,9 +6,9 @@ import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
-import com.vtempe.ui.screens.WorkoutPresenter
-import com.vtempe.ui.screens.WorkoutPresenterDelegate
-import com.vtempe.ui.screens.WorkoutState
+import com.vtempe.ui.presenter.WorkoutPresenter
+import com.vtempe.ui.presenter.WorkoutPresenterDelegate
+import com.vtempe.ui.presenter.WorkoutState
 import kotlinx.coroutines.flow.StateFlow
 
 class WorkoutViewModel(

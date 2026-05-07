@@ -2,6 +2,8 @@
 
 package com.vtempe.ui.screens
 
+import com.vtempe.ui.presenter.WorkoutState
+import com.vtempe.ui.presenter.WorkoutPresenter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically

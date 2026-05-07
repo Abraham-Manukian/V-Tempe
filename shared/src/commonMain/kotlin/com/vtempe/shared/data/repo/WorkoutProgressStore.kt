@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -109,29 +108,8 @@ class WorkoutProgressStore(
         settings.putString(KEY, json.encodeToString(serializer, progress))
     }
 
-    private fun loadWorkouts(): List<Workout> {
-        val rows = db.workoutQueries.selectWorkoutsWithSets().executeAsList()
-        return rows.groupBy { it.id }
-            .map { (id, groupedRows) ->
-                val date = groupedRows.firstOrNull()?.date
-                    ?.let(LocalDate::parse)
-                    ?: LocalDate.parse("2025-01-01")
-                Workout(
-                    id = id,
-                    date = date,
-                    sets = groupedRows
-                        .filter { it.exerciseId != null }
-                        .map { row ->
-                            WorkoutSet(
-                                exerciseId = row.exerciseId!!,
-                                reps = row.reps!!.toInt(),
-                                weightKg = row.weightKg,
-                                rpe = row.rpe
-                            )
-                        }
-                )
-            }
-    }
+    private fun loadWorkouts(): List<Workout> =
+        db.workoutQueries.selectWorkoutsWithSets().executeAsList().toWorkoutDomainList()
 
     private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 

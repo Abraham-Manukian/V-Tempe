@@ -5,6 +5,8 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.SettingsState
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState

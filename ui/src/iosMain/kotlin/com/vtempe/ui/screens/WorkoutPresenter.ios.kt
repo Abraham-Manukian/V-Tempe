@@ -3,15 +3,17 @@ package com.vtempe.ui.screens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
-import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.ui.presenter.WorkoutPresenter
+import com.vtempe.ui.presenter.WorkoutPresenterDelegate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.StateFlow
 
 private class IosWorkoutPresenter(
     trainingRepository: TrainingRepository,
@@ -19,10 +21,8 @@ private class IosWorkoutPresenter(
     ensureCoachData: EnsureCoachData,
     profileRepository: ProfileRepository,
 ) : WorkoutPresenter {
-
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
-
     private val delegate = WorkoutPresenterDelegate(
         trainingRepository = trainingRepository,
         logWorkoutSet = logWorkoutSet,
@@ -30,32 +30,14 @@ private class IosWorkoutPresenter(
         profileRepository = profileRepository,
         scope = scope
     )
-
-    override val state: StateFlow<WorkoutState> = delegate.state
-
+    override val state get() = delegate.state
     override fun select(workoutId: String) = delegate.select(workoutId)
-
-    override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) =
-        delegate.addSet(exerciseId, reps, weight, rpe)
-
-    override fun updatePerformedSet(
-        workoutId: String,
-        setIndex: Int,
-        completed: Boolean,
-        actualReps: Int?,
-        actualWeightKg: Double?,
-        actualRpe: Double?
-    ) = delegate.updatePerformedSet(workoutId, setIndex, completed, actualReps, actualWeightKg, actualRpe)
-
-    override fun updateNotes(workoutId: String, notes: String) =
-        delegate.updateNotes(workoutId, notes)
-
-    override fun updateRestSeconds(workoutId: String, restSeconds: Int) =
-        delegate.updateRestSeconds(workoutId, restSeconds)
-
-    override fun submitFeedback(workoutId: String) =
-        delegate.submitFeedback(workoutId)
-
+    override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) = delegate.addSet(exerciseId, reps, weight, rpe)
+    override fun updatePerformedSet(workoutId: String, setIndex: Int, completed: Boolean, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
+        delegate.updatePerformedSet(workoutId, setIndex, completed, actualReps, actualWeightKg, actualRpe)
+    override fun updateNotes(workoutId: String, notes: String) = delegate.updateNotes(workoutId, notes)
+    override fun updateRestSeconds(workoutId: String, restSeconds: Int) = delegate.updateRestSeconds(workoutId, restSeconds)
+    override fun submitFeedback(workoutId: String) = delegate.submitFeedback(workoutId)
     fun close() = job.cancel()
 }
 
@@ -64,10 +46,10 @@ actual fun rememberWorkoutPresenter(): WorkoutPresenter {
     val presenter = remember {
         val koin = requireNotNull(KoinProvider.koin) { "Koin is not started" }
         IosWorkoutPresenter(
-            trainingRepository = koin.get<TrainingRepository>(),
-            logWorkoutSet = koin.get<LogWorkoutSet>(),
-            ensureCoachData = koin.get<EnsureCoachData>(),
-            profileRepository = koin.get<ProfileRepository>()
+            trainingRepository = koin.get(),
+            logWorkoutSet = koin.get(),
+            ensureCoachData = koin.get(),
+            profileRepository = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

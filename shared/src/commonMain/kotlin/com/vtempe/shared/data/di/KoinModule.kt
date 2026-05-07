@@ -3,7 +3,10 @@ package com.vtempe.shared.data.di
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.createHttpClient
 import com.vtempe.shared.domain.repository.*
+import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.CoachCacheRepository
+import com.vtempe.shared.domain.repository.LanguagePreferences
+import com.vtempe.shared.domain.repository.UnitPreferences
 import com.vtempe.shared.data.repo.TrainingRepositoryDb
 import com.vtempe.shared.data.repo.NetworkAiTrainerRepository
 import com.vtempe.shared.data.repo.NetworkChatRepository
@@ -35,14 +38,31 @@ object DI {
 
         // Repositories
         single<PreferencesRepository> { SettingsPreferencesRepository(get()) }
+        single<LanguagePreferences> { get<PreferencesRepository>() }
+        single<AiModelPreferences> { get<PreferencesRepository>() }
+        single<UnitPreferences> { get<PreferencesRepository>() }
         single<ProfileRepository> { ProfileRepositoryDb(get()) }
-        single<AiTrainerRepository> { NetworkAiTrainerRepository(get(), get(), get(), get()) }
-        single<ChatRepository> { NetworkChatRepository(get(), get(), get(), get()) }
+        single<AiTrainerRepository> {
+            NetworkAiTrainerRepository(
+                api = get(),
+                languagePrefs = get(),
+                aiModelPrefs = get(),
+                cache = get(),
+                progressStore = get()
+            )
+        }
+        single<ChatRepository> {
+            NetworkChatRepository(
+                api = get(),
+                cache = get(),
+                aiModelPrefs = get(),
+                progressStore = get()
+            )
+        }
         single<TrainingRepository> {
             TrainingRepositoryDb(
                 db = get(),
                 ai = get(),
-                validateSubscription = get(),
                 cache = get(),
                 progressStore = get()
             )
@@ -51,8 +71,7 @@ object DI {
             NutritionRepositoryDb(
                 db = get(),
                 ai = get(),
-                validateSubscription = get(),
-                preferences = get(),
+                languagePrefs = get(),
                 cache = get()
             )
         }
@@ -72,6 +91,15 @@ object DI {
         factory { EnsureCoachData(get(), get(), get(), get(), get(), get()) }
         factory { SyncWithBackend(get()) }
         factory { ValidateSubscription(get()) }
-        factory { AskAiTrainer(get(), get(), get(), get(), get(), get(), get()) }
+        factory { MaterializeCoachActions(get(), get(), get(), get()) }
+        factory {
+            AskAiTrainer(
+                profileRepository = get(),
+                chatRepository = get(),
+                languagePrefs = get(),
+                materializeCoachActions = get(),
+                coachCache = get()
+            )
+        }
     }
 }

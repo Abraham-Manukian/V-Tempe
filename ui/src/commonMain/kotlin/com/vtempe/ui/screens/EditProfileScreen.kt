@@ -2,6 +2,12 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.SettingsState
+import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import com.vtempe.ui.presenter.TRAINING_MODE_HOME
+import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
+import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

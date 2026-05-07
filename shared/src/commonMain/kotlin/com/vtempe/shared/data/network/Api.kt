@@ -1,4 +1,4 @@
-﻿package com.vtempe.shared.data.network
+package com.vtempe.shared.data.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,6 +12,7 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -45,124 +46,81 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
     suspend inline fun <reified Req : Any, reified Res : Any> postResult(
         path: String,
         body: Req
-    ): DataResult<Res> = runCatching {
-        httpClient.post("$baseUrl$path") {
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
-    }.fold(
-        onSuccess = { response ->
-            val raw = runCatching { response.bodyAsText() }.getOrNull()
-            val sanitized = raw?.let { sanitizePayload(it) }
-            runCatching {
-                val value = when {
-                    sanitized != null -> parser.decodeFromString<Res>(sanitized)
-                    raw != null -> parser.decodeFromString<Res>(raw)
-                    else -> response.body<Res>()
-                }
-                DataResult.Success(value, rawPayload = sanitized ?: raw)
-            }.recover { error ->
-                when (error) {
-                    is SerializationException -> DataResult.Failure(
-                        reason = Reason.InvalidFormat,
-                        message = error.message,
-                        throwable = error,
-                        rawPayload = raw
-                    )
-                    else -> throw error
-                }
-            }.getOrThrow()
-        },
-        onFailure = { throwable ->
-            when (throwable) {
-                is HttpRequestTimeoutException, is TimeoutCancellationException ->
-                    DataResult.Failure(reason = Reason.Timeout, message = throwable.message, throwable = throwable)
-                is ClientRequestException -> {
-                    val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
-                    DataResult.Failure(
-                        reason = Reason.Http,
-                        message = throwable.message,
-                        code = throwable.response.status.value,
-                        throwable = throwable,
-                        rawPayload = raw
-                    )
-                }
-                is ServerResponseException -> {
-                    val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
-                    DataResult.Failure(
-                        reason = Reason.Http,
-                        message = throwable.message,
-                        code = throwable.response.status.value,
-                        throwable = throwable,
-                        rawPayload = raw
-                    )
-                }
-                is IOException ->
-                    DataResult.Failure(reason = Reason.Network, message = throwable.message, throwable = throwable)
-                is CancellationException -> throw throwable
-                else ->
-                    DataResult.Failure(reason = Reason.Unknown, message = throwable.message, throwable = throwable)
+    ): DataResult<Res> {
+        val response = runCatching {
+            httpClient.post("$baseUrl$path") {
+                contentType(ContentType.Application.Json)
+                setBody(body)
             }
-        }
-    )
+        }.getOrElse { throwable -> return mapApiThrowable(throwable) }
+        return parseApiResponse<Res>(response)
+    }
 
-    suspend inline fun <reified Res : Any> getResult(path: String): DataResult<Res> = runCatching {
-        httpClient.get("$baseUrl$path")
-    }.fold(
-        onSuccess = { response ->
-            val raw = runCatching { response.bodyAsText() }.getOrNull()
-            val sanitized = raw?.let { sanitizePayload(it) }
-            runCatching {
-                val value = when {
-                    sanitized != null -> parser.decodeFromString<Res>(sanitized)
-                    raw != null -> parser.decodeFromString<Res>(raw)
-                    else -> response.body<Res>()
-                }
-                DataResult.Success(value, rawPayload = sanitized ?: raw)
-            }.recover { error ->
-                when (error) {
-                    is SerializationException -> DataResult.Failure(
-                        reason = Reason.InvalidFormat,
-                        message = error.message,
-                        throwable = error,
-                        rawPayload = raw
-                    )
-                    else -> throw error
-                }
-            }.getOrThrow()
-        },
-        onFailure = { throwable ->
-            when (throwable) {
-                is HttpRequestTimeoutException, is TimeoutCancellationException ->
-                    DataResult.Failure(reason = Reason.Timeout, message = throwable.message, throwable = throwable)
-                is ClientRequestException -> {
-                    val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
-                    DataResult.Failure(
-                        reason = Reason.Http,
-                        message = throwable.message,
-                        code = throwable.response.status.value,
-                        throwable = throwable,
-                        rawPayload = raw
-                    )
-                }
-                is ServerResponseException -> {
-                    val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
-                    DataResult.Failure(
-                        reason = Reason.Http,
-                        message = throwable.message,
-                        code = throwable.response.status.value,
-                        throwable = throwable,
-                        rawPayload = raw
-                    )
-                }
-                is IOException ->
-                    DataResult.Failure(reason = Reason.Network, message = throwable.message, throwable = throwable)
-                is CancellationException -> throw throwable
-                else ->
-                    DataResult.Failure(reason = Reason.Unknown, message = throwable.message, throwable = throwable)
+    suspend inline fun <reified Res : Any> getResult(path: String): DataResult<Res> {
+        val response = runCatching {
+            httpClient.get("$baseUrl$path")
+        }.getOrElse { throwable -> return mapApiThrowable(throwable) }
+        return parseApiResponse<Res>(response)
+    }
+
+    /** Parses a successful HTTP response into a [DataResult.Success], handling [SerializationException]. */
+    @PublishedApi
+    internal suspend inline fun <reified Res : Any> parseApiResponse(
+        response: HttpResponse
+    ): DataResult<Res> {
+        val raw = runCatching { response.bodyAsText() }.getOrNull()
+        val sanitized = raw?.let { sanitizePayload(it) }
+        return runCatching {
+            val value = when {
+                sanitized != null -> parser.decodeFromString<Res>(sanitized)
+                raw != null -> parser.decodeFromString<Res>(raw)
+                else -> response.body<Res>()
             }
+            DataResult.Success(value, rawPayload = sanitized ?: raw)
+        }.recover { error ->
+            when (error) {
+                is SerializationException -> DataResult.Failure(
+                    reason = Reason.InvalidFormat,
+                    message = error.message,
+                    throwable = error,
+                    rawPayload = raw
+                )
+                else -> throw error
+            }
+        }.getOrThrow()
+    }
+
+    /** Maps a network/HTTP [Throwable] to the appropriate [DataResult.Failure]. Re-throws [CancellationException]. */
+    @PublishedApi
+    internal suspend fun mapApiThrowable(throwable: Throwable): DataResult<Nothing> = when (throwable) {
+        is HttpRequestTimeoutException, is TimeoutCancellationException ->
+            DataResult.Failure(reason = Reason.Timeout, message = throwable.message, throwable = throwable)
+        is ClientRequestException -> {
+            val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
+            DataResult.Failure(
+                reason = Reason.Http,
+                message = throwable.message,
+                code = throwable.response.status.value,
+                throwable = throwable,
+                rawPayload = raw
+            )
         }
-    )
+        is ServerResponseException -> {
+            val raw = runCatching { throwable.response.bodyAsText() }.getOrNull()
+            DataResult.Failure(
+                reason = Reason.Http,
+                message = throwable.message,
+                code = throwable.response.status.value,
+                throwable = throwable,
+                rawPayload = raw
+            )
+        }
+        is IOException ->
+            DataResult.Failure(reason = Reason.Network, message = throwable.message, throwable = throwable)
+        is CancellationException -> throw throwable
+        else ->
+            DataResult.Failure(reason = Reason.Unknown, message = throwable.message, throwable = throwable)
+    }
 
     @Suppress("NOTHING_TO_INLINE")
     @PublishedApi
@@ -197,4 +155,3 @@ fun createHttpClient() = HttpClient {
 data class SignupRequest(val email: String, val password: String)
 @Serializable
 data class SignupResponse(val userId: String, val token: String)
-

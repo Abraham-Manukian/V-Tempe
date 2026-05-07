@@ -24,43 +24,33 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
+
 class TrainingRepositoryDb(
     private val db: AppDatabase,
     private val ai: com.vtempe.shared.domain.repository.AiTrainerRepository,
-    private val validateSubscription: com.vtempe.shared.domain.usecase.ValidateSubscription,
     private val cache: AiResponseCache,
     private val progressStore: WorkoutProgressStore
 ) : TrainingRepository {
 
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan {
+        // NetworkAiTrainerRepository already handles cache fallback internally.
+        // We only need to persist on success or fall through to the offline plan.
         when (val aiPlanResult = ai.generateTrainingPlan(profile, weekIndex)) {
             is DataResult.Success -> {
                 persistPlan(aiPlanResult.data)
-                cache.storeTraining(TrainingPlanDto.fromDomain(aiPlanResult.data))
                 return aiPlanResult.data
             }
             is DataResult.Failure -> {
-                cache.lastTraining()?.let { cached ->
-                    Napier.w("Using cached training plan after AI failure ${aiPlanResult.reason}", aiPlanResult.throwable)
-                    val domain = cached.toDomain()
-                    persistPlan(domain)
-                    return domain
-                }
                 Napier.w(
-                    message = "AI training plan generation failed: ${aiPlanResult.reason} ${aiPlanResult.message.orEmpty()}",
+                    message = "AI training plan unavailable (${aiPlanResult.reason}), using offline plan",
                     throwable = aiPlanResult.throwable
                 )
             }
         }
 
-        if (validateSubscription()) {
-            Napier.i("Falling back to offline training plan due to missing AI response")
-        }
-
         seedFallbackExercises()
         val fallbackPlan = buildOfflinePlan(weekIndex)
         persistPlan(fallbackPlan)
-        cache.storeTraining(TrainingPlanDto.fromDomain(fallbackPlan))
         return fallbackPlan
     }
 
@@ -80,25 +70,7 @@ class TrainingRepositoryDb(
         db.workoutQueries.selectWorkoutsWithSets()
             .asFlow()
             .mapToList(Dispatchers.Default)
-            .map { rows ->
-                val grouped = rows.groupBy { it.id }
-                grouped.map { (id, list) ->
-                    val dateStr = list.firstOrNull()?.date
-                        ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-                    val date = LocalDate.parse(dateStr)
-                    val sets = list
-                        .filter { it.exerciseId != null }
-                        .map { r ->
-                            WorkoutSet(
-                                exerciseId = r.exerciseId!!,
-                                reps = r.reps!!.toInt(),
-                                weightKg = r.weightKg,
-                                rpe = r.rpe
-                            )
-                        }
-                    Workout(id = id, date = date, sets = sets)
-                }
-            }
+            .map { rows -> rows.toWorkoutDomainList() }
 
     override fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>> = progressStore.observe()
 

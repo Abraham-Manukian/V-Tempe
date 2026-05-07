@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
-import com.vtempe.ui.screens.HomePresenter
-import com.vtempe.ui.screens.HomePresenterDelegate
-import com.vtempe.ui.screens.HomeState
+import com.vtempe.ui.presenter.HomePresenter
+import com.vtempe.ui.presenter.HomePresenterDelegate
+import com.vtempe.ui.presenter.HomeState
 import kotlinx.coroutines.flow.StateFlow
 
 class HomeViewModel(

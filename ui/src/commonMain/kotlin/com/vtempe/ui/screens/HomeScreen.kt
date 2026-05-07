@@ -2,6 +2,8 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.HomePresenter
+import com.vtempe.ui.presenter.HomeState
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween

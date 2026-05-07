@@ -1,5 +1,7 @@
 package com.vtempe.ui.screens
 
+import com.vtempe.ui.presenter.WorkoutState
+import com.vtempe.ui.presenter.WorkoutPresenter
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

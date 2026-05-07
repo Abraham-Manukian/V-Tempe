@@ -4,10 +4,10 @@ import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.dto.ChatResponse
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ChatRepository
 import com.vtempe.shared.domain.repository.CoachResponse
-import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 class NetworkChatRepository(
     private val api: ApiClient,
     private val cache: AiResponseCache,
-    private val preferences: PreferencesRepository,
+    private val aiModelPrefs: AiModelPreferences,
     private val progressStore: WorkoutProgressStore
 ) : ChatRepository {
     override suspend fun send(
@@ -27,7 +27,7 @@ class NetworkChatRepository(
         val request = ChatRequest(
             profile = ChatProfileDto.from(
                 profile,
-                preferences.getAiModelMode(),
+                aiModelPrefs.getAiModelMode(),
                 progressStore.recentSummaries()
             ),
             messages = history.map { ChatMsgDto(it.role, it.content) } + ChatMsgDto("user", userMessage),

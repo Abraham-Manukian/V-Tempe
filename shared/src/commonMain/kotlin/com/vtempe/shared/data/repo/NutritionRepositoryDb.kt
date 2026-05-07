@@ -8,57 +8,44 @@ import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
+import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.NutritionRepository
-import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class NutritionRepositoryDb(
     private val db: AppDatabase,
     private val ai: com.vtempe.shared.domain.repository.AiTrainerRepository,
-    private val validateSubscription: com.vtempe.shared.domain.usecase.ValidateSubscription,
-    private val preferences: PreferencesRepository,
+    private val languagePrefs: LanguagePreferences,
     private val cache: AiResponseCache
 ) : NutritionRepository {
 
     private val planFlow = MutableStateFlow<NutritionPlan?>(null)
 
-    init {
-        planFlow.value = loadPlanFromDb(0)
-    }
-
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): NutritionPlan {
+        // NetworkAiTrainerRepository already handles cache fallback internally.
+        // We only need to persist on success or fall through to the offline plan.
         when (val aiPlanResult = ai.generateNutritionPlan(profile, weekIndex)) {
             is DataResult.Success -> {
                 persistPlan(aiPlanResult.data)
-                cache.storeNutrition(NutritionPlanDto.fromDomain(aiPlanResult.data))
                 return aiPlanResult.data
             }
             is DataResult.Failure -> {
-                cache.lastNutrition()?.let { cached ->
-                    Napier.w("Using cached nutrition plan after AI failure ${aiPlanResult.reason}", aiPlanResult.throwable)
-                    val domain = cached.toDomain()
-                    persistPlan(domain)
-                    return domain
-                }
                 Napier.w(
-                    message = "AI nutrition plan generation failed: ${aiPlanResult.reason} ${aiPlanResult.message.orEmpty()}",
+                    message = "AI nutrition plan unavailable (${aiPlanResult.reason}), using offline plan",
                     throwable = aiPlanResult.throwable
                 )
             }
         }
 
-        if (validateSubscription()) {
-            Napier.i("Falling back to offline nutrition plan due to missing AI response")
-        }
-
         val fallback = buildOfflinePlan(profile, weekIndex)
         persistPlan(fallback)
-        cache.storeNutrition(NutritionPlanDto.fromDomain(fallback))
         return fallback
     }
 
@@ -71,7 +58,7 @@ class NutritionRepositoryDb(
 
     override suspend fun hasPlan(weekIndex: Int): Boolean {
         if (planFlow.value?.weekIndex != weekIndex) {
-            planFlow.value = loadPlanFromDb(weekIndex)
+            planFlow.value = withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) }
         }
         return planFlow.value?.weekIndex == weekIndex
     }
@@ -152,7 +139,7 @@ class NutritionRepositoryDb(
     private fun buildOfflinePlan(profile: Profile, weekIndex: Int): NutritionPlan {
         val kcalTarget = tdeeKcal(profile)
         val macrosDay = macrosFor(profile, kcalTarget)
-        val languageTag = preferences.getLanguageTag()?.lowercase() ?: ""
+        val languageTag = languagePrefs.getLanguageTag()?.lowercase() ?: ""
         val templates = weeklyMealTemplates(languageTag)
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val mealsByDay = linkedMapOf<String, List<Meal>>()

@@ -13,21 +13,23 @@ import com.vtempe.shared.domain.model.Advice
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
+import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.AiTrainerRepository
 import com.vtempe.shared.domain.repository.CoachBundle
-import com.vtempe.shared.domain.repository.PreferencesRepository
+import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 
 class NetworkAiTrainerRepository(
     private val api: ApiClient,
-    private val preferences: PreferencesRepository,
+    private val languagePrefs: LanguagePreferences,
+    private val aiModelPrefs: AiModelPreferences,
     private val cache: AiResponseCache,
     private val progressStore: WorkoutProgressStore
 ) : AiTrainerRepository {
 
-    private fun currentLocale(): String? = preferences.getLanguageTag()?.takeIf { it.isNotBlank() }
-    private fun currentLlmMode() = preferences.getAiModelMode()
+    private fun currentLocale(): String? = languagePrefs.getLanguageTag()?.takeIf { it.isNotBlank() }
+    private fun currentLlmMode() = aiModelPrefs.getAiModelMode()
 
     override suspend fun generateTrainingPlan(profile: Profile, weekIndex: Int): DataResult<TrainingPlan> {
         val request = AiTrainingRequestDto.fromDomain(

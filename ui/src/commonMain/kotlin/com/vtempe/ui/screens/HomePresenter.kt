@@ -1,23 +1,7 @@
-﻿package com.vtempe.ui.screens
+package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import com.vtempe.shared.domain.model.Workout
-import kotlinx.coroutines.flow.StateFlow
-
-@Immutable
-data class HomeState(
-    val workouts: List<Workout> = emptyList(),
-    val todaySets: Int = 0,
-    val totalVolume: Int = 0,
-    val sleepMinutes: Int = 0,
-    val loading: Boolean = false,
-)
-
-interface HomePresenter {
-    val state: StateFlow<HomeState>
-}
+import com.vtempe.ui.presenter.HomePresenter
 
 @Composable
 expect fun rememberHomePresenter(): HomePresenter
-

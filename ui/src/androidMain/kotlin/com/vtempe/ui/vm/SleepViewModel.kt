@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.AdviceRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
-import com.vtempe.ui.screens.SleepPresenter
-import com.vtempe.ui.screens.SleepPresenterDelegate
-import com.vtempe.ui.screens.SleepState
+import com.vtempe.ui.presenter.SleepPresenter
+import com.vtempe.ui.presenter.SleepPresenterDelegate
+import com.vtempe.ui.presenter.SleepState
 import kotlinx.coroutines.flow.StateFlow
 
 class SleepViewModel(

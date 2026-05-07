@@ -3,8 +3,8 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.usecase.ValidateSubscription
-import com.vtempe.ui.screens.PaywallPresenter
-import com.vtempe.ui.screens.PaywallState
+import com.vtempe.ui.presenter.PaywallPresenter
+import com.vtempe.ui.presenter.PaywallState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
