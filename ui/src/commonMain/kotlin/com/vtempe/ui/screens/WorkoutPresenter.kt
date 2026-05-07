@@ -1,11 +1,13 @@
 ﻿package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
 import kotlinx.coroutines.flow.StateFlow
 
+@Immutable
 data class WorkoutState(
     val workouts: List<Workout> = emptyList(),
     val selectedWorkoutId: String? = null,

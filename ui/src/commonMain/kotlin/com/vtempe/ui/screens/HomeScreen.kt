@@ -234,7 +234,7 @@ private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
                     colors = homeButtonColors(),
                     elevation = homeButtonElevation()
                 ) { Text(stringResource(Res.string.home_start)) }
-                OutlinedButton(onClick = { /* preview plan */ }) {
+                OutlinedButton(onClick = { onNavigate(Destination.Workout) }) {
                     Text(stringResource(Res.string.home_preview))
                 }
             }

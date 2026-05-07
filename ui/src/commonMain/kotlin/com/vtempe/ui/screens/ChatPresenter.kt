@@ -1,6 +1,7 @@
 ﻿package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.repository.ChatMessage
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +13,7 @@ sealed interface ChatSendState {
     data class Error(val message: String) : ChatSendState
 }
 
+@Immutable
 data class ChatState(
     val messages: List<ChatMessage> = emptyList(),
     val input: String = "",

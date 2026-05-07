@@ -1,9 +1,11 @@
 ﻿package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.Workout
 import kotlinx.coroutines.flow.StateFlow
 
+@Immutable
 data class HomeState(
     val workouts: List<Workout> = emptyList(),
     val todaySets: Int = 0,

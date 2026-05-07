@@ -1,10 +1,12 @@
 ﻿package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.ui.state.UiState
 import kotlinx.coroutines.flow.StateFlow
 
+@Immutable
 data class MacroTotals(
     val protein: Int = 0,
     val fat: Int = 0,
@@ -36,6 +38,7 @@ fun computeWeekMacros(plan: NutritionPlan): MacroTotals {
     )
 }
 
+@Immutable
 data class NutritionState(
     val ui: UiState<NutritionPlan> = UiState.Loading,
     val selectedDay: String = currentWeekdayKey(),

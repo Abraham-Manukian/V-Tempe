@@ -1,11 +1,13 @@
 package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.DayOfWeek
 
+@Immutable
 data class ProgressState(
     val totalWorkouts: Int = 0,
     val totalSets: Int = 0,
