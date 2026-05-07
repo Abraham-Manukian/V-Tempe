@@ -89,6 +89,17 @@ interface ChatRepository {
     suspend fun send(profile: Profile, history: List<ChatMessage>, userMessage: String, locale: String?): DataResult<CoachResponse>
 }
 
+/**
+ * Domain-layer port for tracking the freshness of AI-generated coach data.
+ * Implemented by the data layer; domain use cases depend only on this interface.
+ */
+interface CoachCacheRepository {
+    fun bundleVersion(): Int?
+    fun bundleTimestampMillis(): Long?
+    fun markBundleFresh(version: Int, timestampMillis: Long)
+    fun clearAll()
+}
+
 
 
 

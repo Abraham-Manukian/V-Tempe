@@ -1,8 +1,8 @@
 ﻿package com.vtempe.shared.domain.usecase
 
 import com.vtempe.shared.domain.model.Advice
-import com.vtempe.shared.data.repo.AiResponseCache
 import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.CoachAction
 import com.vtempe.shared.domain.repository.CoachActionType
 import com.vtempe.shared.domain.repository.ChatMessage
@@ -25,7 +25,7 @@ class AskAiTrainer(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
     private val adviceRepository: AdviceRepository,
-    private val aiResponseCache: AiResponseCache
+    private val coachCache: CoachCacheRepository
 ) {
     suspend operator fun invoke(
         history: List<ChatMessage>,
@@ -58,7 +58,7 @@ class AskAiTrainer(
                 materialized.sleepAdvice?.let { adviceRepository.saveAdvice("sleep", it) }
 
                 if (hasCoachUpdates) {
-                    aiResponseCache.markBundleFresh(
+                    coachCache.markBundleFresh(
                         version = CoachDataFreshness.SCHEMA_VERSION,
                         timestampMillis = Clock.System.now().toEpochMilliseconds()
                     )

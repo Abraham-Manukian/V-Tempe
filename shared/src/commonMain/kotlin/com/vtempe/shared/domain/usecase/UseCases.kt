@@ -1,6 +1,5 @@
 ﻿package com.vtempe.shared.domain.usecase
 
-import com.vtempe.shared.data.repo.AiResponseCache
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.repository.*
 import com.vtempe.shared.domain.util.DataResult
@@ -43,7 +42,7 @@ class BootstrapCoachData(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
     private val adviceRepository: AdviceRepository,
-    private val aiResponseCache: AiResponseCache
+    private val coachCache: CoachCacheRepository
 ) {
     suspend operator fun invoke(weekIndex: Int = 0): Boolean {
         val profile = profileRepository.getProfile() ?: return false
@@ -68,7 +67,7 @@ class BootstrapCoachData(
         val advice = bundle?.sleepAdvice ?: adviceRepository.getAdvice(profile, mapOf("topic" to "sleep"))
         adviceRepository.saveAdvice("sleep", advice)
 
-        aiResponseCache.markBundleFresh(
+        coachCache.markBundleFresh(
             version = CoachDataFreshness.SCHEMA_VERSION,
             timestampMillis = Clock.System.now().toEpochMilliseconds()
         )
@@ -85,14 +84,14 @@ class EnsureCoachData(
     private val nutritionRepository: NutritionRepository,
     private val adviceRepository: AdviceRepository,
     private val bootstrapCoachData: BootstrapCoachData,
-    private val aiResponseCache: AiResponseCache,
+    private val coachCache: CoachCacheRepository,
 ) {
     suspend operator fun invoke(weekIndex: Int = 0, force: Boolean = false): Boolean {
         if (profileRepository.getProfile() == null) return false
         val now = Clock.System.now().toEpochMilliseconds()
-        val version = aiResponseCache.bundleVersion() ?: -1
+        val version = coachCache.bundleVersion() ?: -1
         val versionMismatch = version < CoachDataFreshness.SCHEMA_VERSION
-        val stale = aiResponseCache.bundleTimestampMillis()
+        val stale = coachCache.bundleTimestampMillis()
             ?.let { now - it > CoachDataFreshness.STALE_AFTER_MILLIS }
             ?: true
         val needsRefresh = force || versionMismatch || stale
@@ -100,7 +99,7 @@ class EnsureCoachData(
         val needsNutrition = needsRefresh || !nutritionRepository.hasPlan(weekIndex)
         val needsAdvice = needsRefresh || !adviceRepository.hasAdvice("sleep")
         if (versionMismatch) {
-            aiResponseCache.clearAll()
+            coachCache.clearAll()
         }
         if (!needsTraining && !needsNutrition && !needsAdvice) return true
         return bootstrapCoachData(weekIndex)
@@ -117,23 +116,6 @@ class ValidateSubscription(
     private val purchasesRepository: PurchasesRepository
 ) {
     suspend operator fun invoke(): Boolean = purchasesRepository.isSubscriptionActive()
-}
-
-interface AnalyticsLogger {
-    fun log(event: String, params: Map<String, Any?> = emptyMap())
-}
-
-object AnalyticsEvents {
-    const val OnboardingCompleted = "onboarding_completed"
-    const val WorkoutStarted = "workout_started"
-    const val WorkoutCompleted = "workout_completed"
-    const val SetLogged = "set_logged"
-    const val MealCompleted = "meal_completed"
-    const val AdviceOpened = "advice_opened"
-    const val PaywallViewed = "paywall_viewed"
-    const val PurchaseSuccess = "purchase_success"
-    const val SubscriptionRenewed = "subscription_renewed"
-    const val ChurnWarning = "churn_warning"
 }
 
 

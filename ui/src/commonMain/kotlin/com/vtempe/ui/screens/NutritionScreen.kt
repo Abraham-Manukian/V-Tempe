@@ -225,7 +225,7 @@ private fun NutritionContent(
                 contentColor = Color.White,
                 indicator = { positions ->
                     if (positions.isNotEmpty()) {
-                        TabRowDefaults.Indicator(
+                        TabRowDefaults.SecondaryIndicator(
                             modifier = Modifier
                                 .tabIndicatorOffset(positions[tab])
                                 .padding(horizontal = 24.dp)

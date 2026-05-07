@@ -3,6 +3,7 @@ package com.vtempe.shared.data.di
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.createHttpClient
 import com.vtempe.shared.domain.repository.*
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.data.repo.TrainingRepositoryDb
 import com.vtempe.shared.data.repo.NetworkAiTrainerRepository
 import com.vtempe.shared.data.repo.NetworkChatRepository
@@ -28,6 +29,7 @@ object DI {
         // Settings storage
         single { Settings() }
         single { AiResponseCache(get()) }
+        single<CoachCacheRepository> { get<AiResponseCache>() }
         single { WorkoutProgressStore(get(), get()) }
         single<ExerciseCalibrationRepository> { ExerciseCalibrationSettingsRepository(get()) }
 

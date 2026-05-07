@@ -1,8 +1,8 @@
 package com.vtempe.ui.screens
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.runtime.Composable
@@ -77,11 +77,11 @@ internal fun illustrationFor(family: ExerciseVisualFamily): DrawableResource =
 
 internal fun iconFor(family: ExerciseVisualFamily, exerciseId: String): ImageVector =
     when (family) {
-        ExerciseVisualFamily.LOWER_BODY -> Icons.Filled.DirectionsRun
+        ExerciseVisualFamily.LOWER_BODY -> Icons.AutoMirrored.Filled.DirectionsRun
         ExerciseVisualFamily.CORE -> Icons.Filled.SelfImprovement
         ExerciseVisualFamily.CARDIO ->
-            if (exerciseId.trim().lowercase() == "bike") Icons.Filled.DirectionsBike
-            else Icons.Filled.DirectionsRun
+            if (exerciseId.trim().lowercase() == "bike") Icons.AutoMirrored.Filled.DirectionsBike
+            else Icons.AutoMirrored.Filled.DirectionsRun
         else -> Icons.Filled.FitnessCenter
     }
 

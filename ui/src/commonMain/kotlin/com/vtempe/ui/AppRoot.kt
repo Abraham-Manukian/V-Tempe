@@ -5,8 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -237,10 +237,10 @@ private fun TopBar(
             .height(52.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TopBarIcon(Icons.Default.Chat, onClick = { onNavigate(Destination.Chat) })
+        TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
 
         if (!current.isBottomNav) {
-            TopBarIcon(Icons.Default.ArrowBack, onClick = { onNavigate(Destination.Home) })
+            TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = { onNavigate(Destination.Home) })
         } else {
             Spacer(modifier = Modifier.width(48.dp))
         }

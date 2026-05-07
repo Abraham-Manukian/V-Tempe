@@ -5,6 +5,7 @@ import com.vtempe.shared.data.network.dto.NutritionPlanDto
 import com.vtempe.shared.data.network.dto.TrainingPlanDto
 import com.vtempe.shared.data.network.dto.AdviceDto
 import com.vtempe.shared.data.network.dto.ChatResponse
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -21,7 +22,7 @@ private const val KEY_BUNDLE_TIMESTAMP = "cache_bundle_timestamp"
 class AiResponseCache(
     private val settings: Settings,
     private val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-) {
+) : CoachCacheRepository {
     fun storeTraining(dto: TrainingPlanDto) {
         settings.putString(KEY_TRAINING, json.encodeToString(dto))
     }
@@ -50,11 +51,11 @@ class AiResponseCache(
     fun lastBundle(): AiBootstrapResponseDto? =
         settings.getStringOrNull(KEY_BUNDLE)?.let { runCatching { json.decodeFromString<AiBootstrapResponseDto>(it) }.getOrNull() }
 
-    fun bundleVersion(): Int? = settings.getIntOrNull(KEY_BUNDLE_VERSION)
+    override fun bundleVersion(): Int? = settings.getIntOrNull(KEY_BUNDLE_VERSION)
 
-    fun bundleTimestampMillis(): Long? = settings.getLongOrNull(KEY_BUNDLE_TIMESTAMP)
+    override fun bundleTimestampMillis(): Long? = settings.getLongOrNull(KEY_BUNDLE_TIMESTAMP)
 
-    fun markBundleFresh(version: Int, timestampMillis: Long) {
+    override fun markBundleFresh(version: Int, timestampMillis: Long) {
         settings.putInt(KEY_BUNDLE_VERSION, version)
         settings.putLong(KEY_BUNDLE_TIMESTAMP, timestampMillis)
     }
@@ -64,7 +65,7 @@ class AiResponseCache(
         settings.remove(KEY_BUNDLE_TIMESTAMP)
     }
 
-    fun clearAll() {
+    override fun clearAll() {
         settings.remove(KEY_TRAINING)
         settings.remove(KEY_NUTRITION)
         settings.remove(KEY_ADVICE)
