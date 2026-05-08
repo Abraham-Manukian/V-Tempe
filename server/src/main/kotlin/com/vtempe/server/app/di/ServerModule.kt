@@ -37,8 +37,9 @@ import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-private const val DEFAULT_PAID_MODEL = "openrouter/auto"
-private const val DEFAULT_FREE_MODEL = "google/gemma-3-27b-it:free"
+private const val DEFAULT_PAID_MODEL = "google/gemini-2.5-flash-preview"
+private const val DEFAULT_FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+private const val DEFAULT_BOOTSTRAP_MODEL = "anthropic/claude-sonnet-4-5"
 
 val serverModule = module {
     val startupLogger = LoggerFactory.getLogger("V-TempeServer")
@@ -65,6 +66,15 @@ val serverModule = module {
     val freeModel = Env["OPENROUTER_FREE_MODEL"]?.takeIf { it.isNotBlank() } ?: DEFAULT_FREE_MODEL
     val freeFallbackModels = parseModelList(Env["OPENROUTER_FREE_FALLBACK_MODELS"])
     val freeEnableAutoFallback = Env["OPENROUTER_FREE_ENABLE_AUTO_FALLBACK"]
+        ?.equals("true", ignoreCase = true)
+        ?: false
+
+    // Bootstrap (plan generation) uses a higher-quality model (Claude Sonnet).
+    // Falls back to the paid key if no separate key is configured.
+    val bootstrapKey = Env["OPENROUTER_BOOTSTRAP_API_KEY"]?.takeIf { it.isNotBlank() } ?: paidKey
+    val bootstrapModel = Env["OPENROUTER_BOOTSTRAP_MODEL"]?.takeIf { it.isNotBlank() } ?: DEFAULT_BOOTSTRAP_MODEL
+    val bootstrapFallbackModels = parseModelList(Env["OPENROUTER_BOOTSTRAP_FALLBACK_MODELS"])
+    val bootstrapEnableAutoFallback = Env["OPENROUTER_BOOTSTRAP_ENABLE_AUTO_FALLBACK"]
         ?.equals("true", ignoreCase = true)
         ?: false
 
@@ -113,7 +123,35 @@ val serverModule = module {
         )
     }
 
-    // Default binding kept for compatibility (paid model).
+    // Bootstrap client — Claude Sonnet 4.5 for plan generation (training/nutrition/sleep).
+    // Uses the same paid key by default; override with OPENROUTER_BOOTSTRAP_API_KEY.
+    single(named("llm-bootstrap")) {
+        if (bootstrapKey == paidKey) {
+            startupLogger.info(
+                "OPENROUTER_BOOTSTRAP_API_KEY not set, reusing OPENROUTER_API_KEY for bootstrap model"
+            )
+        }
+        buildOpenRouterClient(
+            startupLogger = startupLogger,
+            role = "bootstrap",
+            apiKey = bootstrapKey,
+            model = bootstrapModel,
+            fallbackModels = bootstrapFallbackModels,
+            enableAutoFallback = bootstrapEnableAutoFallback,
+            baseUrl = baseUrl,
+            temperature = temperature,
+            siteUrl = siteUrl,
+            appName = appName,
+            requestTimeoutMs = requestTimeoutMs,
+            socketTimeoutMs = socketTimeoutMs,
+            connectTimeoutMs = connectTimeoutMs,
+            topP = topP,
+            maxTokens = maxTokens,
+            retryAttempts = retryAttempts
+        )
+    }
+
+    // Default binding kept for compatibility (paid/chat model).
     single<LLMClient> { get(named("llm-paid")) }
 
     single { com.vtempe.server.shared.util.JsonProvider.instance }
@@ -155,9 +193,12 @@ val serverModule = module {
     single<TrainingPlanResolver> { DefaultTrainingPlanResolver(get()) }
 
     // --- Services ---
+    // AiService uses the bootstrap (Claude Sonnet 4.5) client for high-quality plan generation.
+    // ChatService uses the paid (Gemini 2.5 Flash) client for fast, cost-effective chat.
+    // Both fall back to the free (Llama 3.3 70B) client when rate-limited.
     single {
         AiService(
-            paidLlmClient = get(named("llm-paid")),
+            paidLlmClient = get(named("llm-bootstrap")),
             freeLlmClient = get(named("llm-free")),
             llmRepairer = get(),
             exerciseCatalog = get(),
