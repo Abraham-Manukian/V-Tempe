@@ -16,10 +16,11 @@ class VTempeApp : Application() {
     override fun onCreate() {
         super.onCreate()
         val apiBaseUrl = BuildConfig.API_BASE_URL
+        val appToken = BuildConfig.APP_TOKEN.takeIf { it.isNotBlank() }
         Log.i(TAG, "Using API base URL (${BuildConfig.BUILD_TYPE}): $apiBaseUrl")
         startKoin {
             androidContext(this@VTempeApp)
-            modules(DI.coreModule(apiBaseUrl = apiBaseUrl), AppModule.module)
+            modules(DI.coreModule(apiBaseUrl = apiBaseUrl, appToken = appToken), AppModule.module)
         }
         // Apply persisted app preferences (language/theme)
         val koin = GlobalContext.get()

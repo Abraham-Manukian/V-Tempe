@@ -9,7 +9,9 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
+import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -137,7 +139,7 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
     }
 }
 
-fun createHttpClient() = HttpClient {
+fun createHttpClient(appToken: String? = null) = HttpClient {
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true })
     }
@@ -148,6 +150,11 @@ fun createHttpClient() = HttpClient {
     }
     install(Logging) {
         level = LogLevel.INFO
+    }
+    if (appToken != null) {
+        defaultRequest {
+            headers.append("X-App-Token", appToken)
+        }
     }
 }
 

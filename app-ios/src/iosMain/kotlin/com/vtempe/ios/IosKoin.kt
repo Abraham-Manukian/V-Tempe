@@ -20,9 +20,11 @@ fun initKoinIfNeeded(apiBaseUrl: String = resolveApiBaseUrl()) {
         single { AppDatabase(get()) }
     }
 
+    val appToken = resolveAppToken()
+
     val koinApp = startKoin {
         modules(
-            DI.coreModule(apiBaseUrl = apiBaseUrl),
+            DI.coreModule(apiBaseUrl = apiBaseUrl, appToken = appToken),
             iosModule
         )
     }
@@ -43,5 +45,23 @@ private fun resolveApiBaseUrl(): String {
         ?.takeIf { it.isNotEmpty() }
 
     return env ?: plist ?: DEFAULT_API_BASE_URL
+}
+
+/** Resolves the app token from Info.plist (APP_TOKEN key) or env variable.
+ *  Set APP_TOKEN in your iOS scheme environment variables or Info.plist for production. */
+private fun resolveAppToken(): String? {
+    val environment = NSProcessInfo.processInfo.environment
+    val env = environment["APP_TOKEN"]
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
+    val plist = NSBundle.mainBundle
+        .objectForInfoDictionaryKey("APP_TOKEN")
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
+    return env ?: plist
 }
 

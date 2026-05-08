@@ -25,8 +25,8 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 object DI {
-    fun coreModule(apiBaseUrl: String): Module = module {
-        single { createHttpClient() }
+    fun coreModule(apiBaseUrl: String, appToken: String? = null): Module = module {
+        single { createHttpClient(appToken) }
         single { ApiClient(get(), apiBaseUrl) }
 
         // Settings storage
