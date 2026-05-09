@@ -289,6 +289,28 @@
     <string name="progress_best_day_value">%1$s · %2$d</string>
     <string name="progress_active_days_value">%1$d / 7</string>
 
+    <!-- Calendar month names -->
+    <string name="month_1">January</string>
+    <string name="month_2">February</string>
+    <string name="month_3">March</string>
+    <string name="month_4">April</string>
+    <string name="month_5">May</string>
+    <string name="month_6">June</string>
+    <string name="month_7">July</string>
+    <string name="month_8">August</string>
+    <string name="month_9">September</string>
+    <string name="month_10">October</string>
+    <string name="month_11">November</string>
+    <string name="month_12">December</string>
+    <!-- Calendar detail -->
+    <string name="calendar_no_workout">No workouts</string>
+    <string name="calendar_no_meals">Nutrition not loaded</string>
+    <string name="calendar_workout_header">Workout</string>
+    <string name="calendar_nutrition_header">Nutrition</string>
+    <string name="calendar_sets">%1$d sets</string>
+    <string name="calendar_volume_kg">%1$d kg total</string>
+    <string name="calendar_total_kcal">%1$d kcal</string>
+
     <!-- Chat -->
     <string name="chat_title">AI Coach</string>
     <string name="chat_hint">Ask your coach…</string>

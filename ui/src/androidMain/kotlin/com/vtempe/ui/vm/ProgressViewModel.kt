@@ -8,6 +8,7 @@ import com.vtempe.ui.presenter.ProgressPresenter
 import com.vtempe.ui.presenter.ProgressPresenterDelegate
 import com.vtempe.ui.presenter.ProgressState
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.LocalDate
 
 class ProgressViewModel(
     trainingRepository: TrainingRepository,
@@ -21,4 +22,8 @@ class ProgressViewModel(
     )
 
     override val state: StateFlow<ProgressState> get() = delegate.state
+    override fun selectDate(date: LocalDate) = delegate.selectDate(date)
+    override fun clearDate() = delegate.clearDate()
+    override fun prevMonth() = delegate.prevMonth()
+    override fun nextMonth() = delegate.nextMonth()
 }

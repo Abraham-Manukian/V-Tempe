@@ -1,6 +1,7 @@
 package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
+import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.repository.NutritionRepository
@@ -15,7 +16,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 
 @Immutable
 data class ProgressState(
@@ -26,13 +31,31 @@ data class ProgressState(
     val weightSeries: List<Float> = emptyList(),
     val caloriesSeries: List<Int> = emptyList(),
     val sleepHoursWeek: List<Int> = emptyList(),
+    // calendar
+    val today: LocalDate = LocalDate(2000, 1, 1),
+    val calendarYear: Int = 2000,
+    val calendarMonth: Int = 1,
+    val workoutDates: Set<LocalDate> = emptySet(),
+    val selectedDate: LocalDate? = null,
+    val dayWorkouts: List<Workout> = emptyList(),
+    val dayMeals: List<Meal> = emptyList(),
 )
 
 interface ProgressPresenter {
     val state: StateFlow<ProgressState>
+    fun selectDate(date: LocalDate) {}
+    fun clearDate() {}
+    fun prevMonth() {}
+    fun nextMonth() {}
 }
 
-internal fun buildProgressState(workouts: List<Workout>, nutritionPlan: NutritionPlan?): ProgressState {
+internal fun buildProgressState(
+    workouts: List<Workout>,
+    nutritionPlan: NutritionPlan?,
+    today: LocalDate,
+    calendarYearMonth: Pair<Int, Int>,
+    selectedDate: LocalDate?,
+): ProgressState {
     val totalSets = workouts.sumOf { it.sets.size }
     val totalVolume = workouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
 
@@ -58,6 +81,13 @@ internal fun buildProgressState(workouts: List<Workout>, nutritionPlan: Nutritio
         }
         .orEmpty()
 
+    val workoutDates = workouts.map { it.date }.toSet()
+
+    val dayWorkouts = if (selectedDate != null) workouts.filter { it.date == selectedDate } else emptyList()
+    val dayMeals = if (selectedDate != null && nutritionPlan != null) {
+        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.dayKey()].orEmpty()
+    } else emptyList()
+
     return ProgressState(
         totalWorkouts = workouts.size,
         totalSets = totalSets,
@@ -65,7 +95,14 @@ internal fun buildProgressState(workouts: List<Workout>, nutritionPlan: Nutritio
         weeklyVolumes = weeklyVolumesArray.toList(),
         weightSeries = recentWeightSeries,
         caloriesSeries = caloriesSeries,
-        sleepHoursWeek = emptyList()
+        sleepHoursWeek = emptyList(),
+        today = today,
+        calendarYear = calendarYearMonth.first,
+        calendarMonth = calendarYearMonth.second,
+        workoutDates = workoutDates,
+        selectedDate = selectedDate,
+        dayWorkouts = dayWorkouts,
+        dayMeals = dayMeals,
     )
 }
 
@@ -79,11 +116,26 @@ private fun DayOfWeek.weekIndex(): Int = when (this) {
     DayOfWeek.SUNDAY -> 6
 }
 
+private fun DayOfWeek.dayKey(): String = when (this) {
+    DayOfWeek.MONDAY -> "Mon"
+    DayOfWeek.TUESDAY -> "Tue"
+    DayOfWeek.WEDNESDAY -> "Wed"
+    DayOfWeek.THURSDAY -> "Thu"
+    DayOfWeek.FRIDAY -> "Fri"
+    DayOfWeek.SATURDAY -> "Sat"
+    DayOfWeek.SUNDAY -> "Sun"
+}
+
 class ProgressPresenterDelegate(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
     private val scope: CoroutineScope,
 ) : ProgressPresenter {
+
+    private val today: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
+
+    private val _selectedDate = MutableStateFlow<LocalDate?>(null)
+    private val _calendarYearMonth = MutableStateFlow(Pair(today.year, today.monthNumber))
 
     private val _state = MutableStateFlow(ProgressState())
     override val state: StateFlow<ProgressState> = _state.asStateFlow()
@@ -91,10 +143,29 @@ class ProgressPresenterDelegate(
     init {
         combine(
             trainingRepository.observeWorkouts(),
-            nutritionRepository.observePlan()
-        ) { workouts, plan -> buildProgressState(workouts, plan) }
+            nutritionRepository.observePlan(),
+            _selectedDate,
+            _calendarYearMonth,
+        ) { workouts, plan, selectedDate, yearMonth ->
+            buildProgressState(workouts, plan, today, yearMonth, selectedDate)
+        }
             .onEach { progressState -> _state.update { progressState } }
             .catch { Napier.e("ProgressPresenter observe error", it) }
             .launchIn(scope)
+    }
+
+    override fun selectDate(date: LocalDate) { _selectedDate.value = date }
+    override fun clearDate() { _selectedDate.value = null }
+
+    override fun prevMonth() {
+        _calendarYearMonth.update { (y, m) ->
+            if (m == 1) Pair(y - 1, 12) else Pair(y, m - 1)
+        }
+    }
+
+    override fun nextMonth() {
+        _calendarYearMonth.update { (y, m) ->
+            if (m == 12) Pair(y + 1, 1) else Pair(y, m + 1)
+        }
     }
 }

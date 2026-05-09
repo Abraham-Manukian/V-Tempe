@@ -284,6 +284,28 @@
     <string name="progress_best_day_value">%1$s · %2$d</string>
     <string name="progress_active_days_value">%1$d / 7</string>
 
+    <!-- Calendar month names -->
+    <string name="month_1">Январь</string>
+    <string name="month_2">Февраль</string>
+    <string name="month_3">Март</string>
+    <string name="month_4">Апрель</string>
+    <string name="month_5">Май</string>
+    <string name="month_6">Июнь</string>
+    <string name="month_7">Июль</string>
+    <string name="month_8">Август</string>
+    <string name="month_9">Сентябрь</string>
+    <string name="month_10">Октябрь</string>
+    <string name="month_11">Ноябрь</string>
+    <string name="month_12">Декабрь</string>
+    <!-- Calendar detail -->
+    <string name="calendar_no_workout">Тренировок нет</string>
+    <string name="calendar_no_meals">Питание не загружено</string>
+    <string name="calendar_workout_header">Тренировка</string>
+    <string name="calendar_nutrition_header">Питание</string>
+    <string name="calendar_sets">%1$d подходов</string>
+    <string name="calendar_volume_kg">%1$d кг суммарно</string>
+    <string name="calendar_total_kcal">%1$d ккал</string>
+
     <!-- Chat -->
     <string name="chat_title">AI‑коуч</string>
     <string name="chat_hint">Спросите у коуча:</string>
