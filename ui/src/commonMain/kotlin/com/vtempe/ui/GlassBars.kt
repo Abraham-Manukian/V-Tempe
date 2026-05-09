@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.vtempe.core.designsystem.theme.AiGradients
 
 
 @Composable
@@ -19,15 +20,7 @@ fun AppBackground() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF4C1DFF),
-                        Color(0xFF7B61FF),
-                        Color(0xFFF3EDFF)
-                    )
-                )
-            )
+            .background(AiGradients.brandGradient())
     )
 }
 

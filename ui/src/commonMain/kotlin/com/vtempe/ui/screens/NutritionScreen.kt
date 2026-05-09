@@ -699,8 +699,8 @@ private fun nutritionCardElevation() =
     CardDefaults.cardElevation(defaultElevation = 10.dp)
 
 private val macroAccentPalette = listOf(
-    Color(0xFFB388FF),
-    Color(0xFF80DEEA),
-    Color(0xFFFFB74D),
-    Color(0xFFFF8A80)
+    Color(0xFF80CBC4), // teal
+    Color(0xFF80DEEA), // cyan
+    Color(0xFFFFB74D), // amber
+    Color(0xFFFF8A80)  // coral
 )

@@ -45,9 +45,9 @@ enum class AppThemeColor(val primary: Color, val deep: Color, val light: Color) 
 }
 
 object AiPalette {
-    var CurrentPrimary by mutableStateOf(AppThemeColor.VIOLET.primary)
-    var CurrentDeep by mutableStateOf(AppThemeColor.VIOLET.deep)
-    var CurrentLight by mutableStateOf(AppThemeColor.VIOLET.light)
+    var CurrentPrimary by mutableStateOf(AppThemeColor.FOREST.primary)
+    var CurrentDeep by mutableStateOf(AppThemeColor.FOREST.deep)
+    var CurrentLight by mutableStateOf(AppThemeColor.FOREST.light)
 
     val Primary get() = CurrentPrimary
     val DeepAccent get() = CurrentDeep
@@ -75,10 +75,14 @@ object AiPalette {
 }
 
 object AiGradients {
-    fun lavenderMist(): Brush = Brush.verticalGradient(
+    /** Theme-aware vertical gradient — always follows the active [AiPalette] colours. */
+    fun brandGradient(): Brush = Brush.verticalGradient(
         colors = listOf(AiPalette.DeepAccent, AiPalette.Primary, AiPalette.LightAccent),
         startY = 0f, endY = 2200f
     )
+
+    /** Alias kept for backwards compat. Prefer [brandGradient]. */
+    fun lavenderMist(): Brush = brandGradient()
 
     fun aurora(): Brush = Brush.linearGradient(
         colors = listOf(AiPalette.DeepAccent, AiPalette.Primary, AiPalette.Primary.copy(alpha = 0.8f)),
