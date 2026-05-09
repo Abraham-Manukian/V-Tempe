@@ -37,7 +37,7 @@ import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-private const val DEFAULT_PAID_MODEL = "anthropic/claude-haiku-3-5"
+private const val DEFAULT_PAID_MODEL = "anthropic/claude-3.5-haiku"
 private const val DEFAULT_FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 private const val DEFAULT_BOOTSTRAP_MODEL = "anthropic/claude-sonnet-4-5"
 
