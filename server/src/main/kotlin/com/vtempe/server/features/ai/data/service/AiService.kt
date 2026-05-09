@@ -155,6 +155,7 @@ class AiService(
             trainingPlanResolver = trainingPlanResolver
         )
 
+        val restrictionsFeedback = nutritionRestrictionsPrompt(profile)
         return try {
             val generated = llmRepairer.generate(
                 logger = logger,
@@ -180,7 +181,8 @@ class AiService(
                     }
                     criticalErrors
                 },
-                extractionMode = ExtractionMode.FirstJsonObject
+                extractionMode = ExtractionMode.FirstJsonObject,
+                feedbackSuffix = restrictionsFeedback,
             )
 
             val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver)
@@ -394,32 +396,34 @@ class AiService(
             weightUnit = weightUnit
         )
         val sectionRequestId = "$requestId|nutrition"
+        val restrictionsFeedback = nutritionRestrictionsPrompt(profile)
         val generated = llmRepairer.generate(
             logger = logger,
             operation = "nutrition-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-                callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "nutrition-section", sectionRequestId) },
-                strategy = AiNutritionResponse.serializer(),
-                validator = SchemaValidator { plan ->
-                    val normalized = normalizeNutritionPlan(plan, locale, profile)
-                    val errors = validateNutritionPlan(normalized, profile, locale)
-                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
-                    if (criticalErrors.isNotEmpty()) {
-                        AiQualityMetrics.recordValidation(logger, "nutrition-section", sectionRequestId, criticalErrors)
-                    }
-                    val warningErrors = AiQualityErrorPolicy.warningErrors(errors)
-                    if (warningErrors.isNotEmpty()) {
-                        logger.info(
-                            "LLM nutrition-section requestId={} accepted with relaxed quality warnings={}",
-                            sectionRequestId,
-                            warningErrors.joinToString(" | ")
-                        )
-                    }
-                    criticalErrors
-                },
-                extractionMode = ExtractionMode.FirstJsonObject
-            )
+            callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "nutrition-section", sectionRequestId) },
+            strategy = AiNutritionResponse.serializer(),
+            validator = SchemaValidator { plan ->
+                val normalized = normalizeNutritionPlan(plan, locale, profile)
+                val errors = validateNutritionPlan(normalized, profile, locale)
+                val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
+                if (criticalErrors.isNotEmpty()) {
+                    AiQualityMetrics.recordValidation(logger, "nutrition-section", sectionRequestId, criticalErrors)
+                }
+                val warningErrors = AiQualityErrorPolicy.warningErrors(errors)
+                if (warningErrors.isNotEmpty()) {
+                    logger.info(
+                        "LLM nutrition-section requestId={} accepted with relaxed quality warnings={}",
+                        sectionRequestId,
+                        warningErrors.joinToString(" | ")
+                    )
+                }
+                criticalErrors
+            },
+            extractionMode = ExtractionMode.FirstJsonObject,
+            feedbackSuffix = restrictionsFeedback,
+        )
         return normalizeNutritionPlan(generated, locale, profile)
     }
 
@@ -497,6 +501,9 @@ class AiService(
             appendLine("You are an elite sports nutritionist.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply in this language.")
             appendLine("Measurement system: $measurementSystem. Bodyweight unit: $weightUnit.")
+            appendLine()
+            appendLine(restrictionsSummary)
+            appendLine()
             appendLine("Return ONLY this JSON schema:")
             appendLine("{\"weekIndex\": Int, \"mealsByDay\": {\"Mon\":[{\"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": {\"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int}}], \"Tue\": [...], \"Wed\": [...], \"Thu\": [...], \"Fri\": [...], \"Sat\": [...], \"Sun\": [...]}, \"shoppingList\": [String]}")
             appendLine("Nutrition hard rules:")
@@ -504,7 +511,6 @@ class AiService(
             appendLine("- Meals/day by goal: lose -> 3-4, maintain -> 3-5, gain -> 4-6.")
             appendLine("- Each meal needs integer macros and kcal aligned with 4*protein + 4*carbs + 9*fat (+/-20).")
             appendLine("- Avoid duplicate meals within the same day.")
-            appendLine(restrictionsSummary)
             appendLine("PROFILE JSON:")
             appendLine(profileJson)
             appendLine("weekIndex=$weekIndex")

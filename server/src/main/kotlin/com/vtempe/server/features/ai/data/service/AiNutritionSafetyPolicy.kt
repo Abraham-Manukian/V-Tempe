@@ -87,8 +87,8 @@ private val tagKeywords: Map<FoodRestrictionTag, Set<String>> = mapOf(
     FoodRestrictionTag.Fish to setOf("fish", "salmon", "tuna", "cod", "рыб", "лосос", "тун", "треск"),
     FoodRestrictionTag.Shellfish to setOf("shrimp", "prawn", "mussel", "clam", "lobster", "oyster", "кревет", "мид", "устриц", "омар", "ракообраз"),
     FoodRestrictionTag.Sesame to setOf("sesame", "tahini", "кунжут", "тахин"),
-    FoodRestrictionTag.Meat to setOf("beef", "pork", "lamb", "veal", "говя", "свин", "барани", "телят"),
-    FoodRestrictionTag.Poultry to setOf("chicken", "turkey", "duck", "куриц", "индейк", "утк")
+    FoodRestrictionTag.Meat to setOf("meat", "beef", "pork", "lamb", "veal", "мяс", "говя", "свин", "барани", "телят"),
+    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "индейк", "утк")
 )
 
 private val lactoseFreeMarkers = setOf(
@@ -109,19 +109,25 @@ private val dairyNegationMarkers = setOf(
     "без лактоз"
 )
 private val plantDairyAlternativeMarkers = setOf(
-    "almond milk",
-    "soy milk",
-    "oat milk",
-    "coconut milk",
-    "rice milk",
-    "plant milk",
-    "vegan milk",
-    "миндальное молоко",
-    "соевое молоко",
-    "овсяное молоко",
-    "кокосовое молоко",
-    "рисовое молоко",
-    "растительное молоко"
+    // English — full phrases
+    "almond milk", "soy milk", "oat milk", "coconut milk", "rice milk",
+    "plant milk", "vegan milk", "plant cream", "oat cream", "coconut cream",
+    "plant yogurt", "coconut yogurt", "soy yogurt", "dairy-free", "non-dairy",
+    // Russian — root forms that match all grammatical cases:
+    // "кокосов" → кокосовое/кокосовым/кокосовые молоко/молоком/сливки/йогурт
+    "кокосов",
+    // "растительн" → растительное/растительным/растительные/растительный
+    "растительн",
+    // "овсян" → овсяное/овсяным/овсяные молоко/сливки
+    "овсян",
+    // "миндальн" → миндальное/миндальным молоко
+    "миндальн",
+    // "рисов" → рисовое/рисовым молоко
+    "рисов",
+    // "соев" → соевое/соевым молоко/йогурт
+    "соев",
+    // "ореховое молоко" and similar nut milks
+    "ореховое молок", "ореховым молок"
 )
 
 internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictions {
@@ -187,22 +193,40 @@ internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictio
     )
 }
 
+private val tagForbiddenDescription: Map<FoodRestrictionTag, String> = mapOf(
+    FoodRestrictionTag.Meat     to "MEAT (beef, pork, lamb, veal, говядина, свинина, баранина, телятина)",
+    FoodRestrictionTag.Poultry  to "POULTRY (chicken, turkey, duck, курица, индейка, утка)",
+    FoodRestrictionTag.Dairy    to "DAIRY (milk, cream, butter, cheese, yogurt, kefir, curd, whey, casein — молоко, сливки, масло, сыр, йогурт, кефир, творог, сметана)",
+    FoodRestrictionTag.Lactose  to "LACTOSE (milk, yogurt, cream, kefir, curd — молоко, йогурт, кефир, творог; lactose-free alternatives are OK if noted)",
+    FoodRestrictionTag.Egg      to "EGGS (egg, яйцо, яйца)",
+    FoodRestrictionTag.Fish     to "FISH (fish, salmon, tuna, cod — рыба, лосось, тунец, треска)",
+    FoodRestrictionTag.Shellfish to "SHELLFISH (shrimp, prawn, lobster, mussel, oyster — креветки, мидии, устрицы, омар)",
+    FoodRestrictionTag.Gluten   to "GLUTEN (wheat, barley, rye, bread, pasta, flour — пшеница, рожь, ячмень, хлеб, макароны, мука)",
+    FoodRestrictionTag.Peanut   to "PEANUTS (peanut, groundnut — арахис)",
+    FoodRestrictionTag.TreeNut  to "TREE NUTS (almond, walnut, cashew, hazelnut, pecan — орехи, миндаль, кешью)",
+    FoodRestrictionTag.Soy      to "SOY (soy, soya, tofu — соя, тофу)",
+    FoodRestrictionTag.Sesame   to "SESAME (sesame, tahini — кунжут, тахини)"
+)
+
 internal fun nutritionRestrictionsPrompt(profile: AiProfile): String {
     val restrictions = buildNutritionRestrictions(profile)
     if (restrictions.isEmpty) {
         return "- No explicit allergy restrictions were provided."
     }
-    val tags = restrictions.tags.joinToString(", ") { it.name }
-    val custom = restrictions.customTerms.take(10).joinToString(", ")
     return buildString {
-        appendLine("- HARD FOOD RESTRICTIONS: $tags")
+        appendLine("!!! ABSOLUTE DIETARY RESTRICTIONS — NEVER VIOLATE UNDER ANY CIRCUMSTANCES !!!")
+        restrictions.tags.forEach { tag ->
+            val desc = tagForbiddenDescription[tag] ?: tag.name
+            appendLine("- STRICTLY FORBIDDEN: $desc")
+        }
+        val custom = restrictions.customTerms.take(10).joinToString(", ")
         if (custom.isNotBlank()) {
-            appendLine("- User-specific restricted terms: $custom")
+            appendLine("- ALSO FORBIDDEN (user-specified): $custom")
         }
         if (restrictions.allowLactoseFreeAlternatives) {
-            appendLine("- Lactose intolerance detected: lactose-free alternatives are allowed, regular lactose ingredients are forbidden.")
+            appendLine("- Lactose intolerance: regular milk/cream/yogurt are FORBIDDEN; lactose-free alternatives are allowed.")
         }
-        append("- Never include ingredients that violate these restrictions.")
+        append("Every single meal and every ingredient MUST comply. Any meal containing even one forbidden item will be REJECTED. Use only fully compliant alternatives.")
     }
 }
 
@@ -385,8 +409,8 @@ private fun inferTags(line: String): Set<FoodRestrictionTag> {
     if (containsAny(line, setOf("sesame", "кунжут", "тахин"))) tags += FoodRestrictionTag.Sesame
     if (containsAny(line, setOf("dairy", "milk allergy", "молоч", "казеин", "сыворот"))) tags += FoodRestrictionTag.Dairy
     if (containsAny(line, setOf("lactose", "лактоз"))) tags += FoodRestrictionTag.Lactose
-    if (containsAny(line, setOf("beef", "pork", "lamb", "говя", "свин", "баран"))) tags += FoodRestrictionTag.Meat
-    if (containsAny(line, setOf("chicken", "turkey", "duck", "куриц", "индейк", "утк"))) tags += FoodRestrictionTag.Poultry
+    if (containsAny(line, setOf("meat", "beef", "pork", "lamb", "мяс", "говя", "свин", "барани", "телят"))) tags += FoodRestrictionTag.Meat
+    if (containsAny(line, setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "индейк", "утк"))) tags += FoodRestrictionTag.Poultry
     return tags
 }
 

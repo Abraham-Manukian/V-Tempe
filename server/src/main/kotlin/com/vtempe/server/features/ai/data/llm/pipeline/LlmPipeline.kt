@@ -31,6 +31,7 @@ class LlmPipeline(
         strategy: DeserializationStrategy<T>,
         validator: SchemaValidator<T>,
         extractionMode: ExtractionMode = ExtractionMode.FirstJsonObject,
+        feedbackSuffix: String? = null,
     ): T {
         var fb: String? = null
         val fixes = linkedSetOf<String>()
@@ -65,7 +66,7 @@ class LlmPipeline(
                     return value
                 }
                 tracker.fail(logger, operation, requestId, attempt, "validate", errors.joinToString("; "), snippet(candidate))
-                fb = feedback.validationErrors(errors)
+                fb = feedback.validationErrors(errors, feedbackSuffix)
                 continue
             }
 
@@ -83,7 +84,7 @@ class LlmPipeline(
                     return value
                 }
                 tracker.fail(logger, operation, requestId, attempt, "validate", errors.joinToString("; "), snippet(repaired.fixed))
-                fb = feedback.validationErrors(errors)
+                fb = feedback.validationErrors(errors, feedbackSuffix)
                 continue
             }
 

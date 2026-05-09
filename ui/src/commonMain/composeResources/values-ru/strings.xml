@@ -255,6 +255,8 @@
     <string name="paywall_best_value">Лучшее предложение</string>
     <string name="edit_profile_title">Редактирование профиля</string>
     <string name="edit_profile_save">Сохранить изменения</string>
+    <string name="edit_profile_diet_section">Питание и ограничения</string>
+    <string name="edit_profile_diet_hint">Разделяйте значения запятой. Применятся к следующему сгенерированному плану.</string>
 
     <!-- Settings extra -->
     <string name="settings_choose_theme_color">Выбрать другой цвет</string>

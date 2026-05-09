@@ -14,6 +14,7 @@ import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.origin
 import io.ktor.server.request.uri
 import kotlinx.serialization.json.Json
 import org.koin.ktor.plugin.Koin

@@ -58,6 +58,8 @@ fun EditProfileScreen(
     val weight = remember { mutableStateOf("") }
     val goal = remember { mutableStateOf(Goal.MAINTAIN) }
     val trainingMode = remember { mutableStateOf(TRAINING_MODE_GYM) }
+    val dietaryPrefs = remember { mutableStateOf("") }
+    val allergies = remember { mutableStateOf("") }
     
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -74,6 +76,8 @@ fun EditProfileScreen(
                 TRAINING_MODE_MIXED -> TRAINING_MODE_MIXED
                 else -> TRAINING_MODE_GYM
             }
+            dietaryPrefs.value = it.dietaryPreferences.joinToString(", ")
+            allergies.value = it.allergies.joinToString(", ")
         }
     }
 
@@ -170,18 +174,62 @@ fun EditProfileScreen(
                     }
                 }
             }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        stringResource(Res.string.edit_profile_diet_section),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(Res.string.edit_profile_diet_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1C1C28).copy(alpha = 0.6f)
+                    )
+                    OutlinedTextField(
+                        value = dietaryPrefs.value,
+                        onValueChange = { dietaryPrefs.value = it },
+                        label = { Text(stringResource(Res.string.label_dietary_prefs)) },
+                        placeholder = { Text(stringResource(Res.string.placeholder_dietary_prefs)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                    OutlinedTextField(
+                        value = allergies.value,
+                        onValueChange = { allergies.value = it },
+                        label = { Text(stringResource(Res.string.label_allergies)) },
+                        placeholder = { Text(stringResource(Res.string.placeholder_allergies)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                }
+            }
+
             Button(
                 onClick = {
                     val ageInt = age.value.toIntOrNull()
                     val heightInt = height.value.toIntOrNull()
                     val weightDouble = weight.value.toDoubleOrNull()
                     if (ageInt != null && heightInt != null && weightDouble != null) {
+                        val parsedDietaryPrefs = dietaryPrefs.value
+                            .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        val parsedAllergies = allergies.value
+                            .split(",").map { it.trim() }.filter { it.isNotEmpty() }
                         val updated: Profile = profile.copy(
                             age = ageInt,
                             heightCm = heightInt,
                             weightKg = weightDouble,
                             goal = goal.value,
-                            trainingMode = trainingMode.value
+                            trainingMode = trainingMode.value,
+                            dietaryPreferences = parsedDietaryPrefs,
+                            allergies = parsedAllergies
                         )
                         presenter.save(updated)
                         presenter.refresh()

@@ -260,6 +260,8 @@
     <string name="paywall_best_value">Best value</string>
     <string name="edit_profile_title">Edit profile</string>
     <string name="edit_profile_save">Save changes</string>
+    <string name="edit_profile_diet_section">Nutrition &amp; restrictions</string>
+    <string name="edit_profile_diet_hint">Separate values with commas. Applied to your next generated plan.</string>
 
     <!-- Settings extra -->
     <string name="settings_choose_theme_color">Choose another color</string>
