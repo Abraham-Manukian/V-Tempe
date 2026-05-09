@@ -310,6 +310,8 @@
     <string name="calendar_sets">%1$d sets</string>
     <string name="calendar_volume_kg">%1$d kg total</string>
     <string name="calendar_total_kcal">%1$d kcal</string>
+    <string name="calendar_day_empty">Nothing recorded for this day</string>
+    <string name="calendar_daily_totals">Daily totals</string>
 
     <!-- Chat -->
     <string name="chat_title">AI Coach</string>

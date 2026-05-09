@@ -132,17 +132,56 @@ fun ProgressScreen(
                 )
             }
 
-            // Day detail
-            if (state.selectedDate != null) {
+            // Day detail — workout card
+            if (state.selectedDate != null && state.dayWorkouts.isNotEmpty()) {
                 item {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(tween(220)) + slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(220))
                     ) {
-                        DayDetailCard(
+                        DayWorkoutCard(
                             modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-                            state = state,
+                            workouts = state.dayWorkouts,
                         )
+                    }
+                }
+            }
+
+            // Day detail — nutrition card
+            if (state.selectedDate != null && state.dayMeals.isNotEmpty()) {
+                item {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(260)) + slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(260))
+                    ) {
+                        DayNutritionCard(
+                            modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                            meals = state.dayMeals,
+                        )
+                    }
+                }
+            }
+
+            // Day detail — empty state
+            if (state.selectedDate != null && state.dayWorkouts.isEmpty() && state.dayMeals.isEmpty()) {
+                item {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(220))
+                    ) {
+                        Card(
+                            modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                            colors = progressCardColors(),
+                            elevation = progressCardElevation(),
+                            shape = MaterialTheme.shapes.extraLarge,
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.calendar_day_empty),
+                                modifier = Modifier.padding(20.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            )
+                        }
                     }
                 }
             }
@@ -562,11 +601,100 @@ private fun CalendarCard(
 }
 
 @Composable
-private fun DayDetailCard(
+private fun DayWorkoutCard(
     modifier: Modifier = Modifier,
-    state: ProgressState,
+    workouts: List<com.vtempe.shared.domain.model.Workout>,
+) {
+    val accent = com.vtempe.core.designsystem.theme.AiPalette.DeepAccent
+    val contentColor = MaterialTheme.colorScheme.onSurface
+
+    val totalSets = workouts.sumOf { it.sets.size }
+    val totalVolume = workouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
+
+    // group all sets across workouts by exerciseId
+    val byExercise: Map<String, List<com.vtempe.shared.domain.model.WorkoutSet>> =
+        workouts.flatMap { it.sets }.groupBy { it.exerciseId }
+
+    Card(
+        modifier = modifier,
+        colors = progressCardColors(),
+        elevation = progressCardElevation(),
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Header row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(Res.string.calendar_workout_header),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    DaySummaryChip(stringResource(Res.string.calendar_sets).kmpFormat(totalSets))
+                    DaySummaryChip(stringResource(Res.string.calendar_volume_kg).kmpFormat(totalVolume))
+                }
+            }
+
+            HorizontalDivider(color = contentColor.copy(alpha = 0.10f))
+
+            // Exercises
+            byExercise.forEach { (exerciseId, sets) ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = iconFor(
+                                com.vtempe.shared.domain.exercise.ExerciseLibrary
+                                    .findByIdOrAlias(exerciseId)
+                                    ?.visualFamily
+                                    ?: com.vtempe.shared.domain.exercise.ExerciseVisualFamily.GENERIC,
+                                exerciseId
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = accent,
+                        )
+                        Text(
+                            exerciseLabel(exerciseId),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = contentColor,
+                        )
+                    }
+                    sets.forEach { set ->
+                        Text(
+                            "· ${plannedSetSummary(set)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(start = 24.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayNutritionCard(
+    modifier: Modifier = Modifier,
+    meals: List<com.vtempe.shared.domain.model.Meal>,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
+    val primary = MaterialTheme.colorScheme.primary
+
+    val totalKcal  = meals.sumOf { it.kcal }
+    val totalP     = meals.sumOf { it.macros.proteinGrams }
+    val totalF     = meals.sumOf { it.macros.fatGrams }
+    val totalC     = meals.sumOf { it.macros.carbsGrams }
+
     Card(
         modifier = modifier,
         colors = progressCardColors(),
@@ -574,79 +702,88 @@ private fun DayDetailCard(
         shape = MaterialTheme.shapes.extraLarge,
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Workout section
-            Text(
-                stringResource(Res.string.calendar_workout_header),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor,
-            )
-            if (state.dayWorkouts.isEmpty()) {
+            // Header row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
-                    stringResource(Res.string.calendar_no_workout),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor.copy(alpha = 0.6f),
+                    stringResource(Res.string.calendar_nutrition_header),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
                 )
-            } else {
-                val totalSets = state.dayWorkouts.sumOf { it.sets.size }
-                val totalVolume = state.dayWorkouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        stringResource(Res.string.calendar_sets).kmpFormat(totalSets),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = contentColor,
-                    )
-                    Text(
-                        stringResource(Res.string.calendar_volume_kg).kmpFormat(totalVolume),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = contentColor,
-                    )
-                }
+                DaySummaryChip(stringResource(Res.string.calendar_total_kcal).kmpFormat(totalKcal))
             }
 
-            HorizontalDivider(color = contentColor.copy(alpha = 0.12f))
+            HorizontalDivider(color = contentColor.copy(alpha = 0.10f))
 
-            // Nutrition section
-            Text(
-                stringResource(Res.string.calendar_nutrition_header),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor,
-            )
-            if (state.dayMeals.isEmpty()) {
-                Text(
-                    stringResource(Res.string.calendar_no_meals),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor.copy(alpha = 0.6f),
-                )
-            } else {
-                val totalKcal = state.dayMeals.sumOf { it.kcal }
-                state.dayMeals.forEach { meal ->
+            // Meals
+            meals.forEach { meal ->
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             meal.name,
                             style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
                             color = contentColor,
                             modifier = Modifier.weight(1f),
                         )
                         Text(
                             "${meal.kcal} kcal",
                             style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.7f),
+                            color = contentColor.copy(alpha = 0.6f),
                         )
                     }
+                    Text(
+                        stringResource(Res.string.nutrition_macros_line)
+                            .kmpFormat(meal.kcal, meal.macros.proteinGrams, meal.macros.fatGrams, meal.macros.carbsGrams),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.55f),
+                    )
                 }
-                Spacer(Modifier.height(2.dp))
+            }
+
+            HorizontalDivider(color = contentColor.copy(alpha = 0.10f))
+
+            // Daily totals row
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(Res.string.calendar_total_kcal).kmpFormat(totalKcal),
+                    stringResource(Res.string.calendar_daily_totals),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.55f),
+                )
+                Text(
+                    stringResource(Res.string.nutrition_macros_line).kmpFormat(totalKcal, totalP, totalF, totalC),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = primary,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DaySummaryChip(text: String) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(10.dp),
+            )
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

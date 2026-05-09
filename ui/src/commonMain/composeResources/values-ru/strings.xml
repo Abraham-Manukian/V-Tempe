@@ -305,6 +305,8 @@
     <string name="calendar_sets">%1$d подходов</string>
     <string name="calendar_volume_kg">%1$d кг суммарно</string>
     <string name="calendar_total_kcal">%1$d ккал</string>
+    <string name="calendar_day_empty">За этот день ничего не записано</string>
+    <string name="calendar_daily_totals">Итого за день</string>
 
     <!-- Chat -->
     <string name="chat_title">AI‑коуч</string>
