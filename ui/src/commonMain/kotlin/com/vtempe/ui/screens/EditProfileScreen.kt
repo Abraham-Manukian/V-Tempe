@@ -60,6 +60,7 @@ fun EditProfileScreen(
     val trainingMode = remember { mutableStateOf(TRAINING_MODE_GYM) }
     val dietaryPrefs = remember { mutableStateOf("") }
     val allergies = remember { mutableStateOf("") }
+    val coachTrainerId = remember { mutableStateOf(com.vtempe.shared.domain.model.CoachTrainerIds.DEFAULT) }
     
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -78,6 +79,7 @@ fun EditProfileScreen(
             }
             dietaryPrefs.value = it.dietaryPreferences.joinToString(", ")
             allergies.value = it.allergies.joinToString(", ")
+            coachTrainerId.value = it.coachTrainerId
         }
     }
 
@@ -212,6 +214,31 @@ fun EditProfileScreen(
                 }
             }
 
+            // Trainer selection card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        stringResource(Res.string.label_coach_trainer),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    coachTrainerOptions.forEach { coach ->
+                        CoachChoiceCard(
+                            coach = coach,
+                            selected = coachTrainerId.value == coach.id,
+                            onClick = { coachTrainerId.value = coach.id }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     val ageInt = age.value.toIntOrNull()
@@ -229,7 +256,8 @@ fun EditProfileScreen(
                             goal = goal.value,
                             trainingMode = trainingMode.value,
                             dietaryPreferences = parsedDietaryPrefs,
-                            allergies = parsedAllergies
+                            allergies = parsedAllergies,
+                            coachTrainerId = coachTrainerId.value
                         )
                         presenter.save(updated)
                         presenter.refresh()

@@ -57,7 +57,7 @@
     <string name="label_training_mode">Формат тренировок</string>
     <string name="label_coach_trainer">Выберите тренера</string>
     <string name="coach_trainer_hint">Этот тренер будет показываться в демонстрациях упражнений и чате.</string>
-    <string name="coach_trainer_avatar_hint">Демо упражнений и аватар в чате</string>
+    <string name="coach_trainer_avatar_hint">Ваш персональный тренер</string>
     <string name="coach_artur_name">Артур</string>
     <string name="coach_mia_name">Мия</string>
     <string name="coach_vtempe_name">V-Tempe</string>
@@ -253,7 +253,7 @@
     <string name="paywall_monthly">Месяц</string>
     <string name="paywall_yearly">Год</string>
     <string name="paywall_best_value">Лучшее предложение</string>
-    <string name="edit_profile_title">Редактирование профиля</string>
+    <string name="edit_profile_title">Мой профиль</string>
     <string name="edit_profile_save">Сохранить изменения</string>
     <string name="edit_profile_diet_section">Питание и ограничения</string>
     <string name="edit_profile_diet_hint">Разделяйте значения запятой. Применятся к следующему сгенерированному плану.</string>

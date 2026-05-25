@@ -111,14 +111,16 @@ fun NutritionScreen(
             
             Crossfade(targetState = state.ui, label = "nutrition-ui", modifier = Modifier.fillMaxSize()) { uiState ->
                 when (uiState) {
-                    UiState.Loading -> PlaceholderScreen(
+                    UiState.Loading -> NutritionLoadingState(
+                        topPadding = topBarHeight,
                         title = stringResource(Res.string.nutrition_loading_title),
-                        sections = listOf(":")
                     )
 
-                    is UiState.Error -> PlaceholderScreen(
+                    is UiState.Error -> NutritionLoadingState(
+                        topPadding = topBarHeight,
                         title = stringResource(Res.string.nutrition_error_title),
-                        sections = listOf(stringResource(Res.string.nutrition_error_hint))
+                        subtitle = stringResource(Res.string.nutrition_error_hint),
+                        isError = true,
                     )
 
                     is UiState.Data -> NutritionContent(
@@ -684,6 +686,47 @@ private fun StatChipGrid(
                 }
                 repeat(columns - rowItems.size) {
                     Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutritionLoadingState(
+    topPadding: androidx.compose.ui.unit.Dp,
+    title: String,
+    subtitle: String? = null,
+    isError: Boolean = false,
+) {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = topPadding + 16.dp, start = 20.dp, end = 20.dp),
+        contentAlignment = androidx.compose.ui.Alignment.TopCenter,
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = nutritionCardColors(),
+            elevation = nutritionCardElevation(),
+            shape = MaterialTheme.shapes.extraLarge,
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                }
+                if (!isError) {
+                    repeat(4) { com.vtempe.core.designsystem.components.Skeleton(height = 14.dp) }
                 }
             }
         }

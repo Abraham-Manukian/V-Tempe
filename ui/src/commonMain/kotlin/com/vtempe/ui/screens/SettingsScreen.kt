@@ -366,9 +366,9 @@ private fun ProfileStatsGrid(profile: Profile) {
     val bmi = profile.weightKg / ((profile.heightCm / 100.0) * (profile.heightCm / 100.0))
     val bmiLabel = ((bmi * 10).roundToInt() / 10.0).toString()
     val goalLabel = when (profile.goal) {
-        com.vtempe.shared.domain.model.Goal.LOSE_FAT -> "Fat loss"
-        com.vtempe.shared.domain.model.Goal.GAIN_MUSCLE -> "Muscle gain"
-        com.vtempe.shared.domain.model.Goal.MAINTAIN -> "Maintain"
+        com.vtempe.shared.domain.model.Goal.LOSE_FAT -> stringResource(Res.string.goal_lose_fat)
+        com.vtempe.shared.domain.model.Goal.GAIN_MUSCLE -> stringResource(Res.string.goal_gain_muscle)
+        com.vtempe.shared.domain.model.Goal.MAINTAIN -> stringResource(Res.string.goal_maintain)
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -457,13 +457,21 @@ private fun ProfileStatPill(
                     modifier = Modifier.padding(8.dp)
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = Color(0xFF4B4B61))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
                 Text(
                     value,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1C1C28)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }

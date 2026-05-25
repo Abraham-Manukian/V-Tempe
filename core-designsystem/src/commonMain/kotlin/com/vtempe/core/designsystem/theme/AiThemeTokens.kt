@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 enum class AppThemeColor(val primary: Color, val deep: Color, val light: Color) {
+    LIME(Color(0xFF4CAF50), Color(0xFF66BB6A), Color(0xFFE8F5E9)),
     VIOLET(Color(0xFF7C4DFF), Color(0xFF4C1FD4), Color(0xFFEFE1FF)),
     OCEAN(Color(0xFF00B4DB), Color(0xFF0083B0), Color(0xFFE0F7FA)),
     SUNSET(Color(0xFFFF5F6D), Color(0xFFFFC371), Color(0xFFFFF3E0)),
@@ -45,9 +46,9 @@ enum class AppThemeColor(val primary: Color, val deep: Color, val light: Color) 
 }
 
 object AiPalette {
-    var CurrentPrimary by mutableStateOf(AppThemeColor.FOREST.primary)
-    var CurrentDeep by mutableStateOf(AppThemeColor.FOREST.deep)
-    var CurrentLight by mutableStateOf(AppThemeColor.FOREST.light)
+    var CurrentPrimary by mutableStateOf(AppThemeColor.LIME.primary)
+    var CurrentDeep by mutableStateOf(AppThemeColor.LIME.deep)
+    var CurrentLight by mutableStateOf(AppThemeColor.LIME.light)
 
     val Primary get() = CurrentPrimary
     val DeepAccent get() = CurrentDeep

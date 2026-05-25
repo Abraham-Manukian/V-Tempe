@@ -57,7 +57,7 @@
     <string name="label_training_mode">Training style</string>
     <string name="label_coach_trainer">Choose your coach</string>
     <string name="coach_trainer_hint">This coach will appear in exercise demos and chat.</string>
-    <string name="coach_trainer_avatar_hint">Exercise demos and chat avatar</string>
+    <string name="coach_trainer_avatar_hint">Your personal trainer</string>
     <string name="coach_artur_name">Artur</string>
     <string name="coach_mia_name">Mia</string>
     <string name="coach_vtempe_name">V-Tempe</string>
@@ -258,7 +258,7 @@
     <string name="paywall_monthly">Monthly</string>
     <string name="paywall_yearly">Yearly</string>
     <string name="paywall_best_value">Best value</string>
-    <string name="edit_profile_title">Edit profile</string>
+    <string name="edit_profile_title">My profile</string>
     <string name="edit_profile_save">Save changes</string>
     <string name="edit_profile_diet_section">Nutrition &amp; restrictions</string>
     <string name="edit_profile_diet_hint">Separate values with commas. Applied to your next generated plan.</string>
