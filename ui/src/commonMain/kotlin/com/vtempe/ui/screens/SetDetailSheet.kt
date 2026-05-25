@@ -35,6 +35,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,9 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.PerformedSet
@@ -101,33 +104,14 @@ internal fun SetDetailSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Title row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    exerciseName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                if (completed) {
-                    StatusPill(stringResource(Res.string.workout_status_done), AiPalette.DeepAccent)
-                }
-            }
-
-            // Exercise illustration — tap to expand fullscreen
+            // ── Exercise image — full-bleed, name overlaid ────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(MaterialTheme.shapes.large)
+                    .height(210.dp)
                     .clickable { showImageFullScreen = true }
             ) {
                 Image(
@@ -136,58 +120,111 @@ internal fun SetDetailSheet(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                // Dark gradient at bottom for readability of fullscreen button
+                // Gradient overlay — name + done badge at the bottom
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .align(Alignment.BottomCenter)
+                        .fillMaxSize()
                         .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f))
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.35f to Color.Transparent,
+                                    1.00f to Color.Black.copy(alpha = 0.68f)
+                                )
                             )
                         )
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        exerciseName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (completed) {
+                        Surface(
+                            shape = CircleShape,
+                            color = AiPalette.DeepAccent.copy(alpha = 0.90f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = AiPalette.OnDeepAccent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    stringResource(Res.string.workout_status_done),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AiPalette.OnDeepAccent,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+                // Fullscreen icon top-right
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.55f)
+                    color = Color.Black.copy(alpha = 0.40f)
                 ) {
                     Icon(
                         Icons.Filled.Fullscreen,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.padding(6.dp).size(18.dp)
+                        modifier = Modifier.padding(6.dp).size(16.dp)
                     )
                 }
             }
 
-            // Target pill
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            Spacer(Modifier.height(16.dp))
+
+            // ── Target row ────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Text(
+                    stringResource(Res.string.workout_target_set),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = AiPalette.DeepAccent.copy(alpha = 0.10f)
                 ) {
                     Text(
-                        stringResource(Res.string.workout_target_set),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
                         plannedSetSummary(plannedSet),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AiPalette.DeepAccent
                     )
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
 
             // ── Stepper controls ──────────────────────────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StepperControl(
@@ -198,7 +235,7 @@ internal fun SetDetailSheet(
                     onIncrement = { if (reps < 99) reps++ }
                 )
                 StepperControl(
-                    modifier = Modifier.weight(1.5f),
+                    modifier = Modifier.weight(1.4f),
                     label = stringResource(Res.string.workout_weight_label),
                     value = weight?.toEditableDecimal() ?: "—",
                     onDecrement = {
@@ -216,9 +253,14 @@ internal fun SetDetailSheet(
                 )
             }
 
+            Spacer(Modifier.height(16.dp))
+
             // ── Primary CTA: mark done + start rest ──────────────
             Button(
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .padding(horizontal = 20.dp),
                 onClick = { onDoneStartRest(reps, weight, rpe) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (completed) MaterialTheme.colorScheme.surfaceVariant
@@ -230,7 +272,8 @@ internal fun SetDetailSheet(
             ) {
                 Icon(
                     if (completed) Icons.Filled.RadioButtonUnchecked else Icons.Filled.CheckCircle,
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -241,88 +284,104 @@ internal fun SetDetailSheet(
                 )
                 if (!completed) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
                 }
             }
 
-            // Save without starting rest (secondary, only when not done)
+            // Secondary: save without rest
             if (!completed) {
-                OutlinedButton(
-                    modifier = Modifier.fillMaxWidth(),
+                TextButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                     onClick = {
                         onResultChanged(true, reps, weight, rpe)
                         onDismiss()
                     }
                 ) {
-                    Text(stringResource(Res.string.workout_save_result))
+                    Text(
+                        stringResource(Res.string.workout_save_result),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             )
 
-            // ── Collapsible: Technique ────────────────────────────
-            CollapsibleSection(
-                title = stringResource(Res.string.workout_how_to_perform),
-                expanded = showTechnique,
-                onToggle = { showTechnique = !showTechnique }
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    guide.steps.forEachIndexed { i, step ->
-                        Text(
-                            stringResource(Res.string.workout_step_line).kmpFormat(i + 1, step),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        color = AiPalette.DeepAccent.copy(alpha = 0.08f)
-                    ) {
-                        Text(
-                            guide.cue,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AiPalette.DeepAccent,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
+            Spacer(Modifier.height(4.dp))
 
-            // ── Collapsible: Rest presets ─────────────────────────
-            CollapsibleSection(
-                title = "${stringResource(Res.string.workout_suggested_rest)}: ${guide.defaultRestSeconds}s",
-                expanded = showRestPresets,
-                onToggle = { showRestPresets = !showRestPresets }
+            // ── Collapsibles ──────────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(60, 90, 120, 180).forEach { preset ->
-                        OutlinedButton(
-                            onClick = { onUseSuggestedRest(preset) },
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (preset == restSeconds)
-                                    AiPalette.DeepAccent.copy(alpha = 0.12f)
-                                else Color.Transparent
+                // Technique
+                CollapsibleSection(
+                    title = stringResource(Res.string.workout_how_to_perform),
+                    expanded = showTechnique,
+                    onToggle = { showTechnique = !showTechnique }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        guide.steps.forEachIndexed { i, step ->
+                            Text(
+                                stringResource(Res.string.workout_step_line).kmpFormat(i + 1, step),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = AiPalette.DeepAccent.copy(alpha = 0.08f)
                         ) {
-                            Text(stringResource(Res.string.workout_rest_seconds_compact).kmpFormat(preset))
+                            Text(
+                                guide.cue,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AiPalette.DeepAccent,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
-            }
 
-            // ── Ask coach ─────────────────────────────────────────
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onAskCoach(askCoachPrompt) }
-            ) {
-                Icon(Icons.Filled.FitnessCenter, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.workout_ask_coach))
+                // Rest presets
+                CollapsibleSection(
+                    title = "${stringResource(Res.string.workout_suggested_rest)}: ${guide.defaultRestSeconds}s",
+                    expanded = showRestPresets,
+                    onToggle = { showRestPresets = !showRestPresets }
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(60, 90, 120, 180).forEach { preset ->
+                            OutlinedButton(
+                                onClick = { onUseSuggestedRest(preset) },
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (preset == restSeconds)
+                                        AiPalette.DeepAccent.copy(alpha = 0.12f)
+                                    else Color.Transparent
+                                )
+                            ) {
+                                Text(stringResource(Res.string.workout_rest_seconds_compact).kmpFormat(preset))
+                            }
+                        }
+                    }
+                }
+
+                // Ask coach
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onAskCoach(askCoachPrompt) }
+                ) {
+                    Icon(Icons.Filled.FitnessCenter, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.workout_ask_coach))
+                }
             }
         }
     }

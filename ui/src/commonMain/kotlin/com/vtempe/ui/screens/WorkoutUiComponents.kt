@@ -41,50 +41,61 @@ internal fun StepperControl(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Label — always takes two lines of space to keep all steppers at the same height
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            if (subtitle != null) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-            Spacer(Modifier.height(2.dp))
+            // Subtitle row — always rendered; invisible when null so height is identical
+            Text(
+                text = subtitle ?: " ",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (subtitle != null)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                else
+                    Color.Transparent,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                IconButton(onClick = onDecrement, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onDecrement, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Filled.Remove,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
                 Text(
                     value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-                IconButton(onClick = onIncrement, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onIncrement, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Filled.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
