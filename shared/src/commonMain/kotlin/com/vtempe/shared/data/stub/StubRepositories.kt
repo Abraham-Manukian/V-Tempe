@@ -51,8 +51,12 @@ class StubAdviceRepository : AdviceRepository {
     }
 }
 
+/**
+ * Alpha / free tier: subscription always active.
+ * Replace with AndroidPurchasesRepository (Google Play Billing) before paid launch.
+ */
 class StubPurchasesRepository : PurchasesRepository {
-    override suspend fun isSubscriptionActive(): Boolean = false
+    override suspend fun isSubscriptionActive(): Boolean = true
 }
 
 class StubSyncRepository : SyncRepository {
