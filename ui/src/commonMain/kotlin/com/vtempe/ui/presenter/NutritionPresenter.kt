@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.vtempe.ui.util.toShortKey
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
@@ -69,15 +70,6 @@ fun resolveNutritionSelectedDay(selectedDay: String, availableDays: Set<String>)
     return weekOrder.firstOrNull { it in availableDays } ?: selectedDay
 }
 
-private fun DayOfWeek.toShortKey(): String = when (this) {
-    DayOfWeek.MONDAY -> "Mon"
-    DayOfWeek.TUESDAY -> "Tue"
-    DayOfWeek.WEDNESDAY -> "Wed"
-    DayOfWeek.THURSDAY -> "Thu"
-    DayOfWeek.FRIDAY -> "Fri"
-    DayOfWeek.SATURDAY -> "Sat"
-    DayOfWeek.SUNDAY -> "Sun"
-}
 
 @Immutable
 data class NutritionState(

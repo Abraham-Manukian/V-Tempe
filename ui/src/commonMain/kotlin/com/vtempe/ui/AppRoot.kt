@@ -35,7 +35,30 @@ val LocalBottomBarHeight = compositionLocalOf { 0.dp }
 @Composable
 fun AppRoot() {
     VTempeTheme {
-        var currentDest by remember { mutableStateOf<Destination>(Destination.Splash) }
+        // Simple back stack — bottom-nav tabs replace each other, other screens push/pop
+        val backStack = remember { mutableStateListOf<Destination>(Destination.Splash) }
+        val currentDest = backStack.lastOrNull() ?: Destination.Splash
+
+        fun navigateTo(dest: Destination) {
+            if (dest.isBottomNav) {
+                // Tab switch: clear everything above the bottom nav entry (or start fresh)
+                val existingIdx = backStack.indexOfLast { it == dest }
+                if (existingIdx >= 0) {
+                    while (backStack.size > existingIdx + 1) backStack.removeLast()
+                } else {
+                    // Remove any other bottom-nav entries to avoid duplicates
+                    backStack.removeAll { it.isBottomNav }
+                    backStack.add(dest)
+                }
+            } else {
+                backStack.add(dest)
+            }
+        }
+
+        fun navigateBack() {
+            if (backStack.size > 1) backStack.removeLast()
+        }
+
         var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
         var isActiveWorkout by remember { mutableStateOf(false) }
         val isTabRoute = currentDest.isBottomNav
@@ -67,10 +90,10 @@ fun AppRoot() {
                             current = currentDest,
                             pendingChatPrompt = pendingChatPrompt,
                             onPromptConsumed = { pendingChatPrompt = null },
-                            onNavigate = { dest -> currentDest = dest },
+                            onNavigate = { dest -> navigateTo(dest) },
                             onAskCoach = { prompt ->
                                 pendingChatPrompt = prompt
-                                currentDest = Destination.Chat
+                                navigateTo(Destination.Chat)
                             },
                             onEnterActiveWorkout = { isActiveWorkout = true },
                             onExitActiveWorkout = { isActiveWorkout = false }
@@ -89,7 +112,9 @@ fun AppRoot() {
                     ) {
                         TopBar(
                             current = currentDest,
-                            onNavigate = { currentDest = it }
+                            canGoBack = backStack.size > 1 && !currentDest.isBottomNav,
+                            onBack = { navigateBack() },
+                            onNavigate = { navigateTo(it) }
                         )
                     }
                 } else if (topBarHeight != 0.dp) {
@@ -110,7 +135,7 @@ fun AppRoot() {
                         GlassBottomBarContainer {
                             BottomTabs(
                                 selected = currentDest,
-                                onSelect = { currentDest = it }
+                                onSelect = { navigateTo(it) }
                             )
                         }
                     }
@@ -214,35 +239,36 @@ private fun BottomTabs(
 @Composable
 private fun TopBar(
     current: Destination,
-    onNavigate: (Destination) -> Unit
+    canGoBack: Boolean,
+    onBack: () -> Unit,
+    onNavigate: (Destination) -> Unit,
 ) {
     val currentTitle = when (current) {
-        is Destination.Home -> stringResource(Res.string.app_name)
-        is Destination.Settings -> stringResource(Res.string.settings_title)
-        is Destination.Nutrition -> stringResource(Res.string.nav_nutrition)
-        is Destination.Chat -> stringResource(Res.string.chat_title)
-        is Destination.Workout -> stringResource(Res.string.nav_workout)
-        is Destination.Sleep -> stringResource(Res.string.nav_sleep)
-        is Destination.Paywall -> stringResource(Res.string.paywall_title)
-        is Destination.Progress -> stringResource(Res.string.nav_progress)
-        is Destination.EditProfile -> stringResource(Res.string.edit_profile_title)
-        is Destination.ShoppingList -> stringResource(Res.string.nutrition_tab_shopping)
+        is Destination.Home          -> stringResource(Res.string.app_name)
+        is Destination.Settings      -> stringResource(Res.string.settings_title)
+        is Destination.Nutrition     -> stringResource(Res.string.nav_nutrition)
+        is Destination.Chat          -> stringResource(Res.string.chat_title)
+        is Destination.Workout       -> stringResource(Res.string.nav_workout)
+        is Destination.Sleep         -> stringResource(Res.string.nav_sleep)
+        is Destination.Paywall       -> stringResource(Res.string.paywall_title)
+        is Destination.Progress      -> stringResource(Res.string.nav_progress)
+        is Destination.EditProfile   -> stringResource(Res.string.edit_profile_title)
+        is Destination.ShoppingList  -> stringResource(Res.string.nutrition_tab_shopping)
         is Destination.NutritionDetail -> stringResource(Res.string.nutrition_detail_title)
-        else -> stringResource(Res.string.app_name)
+        else                         -> stringResource(Res.string.app_name)
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
-
-        if (!current.isBottomNav) {
-            TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = { onNavigate(Destination.Home) })
+        // Left side: chat icon OR back arrow
+        if (canGoBack) {
+            TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = onBack)
         } else {
-            Spacer(modifier = Modifier.width(48.dp))
+            TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
         }
 
         Spacer(Modifier.weight(1f))
@@ -250,12 +276,17 @@ private fun TopBar(
         Text(
             text = currentTitle,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
 
         Spacer(Modifier.weight(1f))
 
-        TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
+        // Right side: always settings; star/paywall only on bottom-nav screens
+        if (current.isBottomNav) {
+            TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
+        } else {
+            Spacer(modifier = Modifier.width(48.dp))
+        }
         TopBarIcon(Icons.Default.Settings, onClick = { onNavigate(Destination.Settings) })
     }
 }

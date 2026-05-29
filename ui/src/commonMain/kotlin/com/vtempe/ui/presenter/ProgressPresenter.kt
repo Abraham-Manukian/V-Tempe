@@ -7,6 +7,8 @@ import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import io.github.aakira.napier.Napier
+import com.vtempe.ui.util.toShortKey
+import com.vtempe.ui.util.toWeekIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,7 +64,7 @@ internal fun buildProgressState(
     val weeklyVolumesArray = IntArray(7) { 0 }
     workouts.forEach { workout ->
         val dayVolume = workout.sets.sumOf { set -> ((set.weightKg ?: 0.0) * set.reps).toInt() }
-        weeklyVolumesArray[workout.date.dayOfWeek.weekIndex()] += dayVolume
+        weeklyVolumesArray[workout.date.dayOfWeek.toWeekIndex()] += dayVolume
     }
 
     val recentWeightSeries = workouts
@@ -85,7 +87,7 @@ internal fun buildProgressState(
 
     val dayWorkouts = if (selectedDate != null) workouts.filter { it.date == selectedDate } else emptyList()
     val dayMeals = if (selectedDate != null && nutritionPlan != null) {
-        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.dayKey()].orEmpty()
+        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.toShortKey()].orEmpty()
     } else emptyList()
 
     return ProgressState(
@@ -106,25 +108,6 @@ internal fun buildProgressState(
     )
 }
 
-private fun DayOfWeek.weekIndex(): Int = when (this) {
-    DayOfWeek.MONDAY -> 0
-    DayOfWeek.TUESDAY -> 1
-    DayOfWeek.WEDNESDAY -> 2
-    DayOfWeek.THURSDAY -> 3
-    DayOfWeek.FRIDAY -> 4
-    DayOfWeek.SATURDAY -> 5
-    DayOfWeek.SUNDAY -> 6
-}
-
-private fun DayOfWeek.dayKey(): String = when (this) {
-    DayOfWeek.MONDAY -> "Mon"
-    DayOfWeek.TUESDAY -> "Tue"
-    DayOfWeek.WEDNESDAY -> "Wed"
-    DayOfWeek.THURSDAY -> "Thu"
-    DayOfWeek.FRIDAY -> "Fri"
-    DayOfWeek.SATURDAY -> "Sat"
-    DayOfWeek.SUNDAY -> "Sun"
-}
 
 class ProgressPresenterDelegate(
     private val trainingRepository: TrainingRepository,
