@@ -16,10 +16,11 @@ class VTempeApp : Application() {
     override fun onCreate() {
         super.onCreate()
         val apiBaseUrl = BuildConfig.API_BASE_URL
+        val appToken = BuildConfig.APP_TOKEN.takeIf { it.isNotBlank() }
         Log.i(TAG, "Using API base URL (${BuildConfig.BUILD_TYPE}): $apiBaseUrl")
         startKoin {
             androidContext(this@VTempeApp)
-            modules(DI.coreModule(apiBaseUrl = apiBaseUrl), AppModule.module)
+            modules(DI.coreModule(apiBaseUrl = apiBaseUrl, appToken = appToken), AppModule.module)
         }
         // Apply persisted app preferences (language/theme)
         val koin = GlobalContext.get()
@@ -28,11 +29,8 @@ class VTempeApp : Application() {
         if (lang != null) {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))
         }
-        when (prefs.getTheme()) {
-            "light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            "dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            else -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-        }
+        // Theme follows system until a theme picker is implemented
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
     }
 
     companion object {

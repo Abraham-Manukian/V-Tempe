@@ -1,15 +1,7 @@
-﻿package com.vtempe.ui.screens
+package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
-import kotlinx.coroutines.flow.StateFlow
-
-data class PaywallState(val active: Boolean = false)
-
-interface PaywallPresenter {
-    val state: StateFlow<PaywallState>
-    fun refresh()
-}
+import com.vtempe.ui.presenter.PaywallPresenter
 
 @Composable
 expect fun rememberPaywallPresenter(): PaywallPresenter
-

@@ -5,6 +5,7 @@ import com.vtempe.shared.data.network.dto.NutritionPlanDto
 import com.vtempe.shared.data.network.dto.TrainingPlanDto
 import com.vtempe.shared.data.network.dto.AdviceDto
 import com.vtempe.shared.data.network.dto.ChatResponse
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,11 +18,12 @@ private const val KEY_BUNDLE = "cache_bootstrap_bundle"
 private const val KEY_CHAT = "cache_chat_response"
 private const val KEY_BUNDLE_VERSION = "cache_bundle_version"
 private const val KEY_BUNDLE_TIMESTAMP = "cache_bundle_timestamp"
+private const val KEY_PLAN_EPOCH = "coach_plan_epoch_ms"
 
 class AiResponseCache(
     private val settings: Settings,
     private val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-) {
+) : CoachCacheRepository {
     fun storeTraining(dto: TrainingPlanDto) {
         settings.putString(KEY_TRAINING, json.encodeToString(dto))
     }
@@ -50,27 +52,41 @@ class AiResponseCache(
     fun lastBundle(): AiBootstrapResponseDto? =
         settings.getStringOrNull(KEY_BUNDLE)?.let { runCatching { json.decodeFromString<AiBootstrapResponseDto>(it) }.getOrNull() }
 
-    fun bundleVersion(): Int? = settings.getIntOrNull(KEY_BUNDLE_VERSION)
+    override fun bundleVersion(): Int? = settings.getIntOrNull(KEY_BUNDLE_VERSION)
 
-    fun bundleTimestampMillis(): Long? = settings.getLongOrNull(KEY_BUNDLE_TIMESTAMP)
+    override fun bundleTimestampMillis(): Long? = settings.getLongOrNull(KEY_BUNDLE_TIMESTAMP)
 
-    fun markBundleFresh(version: Int, timestampMillis: Long) {
+    override fun markBundleFresh(version: Int, timestampMillis: Long) {
         settings.putInt(KEY_BUNDLE_VERSION, version)
         settings.putLong(KEY_BUNDLE_TIMESTAMP, timestampMillis)
+    }
+
+    override fun planEpochDateMs(): Long? = settings.getLongOrNull(KEY_PLAN_EPOCH)
+
+    override fun setPlanEpochDate(ms: Long) {
+        settings.putLong(KEY_PLAN_EPOCH, ms)
     }
 
     fun clearBundleMetadata() {
         settings.remove(KEY_BUNDLE_VERSION)
         settings.remove(KEY_BUNDLE_TIMESTAMP)
+        // Note: KEY_PLAN_EPOCH is intentionally NOT cleared — epoch date is permanent
     }
 
-    fun clearAll() {
+    override fun clearAll() {
         settings.remove(KEY_TRAINING)
         settings.remove(KEY_NUTRITION)
         settings.remove(KEY_ADVICE)
         settings.remove(KEY_BUNDLE)
         settings.remove(KEY_CHAT)
         clearBundleMetadata()
+        // KEY_PLAN_EPOCH intentionally kept — week count must survive cache clears
+    }
+
+    /** Full wipe including epoch. Use ONLY on re-registration / account reset. */
+    override fun clearAllAndResetEpoch() {
+        clearAll()
+        settings.remove(KEY_PLAN_EPOCH)
     }
 
     fun storeChatResponse(dto: ChatResponse) {

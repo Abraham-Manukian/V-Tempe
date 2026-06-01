@@ -1,85 +1,44 @@
-﻿package com.vtempe.ui.screens
+package com.vtempe.ui.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.model.AiModelMode
+import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
+import com.vtempe.ui.presenter.WorkoutPresenter
+import com.vtempe.ui.presenter.WorkoutPresenterDelegate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import com.vtempe.shared.data.di.KoinProvider
 
 private class IosWorkoutPresenter(
-    private val trainingRepository: TrainingRepository,
-    private val logWorkoutSet: LogWorkoutSet,
-    private val ensureCoachData: EnsureCoachData,
+    trainingRepository: TrainingRepository,
+    logWorkoutSet: LogWorkoutSet,
+    ensureCoachData: EnsureCoachData,
+    profileRepository: ProfileRepository,
 ) : WorkoutPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
-
-    private val mutableState = MutableStateFlow(WorkoutState())
-    override val state: StateFlow<WorkoutState> = mutableState
-
-    init {
-        scope.launch {
-            trainingRepository.observeWorkouts().collectLatest { list ->
-                val selected = mutableState.value.selectedWorkoutId ?: list.firstOrNull()?.id
-                val updatedFeedback = list.associate { w ->
-                    val current = mutableState.value.feedback[w.id]
-                    w.id to (current ?: WorkoutFeedback())
-                }
-                mutableState.value =
-                    mutableState.value.copy(
-                        workouts = list,
-                        selectedWorkoutId = selected,
-                        feedback = updatedFeedback
-                    )
-            }
-        }
-        scope.launch { runCatching { ensureCoachData() } }
-    }
-
-    override fun select(workoutId: String) {
-        mutableState.value = mutableState.value.copy(selectedWorkoutId = workoutId)
-    }
-
-    override fun addSet(exerciseId: String, reps: Int, weight: Double?) {
-        val id = mutableState.value.selectedWorkoutId ?: return
-        scope.launch { logWorkoutSet(id, WorkoutSet(exerciseId, reps, weight, null)) }
-    }
-
-    override fun updateNotes(workoutId: String, notes: String) {
-        val feedback = mutableState.value.feedback.toMutableMap()
-        val current = feedback[workoutId] ?: WorkoutFeedback()
-        feedback[workoutId] = current.copy(notes = notes.take(500), submitted = false)
-        mutableState.value = mutableState.value.copy(feedback = feedback)
-    }
-
-    override fun toggleSetCompleted(workoutId: String, index: Int, completed: Boolean) {
-        val feedback = mutableState.value.feedback.toMutableMap()
-        val current = feedback[workoutId] ?: WorkoutFeedback()
-        val newSet = if (completed) current.completedSets + index else current.completedSets - index
-        feedback[workoutId] = current.copy(completedSets = newSet, submitted = false)
-        mutableState.value = mutableState.value.copy(feedback = feedback)
-    }
-
-    override fun submitFeedback(workoutId: String) {
-        val feedback = mutableState.value.feedback.toMutableMap()
-        val current = feedback[workoutId] ?: WorkoutFeedback()
-        feedback[workoutId] = current.copy(submitted = true)
-        mutableState.value = mutableState.value.copy(feedback = feedback)
-    }
-
-    fun close() {
-        job.cancel()
-    }
+    private val delegate = WorkoutPresenterDelegate(
+        trainingRepository = trainingRepository,
+        logWorkoutSet = logWorkoutSet,
+        ensureCoachData = ensureCoachData,
+        profileRepository = profileRepository,
+        scope = scope
+    )
+    override val state get() = delegate.state
+    override fun select(workoutId: String) = delegate.select(workoutId)
+    override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) = delegate.addSet(exerciseId, reps, weight, rpe)
+    override fun updatePerformedSet(workoutId: String, setIndex: Int, completed: Boolean, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
+        delegate.updatePerformedSet(workoutId, setIndex, completed, actualReps, actualWeightKg, actualRpe)
+    override fun updateNotes(workoutId: String, notes: String) = delegate.updateNotes(workoutId, notes)
+    override fun updateRestSeconds(workoutId: String, restSeconds: Int) = delegate.updateRestSeconds(workoutId, restSeconds)
+    override fun submitFeedback(workoutId: String) = delegate.submitFeedback(workoutId)
+    fun close() = job.cancel()
 }
 
 @Composable
@@ -87,12 +46,12 @@ actual fun rememberWorkoutPresenter(): WorkoutPresenter {
     val presenter = remember {
         val koin = requireNotNull(KoinProvider.koin) { "Koin is not started" }
         IosWorkoutPresenter(
-            trainingRepository = koin.get<TrainingRepository>(),
-            logWorkoutSet = koin.get<LogWorkoutSet>(),
-            ensureCoachData = koin.get<EnsureCoachData>()
+            trainingRepository = koin.get(),
+            logWorkoutSet = koin.get(),
+            ensureCoachData = koin.get(),
+            profileRepository = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }
     return presenter
 }
-

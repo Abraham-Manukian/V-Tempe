@@ -4,16 +4,21 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.vtempe.shared.data.network.dto.TrainingPlanDto
 import com.vtempe.shared.db.AppDatabase
+import com.vtempe.shared.domain.exercise.ExerciseLibrary
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -21,47 +26,38 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
+
 class TrainingRepositoryDb(
     private val db: AppDatabase,
     private val ai: com.vtempe.shared.domain.repository.AiTrainerRepository,
-    private val validateSubscription: com.vtempe.shared.domain.usecase.ValidateSubscription,
-    private val cache: AiResponseCache
+    private val cache: AiResponseCache,
+    private val progressStore: WorkoutProgressStore
 ) : TrainingRepository {
 
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan {
+        // NetworkAiTrainerRepository already handles cache fallback internally.
+        // We only need to persist on success or fall through to the offline plan.
         when (val aiPlanResult = ai.generateTrainingPlan(profile, weekIndex)) {
             is DataResult.Success -> {
                 persistPlan(aiPlanResult.data)
-                cache.storeTraining(TrainingPlanDto.fromDomain(aiPlanResult.data))
                 return aiPlanResult.data
             }
             is DataResult.Failure -> {
-                cache.lastTraining()?.let { cached ->
-                    Napier.w("Using cached training plan after AI failure ${aiPlanResult.reason}", aiPlanResult.throwable)
-                    val domain = cached.toDomain()
-                    persistPlan(domain)
-                    return domain
-                }
                 Napier.w(
-                    message = "AI training plan generation failed: ${aiPlanResult.reason} ${aiPlanResult.message.orEmpty()}",
+                    message = "AI training plan unavailable (${aiPlanResult.reason}), using offline plan",
                     throwable = aiPlanResult.throwable
                 )
             }
         }
 
-        if (validateSubscription()) {
-            Napier.i("Falling back to offline training plan due to missing AI response")
-        }
-
         seedFallbackExercises()
         val fallbackPlan = buildOfflinePlan(weekIndex)
         persistPlan(fallbackPlan)
-        cache.storeTraining(TrainingPlanDto.fromDomain(fallbackPlan))
         return fallbackPlan
     }
 
     override suspend fun logSet(workoutId: String, set: WorkoutSet) {
-        db.workoutQueries.insertSet(workoutId, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+        progressStore.appendExtraSet(workoutId, set)
     }
 
     override suspend fun savePlan(plan: TrainingPlan) {
@@ -70,54 +66,70 @@ class TrainingRepositoryDb(
     }
 
     override suspend fun hasPlan(weekIndex: Int): Boolean =
-        db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong()).executeAsList().isNotEmpty()
+        withContext(Dispatchers.IO) {
+            db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong()).executeAsList().isNotEmpty()
+        }
 
+    /** All workouts across all weeks — for history / progress screens. */
     override fun observeWorkouts(): Flow<List<Workout>> =
         db.workoutQueries.selectWorkoutsWithSets()
             .asFlow()
             .mapToList(Dispatchers.Default)
-            .map { rows ->
-                val grouped = rows.groupBy { it.id }
-                grouped.map { (id, list) ->
-                    val dateStr = list.firstOrNull()?.date
-                        ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-                    val date = LocalDate.parse(dateStr)
-                    val sets = list
-                        .filter { it.exerciseId != null }
-                        .map { r ->
-                            WorkoutSet(
-                                exerciseId = r.exerciseId!!,
-                                reps = r.reps!!.toInt(),
-                                weightKg = r.weightKg,
-                                rpe = r.rpe
-                            )
-                        }
-                    Workout(id = id, date = date, sets = sets)
-                }
-            }
+            .map { rows -> rows.toWorkoutDomainList() }
 
-    private fun persistPlan(plan: TrainingPlan) {
-        db.workoutQueries.transaction {
-            db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())
-            db.workoutQueries.deleteWorkoutsByWeek(plan.weekIndex.toLong())
-            plan.workouts.forEach { workout ->
-                db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.date.toString())
-                db.workoutQueries.deleteSetsForWorkout(workout.id)
-                workout.sets.forEach { set ->
-                    db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+    /** Only the current week's plan — for the active workout screen. */
+    override fun observeWorkoutsByWeek(weekIndex: Int): Flow<List<Workout>> =
+        db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong())
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { rows -> rows.toWorkoutDomainList() }
+
+    override suspend fun deleteWeeksFrom(weekIndex: Int) {
+        withContext(Dispatchers.IO) {
+            // WorkoutSet rows cascade automatically via ON DELETE CASCADE
+            db.workoutQueries.deleteWorkoutsFromWeek(weekIndex.toLong())
+        }
+    }
+
+    override fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>> = progressStore.observe()
+
+    override suspend fun saveWorkoutProgress(progress: WorkoutProgress) {
+        progressStore.save(progress)
+    }
+
+    override suspend fun recentWorkoutSummaries(limit: Int): List<WorkoutSummary> =
+        progressStore.recentSummaries(limit)
+
+    private suspend fun persistPlan(plan: TrainingPlan) {
+        withContext(Dispatchers.IO) {
+            db.workoutQueries.transaction {
+                db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())
+                db.workoutQueries.deleteWorkoutsByWeek(plan.weekIndex.toLong())
+                plan.workouts.forEach { workout ->
+                    db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.date.toString())
+                    db.workoutQueries.deleteSetsForWorkout(workout.id)
+                    workout.sets.forEach { set ->
+                        db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+                    }
                 }
             }
         }
     }
 
     private fun seedFallbackExercises() {
-        db.exerciseQueries.upsertExercise("squat", "\u041F\u0440\u0438\u0441\u0435\u0434\u0430\u043D\u0438\u044F\u0020\u0441\u043E\u0020\u0448\u0442\u0430\u043D\u0433\u043E\u0439", "[\"legs\"]", 2L)
-        db.exerciseQueries.upsertExercise("bench", "\u0416\u0438\u043C\u0020\u043B\u0451\u0436\u0430", "[\"chest\"]", 2L)
-        db.exerciseQueries.upsertExercise("deadlift", "\u0421\u0442\u0430\u043D\u043E\u0432\u0430\u044F\u0020\u0442\u044F\u0433\u0430", "[\"back\",\"legs\"]", 3L)
-        db.exerciseQueries.upsertExercise("ohp", "\u0416\u0438\u043C\u0020\u0441\u0442\u043E\u044F", "[\"shoulders\"]", 2L)
-        db.exerciseQueries.upsertExercise("row", "\u0422\u044F\u0433\u0430\u0020\u0432\u0020\u043D\u0430\u043A\u043B\u043E\u043D\u0435", "[\"back\"]", 2L)
-        db.exerciseQueries.upsertExercise("pullup", "\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u043D\u0438\u044F", "[\"back\"]", 2L)
-        db.exerciseQueries.upsertExercise("lunge", "\u0412\u044B\u043F\u0430\u0434\u044B", "[\"legs\"]", 1L)
+        ExerciseLibrary.all().forEach { exercise ->
+            val muscleGroupsJson = exercise.muscleGroups.joinToString(
+                prefix = "[\"",
+                separator = "\",\"",
+                postfix = "\"]"
+            )
+            db.exerciseQueries.upsertExercise(
+                exercise.id,
+                exercise.name.en,
+                muscleGroupsJson,
+                exercise.difficulty.toLong()
+            )
+        }
     }
 
     private fun buildOfflinePlan(weekIndex: Int): TrainingPlan {

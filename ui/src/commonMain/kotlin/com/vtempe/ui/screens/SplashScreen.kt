@@ -18,9 +18,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiGradients
 import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.ui.navigation.Destination
 
 @Composable
-fun SplashScreen(onReady: (String) -> Unit = {}) {
+fun SplashScreen(onReady: (Destination) -> Unit = {}) {
     val scale = remember { Animatable(0.8f) }
     val decided: MutableState<Boolean> = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -46,4 +47,4 @@ fun SplashScreen(onReady: (String) -> Unit = {}) {
     }
 }
 
-expect suspend fun determineStartDestination(): String
+expect suspend fun determineStartDestination(): Destination

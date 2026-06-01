@@ -4,10 +4,10 @@ import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.dto.ChatResponse
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ChatRepository
 import com.vtempe.shared.domain.repository.CoachResponse
-import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
@@ -15,7 +15,8 @@ import kotlinx.serialization.Serializable
 class NetworkChatRepository(
     private val api: ApiClient,
     private val cache: AiResponseCache,
-    private val preferences: PreferencesRepository
+    private val aiModelPrefs: AiModelPreferences,
+    private val progressStore: WorkoutProgressStore
 ) : ChatRepository {
     override suspend fun send(
         profile: Profile,
@@ -24,14 +25,18 @@ class NetworkChatRepository(
         locale: String?
     ): DataResult<CoachResponse> {
         val request = ChatRequest(
-            profile = ChatProfileDto.from(profile, preferences.getAiModelMode()),
+            profile = ChatProfileDto.from(
+                profile,
+                aiModelPrefs.getAiModelMode(),
+                progressStore.recentSummaries()
+            ),
             messages = history.map { ChatMsgDto(it.role, it.content) } + ChatMsgDto("user", userMessage),
             locale = locale
         )
         val result = api.postResult<ChatRequest, ChatResponse>("/ai/chat", request)
         return when (result) {
             is DataResult.Success -> {
-                cache.storeChatResponse(result.data)
+                cache.storeChatResponse(result.data.copy(actions = emptyList()))
                 DataResult.Success(
                     data = result.data.toDomain(),
                     fromCache = result.fromCache,
@@ -54,7 +59,7 @@ class NetworkChatRepository(
 }
 
 @Serializable
-data class ChatProfileDto(
+internal data class ChatProfileDto(
     val age: Int,
     val sex: String,
     val heightCm: Int,
@@ -68,9 +73,16 @@ data class ChatProfileDto(
     val injuries: List<String> = emptyList(),
     val healthNotes: List<String> = emptyList(),
     val budgetLevel: Int = 2,
+    val trainingMode: String = "AUTO",
+    val coachTrainerId: String = "mia",
     val llmMode: String? = null,
+    val recentWorkouts: List<com.vtempe.shared.data.network.dto.RecentWorkoutDto> = emptyList(),
 ) {
-    companion object { fun from(p: Profile, llmMode: AiModelMode) = ChatProfileDto(
+    companion object { fun from(
+            p: Profile,
+            llmMode: AiModelMode,
+            recentWorkouts: List<com.vtempe.shared.domain.model.WorkoutSummary> = emptyList()
+        ) = ChatProfileDto(
             age = p.age,
             sex = p.sex.name,
             heightCm = p.heightCm,
@@ -84,16 +96,19 @@ data class ChatProfileDto(
             injuries = p.constraints.injuries,
             healthNotes = p.constraints.healthNotes,
             budgetLevel = p.budgetLevel,
-            llmMode = llmMode.wireValue
+            trainingMode = p.trainingMode,
+            coachTrainerId = p.coachTrainerId,
+            llmMode = llmMode.wireValue,
+            recentWorkouts = recentWorkouts.map(com.vtempe.shared.data.network.dto.RecentWorkoutDto::fromDomain)
         )
     }
 }
 
 @Serializable
-data class ChatMsgDto(val role: String, val content: String)
+internal data class ChatMsgDto(val role: String, val content: String)
 
 @Serializable
-data class ChatRequest(
+internal data class ChatRequest(
     val profile: ChatProfileDto,
     val messages: List<ChatMsgDto>,
     val locale: String? = null

@@ -7,11 +7,19 @@
 package com.vtempe.ui.screens
 
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.ONBOARDING_TOTAL_STEPS
+import com.vtempe.ui.presenter.OnboardingPresenter
+import com.vtempe.ui.presenter.OnboardingState
+import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import com.vtempe.ui.presenter.TRAINING_MODE_HOME
+import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
+import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +34,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,12 +56,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +73,7 @@ import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.Sex
 import com.vtempe.ui.util.kmpFormat
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -93,6 +107,12 @@ fun OnboardingScreen(
         "system" to stringResource(Res.string.settings_language_system),
         "en-US" to stringResource(Res.string.language_en),
         "ru-RU" to stringResource(Res.string.language_ru)
+    )
+    val trainingModeOptions = listOf(
+        TRAINING_MODE_GYM to stringResource(Res.string.training_mode_gym),
+        TRAINING_MODE_HOME to stringResource(Res.string.training_mode_home),
+        TRAINING_MODE_OUTDOOR to stringResource(Res.string.training_mode_outdoor),
+        TRAINING_MODE_MIXED to stringResource(Res.string.training_mode_mixed)
     )
 
     val inputColors = OutlinedTextFieldDefaults.colors(
@@ -268,6 +288,119 @@ fun OnboardingScreen(
                         }
 
                         3 -> {
+                            StepTitle(stringResource(Res.string.label_coach_trainer))
+                            Text(
+                                text = stringResource(Res.string.coach_trainer_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+
+                            val initialPage = coachTrainerOptions
+                                .indexOfFirst { it.id == state.coachTrainerId }
+                                .coerceAtLeast(0)
+                            val pagerState = rememberPagerState(initialPage = initialPage) {
+                                coachTrainerOptions.size
+                            }
+
+                            LaunchedEffect(pagerState.currentPage) {
+                                presenter.update {
+                                    it.copy(coachTrainerId = coachTrainerOptions[pagerState.currentPage].id)
+                                }
+                            }
+
+                            HorizontalPager(
+                                state = pagerState,
+                                pageSpacing = 12.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { page ->
+                                val coach = coachTrainerOptions[page]
+                                val coachName = stringResource(coach.nameRes)
+                                val photo = coachExerciseIllustration(coach.id, "squat", coach.avatar)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(340.dp)
+                                        .clip(MaterialTheme.shapes.extraLarge)
+                                ) {
+                                    Image(
+                                        painter = painterResource(photo),
+                                        contentDescription = coachName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    // Dark gradient overlay at the bottom
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .align(Alignment.BottomCenter)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f))
+                                                )
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Text(
+                                                text = coachName,
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = stringResource(Res.string.coach_trainer_avatar_hint),
+                                                color = Color.White.copy(alpha = 0.80f),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Page indicator dots
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                coachTrainerOptions.indices.forEach { i ->
+                                    val isSelected = pagerState.currentPage == i
+                                    Box(
+                                        Modifier
+                                            .padding(horizontal = 4.dp)
+                                            .size(if (isSelected) 10.dp else 6.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isSelected) AiPalette.Primary
+                                                else Color.Gray.copy(alpha = 0.35f)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+
+                        4 -> {
+                            StepTitle(stringResource(Res.string.label_training_mode))
+                            Text(
+                                text = stringResource(Res.string.training_mode_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                trainingModeOptions.forEach { (mode, label) ->
+                                    ModernChip(
+                                        selected = state.trainingMode == mode,
+                                        label = label,
+                                        onClick = { presenter.update { it.copy(trainingMode = mode) } }
+                                    )
+                                }
+                            }
+                        }
+
+                        5 -> {
                             StepTitle(stringResource(Res.string.label_equipment_presets))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -291,7 +424,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        4 -> {
+                        6 -> {
                             StepTitle(stringResource(Res.string.label_dietary_prefs))
                             OutlinedTextField(
                                 value = state.dietaryPreferences,
@@ -377,9 +510,9 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                     Spacer(Modifier.size(12.dp))
-                    Text(text = stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground)
+                    Text(text = stringResource(Res.string.settings_saving), color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
             
@@ -435,6 +568,49 @@ private fun ModernChip(
         border = null,
         shape = MaterialTheme.shapes.medium
     )
+}
+
+@Composable
+fun CoachChoiceCard(
+    coach: CoachTrainerUi,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val coachName = stringResource(coach.nameRes)
+    val borderColor = if (selected) AiPalette.Primary else AiPalette.Outline.copy(alpha = 0.18f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(if (selected) AiPalette.Primary.copy(alpha = 0.10f) else AiPalette.SurfaceLight)
+            .border(2.dp, borderColor, MaterialTheme.shapes.large)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Image(
+            painter = painterResource(coach.avatar),
+            contentDescription = coachName,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = coachName,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(Res.string.coach_trainer_avatar_hint),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
 }
 
 @Composable

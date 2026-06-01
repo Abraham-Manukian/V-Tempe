@@ -1,9 +1,18 @@
-﻿plugins {
+﻿import java.util.Properties
+
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.compose)
 }
+
+// Read secrets from local.properties (gitignored)
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+val appToken: String = localProps.getProperty("APP_TOKEN", "")
 
 android {
     namespace = "com.vtempe"
@@ -16,6 +25,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "API_BASE_URL", "\"https://api.example.com\"")
+        buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
     }
 
     buildTypes {
@@ -23,7 +33,8 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8081\"")
         }
         release {
-            buildConfigField("String", "API_BASE_URL", "\"https://api.example.com\"")
+            isMinifyEnabled = true   // R8/ProGuard obfuscates the token
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 

@@ -5,8 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -20,12 +20,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.icons.AiIcons
-import com.vtempe.ui.navigation.Routes
-import com.vtempe.ui.navigation.nutritionDetail
+import com.vtempe.ui.navigation.Destination
+import com.vtempe.ui.navigation.isBottomNav
 import com.vtempe.ui.screens.*
 import com.vtempe.ui.theme.VTempeTheme
 import com.vtempe.ui.*
-import com.vtempe.ui.navigation.Routes.bottomNavRoutes
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -36,10 +35,39 @@ val LocalBottomBarHeight = compositionLocalOf { 0.dp }
 @Composable
 fun AppRoot() {
     VTempeTheme {
-        var currentRoute by remember { mutableStateOf(Routes.Splash) }
-        val tabRoutes = bottomDestinations.map { it.route }
-        val isTabRoute = currentRoute in tabRoutes
-        val showTopBar = currentRoute != Routes.Onboarding && currentRoute != Routes.Splash
+        // Simple back stack — bottom-nav tabs replace each other, other screens push/pop
+        val backStack = remember { mutableStateListOf<Destination>(Destination.Splash) }
+        val currentDest = backStack.lastOrNull() ?: Destination.Splash
+
+        fun navigateTo(dest: Destination) {
+            if (dest.isBottomNav) {
+                // Tab switch: clear everything above the bottom nav entry (or start fresh)
+                val existingIdx = backStack.indexOfLast { it == dest }
+                if (existingIdx >= 0) {
+                    while (backStack.size > existingIdx + 1) backStack.removeLast()
+                } else {
+                    // Remove any other bottom-nav entries to avoid duplicates
+                    backStack.removeAll { it.isBottomNav }
+                    backStack.add(dest)
+                }
+            } else {
+                backStack.add(dest)
+            }
+        }
+
+        fun navigateBack() {
+            if (backStack.size > 1) backStack.removeLast()
+        }
+
+        var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
+        var isActiveWorkout by remember { mutableStateOf(false) }
+        val isTabRoute = currentDest.isBottomNav
+        val showTopBar = currentDest !is Destination.Onboarding &&
+                currentDest !is Destination.Splash && !isActiveWorkout
+
+        LaunchedEffect(currentDest) {
+            if (currentDest !is Destination.Workout) isActiveWorkout = false
+        }
 
         val density = LocalDensity.current
         var topBarHeight by remember { mutableStateOf(0.dp) }
@@ -59,8 +87,16 @@ fun AppRoot() {
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         AppNavigationHost(
-                            currentRoute = currentRoute,
-                            onNavigate = { dest -> currentRoute = dest }
+                            current = currentDest,
+                            pendingChatPrompt = pendingChatPrompt,
+                            onPromptConsumed = { pendingChatPrompt = null },
+                            onNavigate = { dest -> navigateTo(dest) },
+                            onAskCoach = { prompt ->
+                                pendingChatPrompt = prompt
+                                navigateTo(Destination.Chat)
+                            },
+                            onEnterActiveWorkout = { isActiveWorkout = true },
+                            onExitActiveWorkout = { isActiveWorkout = false }
                         )
                     }
                 }
@@ -75,8 +111,10 @@ fun AppRoot() {
                             }
                     ) {
                         TopBar(
-                            currentRoute = currentRoute,
-                            onNavigate = { currentRoute = it }
+                            current = currentDest,
+                            canGoBack = backStack.size > 1 && !currentDest.isBottomNav,
+                            onBack = { navigateBack() },
+                            onNavigate = { navigateTo(it) }
                         )
                     }
                 } else if (topBarHeight != 0.dp) {
@@ -96,8 +134,8 @@ fun AppRoot() {
                     ) {
                         GlassBottomBarContainer {
                             BottomTabs(
-                                selectedRoute = currentRoute,
-                                onRouteSelected = { currentRoute = it }
+                                selected = currentDest,
+                                onSelect = { navigateTo(it) }
                             )
                         }
                     }
@@ -109,41 +147,48 @@ fun AppRoot() {
 
 @Composable
 private fun AppNavigationHost(
-    currentRoute: String,
-    onNavigate: (String) -> Unit
+    current: Destination,
+    pendingChatPrompt: String?,
+    onPromptConsumed: () -> Unit,
+    onAskCoach: (String) -> Unit,
+    onNavigate: (Destination) -> Unit,
+    onEnterActiveWorkout: () -> Unit,
+    onExitActiveWorkout: () -> Unit
 ) {
-    when (currentRoute) {
-        Routes.Splash -> SplashScreen(onReady = onNavigate)
-        Routes.Onboarding -> OnboardingScreen(onDone = { onNavigate(Routes.Home) })
-        Routes.Home -> HomeScreen(onNavigate = onNavigate)
-        Routes.Workout -> WorkoutScreen()
-        Routes.Nutrition -> NutritionScreen(onOpenMeal = { day, index ->
-            onNavigate(Routes.nutritionDetail(day, index))
+    when (current) {
+        is Destination.Splash -> SplashScreen(onReady = onNavigate)
+        is Destination.Onboarding -> OnboardingScreen(onDone = { onNavigate(Destination.Home) })
+        is Destination.Home -> HomeScreen(onNavigate = onNavigate)
+        is Destination.Workout -> WorkoutScreen(
+            onAskCoach = onAskCoach,
+            onEnterActiveWorkout = onEnterActiveWorkout,
+            onExitActiveWorkout = onExitActiveWorkout
+        )
+        is Destination.Nutrition -> NutritionScreen(onOpenMeal = { day, index ->
+            onNavigate(Destination.NutritionDetail(day, index))
         })
-        Routes.Sleep -> SleepScreen()
-        Routes.Progress -> ProgressScreen()
-        Routes.Paywall -> PaywallScreen()
-        Routes.Settings -> SettingsScreen(onEditProfile = { onNavigate(Routes.EditProfile) })
-        Routes.EditProfile -> EditProfileScreen(onDone = { onNavigate(Routes.Settings) })
-        Routes.Chat -> ChatScreen()
-        Routes.ShoppingList -> ShoppingListScreen(onBack = { onNavigate(Routes.Nutrition) })
-        else -> {
-            if (currentRoute.startsWith("nutrition_detail")) {
-                val segments = currentRoute.split("/")
-                val day = segments.getOrNull(1) ?: "Mon"
-                val idx = segments.getOrNull(2)?.toIntOrNull() ?: 0
-                NutritionDetailScreen(day = day, index = idx, onBack = { onNavigate(Routes.Nutrition) })
-            } else {
-                HomeScreen(onNavigate = onNavigate)
-            }
-        }
+        is Destination.NutritionDetail -> NutritionDetailScreen(
+            day = current.day,
+            index = current.index,
+            onBack = { onNavigate(Destination.Nutrition) }
+        )
+        is Destination.Sleep -> SleepScreen()
+        is Destination.Progress -> ProgressScreen()
+        is Destination.Paywall -> PaywallScreen()
+        is Destination.Settings -> SettingsScreen(onEditProfile = { onNavigate(Destination.EditProfile) })
+        is Destination.EditProfile -> EditProfileScreen(onDone = { onNavigate(Destination.Settings) })
+        is Destination.Chat -> ChatScreen(
+            initialPrompt = pendingChatPrompt,
+            onPromptConsumed = onPromptConsumed
+        )
+        is Destination.ShoppingList -> ShoppingListScreen(onBack = { onNavigate(Destination.Nutrition) })
     }
 }
 
 @Composable
 private fun BottomTabs(
-    selectedRoute: String,
-    onRouteSelected: (String) -> Unit
+    selected: Destination,
+    onSelect: (Destination) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -153,7 +198,7 @@ private fun BottomTabs(
         verticalAlignment = Alignment.CenterVertically
     ) {
         bottomDestinations.forEach { destination ->
-            val isSelected = destination.route == selectedRoute
+            val isSelected = destination.dest == selected
             val label = stringResource(destination.labelRes)
 
             Column(
@@ -162,7 +207,7 @@ private fun BottomTabs(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = { onRouteSelected(destination.route) }
+                        onClick = { onSelect(destination.dest) }
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -193,41 +238,37 @@ private fun BottomTabs(
 
 @Composable
 private fun TopBar(
-    currentRoute: String,
-    onNavigate: (String) -> Unit
+    current: Destination,
+    canGoBack: Boolean,
+    onBack: () -> Unit,
+    onNavigate: (Destination) -> Unit,
 ) {
-    val currentTitle = when (currentRoute) {
-        Routes.Home -> stringResource(Res.string.app_name)
-        Routes.Settings -> stringResource(Res.string.settings_title)
-        Routes.Nutrition -> stringResource(Res.string.nav_nutrition)
-        Routes.Chat -> stringResource(Res.string.chat_title)
-        Routes.Workout -> stringResource(Res.string.nav_workout)
-        Routes.Sleep -> stringResource(Res.string.nav_sleep)
-        Routes.Paywall -> stringResource(Res.string.paywall_title)
-        Routes.Progress -> stringResource(Res.string.nav_progress)
-        Routes.EditProfile -> stringResource(Res.string.edit_profile_title)
-        Routes.ShoppingList -> stringResource(Res.string.nutrition_tab_shopping)
-        else -> {
-            if (currentRoute.startsWith("nutrition_detail")) {
-                stringResource(Res.string.nutrition_detail_title)
-            } else {
-                stringResource(Res.string.app_name)
-            }
-        }
+    val currentTitle = when (current) {
+        is Destination.Home          -> stringResource(Res.string.app_name)
+        is Destination.Settings      -> stringResource(Res.string.settings_title)
+        is Destination.Nutrition     -> stringResource(Res.string.nav_nutrition)
+        is Destination.Chat          -> stringResource(Res.string.chat_title)
+        is Destination.Workout       -> stringResource(Res.string.nav_workout)
+        is Destination.Sleep         -> stringResource(Res.string.nav_sleep)
+        is Destination.Paywall       -> stringResource(Res.string.paywall_title)
+        is Destination.Progress      -> stringResource(Res.string.nav_progress)
+        is Destination.EditProfile   -> stringResource(Res.string.edit_profile_title)
+        is Destination.ShoppingList  -> stringResource(Res.string.nutrition_tab_shopping)
+        is Destination.NutritionDetail -> stringResource(Res.string.nutrition_detail_title)
+        else                         -> stringResource(Res.string.app_name)
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TopBarIcon(Icons.Default.Chat, onClick = { onNavigate(Routes.Chat) })
-
-        if (currentRoute !in bottomNavRoutes) {
-            TopBarIcon(Icons.Default.ArrowBack, onClick = { onNavigate(Routes.Home) })
+        // Left side: chat icon OR back arrow
+        if (canGoBack) {
+            TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = onBack)
         } else {
-            Spacer(modifier = Modifier.width(48.dp))
+            TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
         }
 
         Spacer(Modifier.weight(1f))
@@ -235,13 +276,18 @@ private fun TopBar(
         Text(
             text = currentTitle,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
 
         Spacer(Modifier.weight(1f))
 
-        TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Routes.Paywall) })
-        TopBarIcon(Icons.Default.Settings, onClick = { onNavigate(Routes.Settings) })
+        // Right side: always settings; star/paywall only on bottom-nav screens
+        if (current.isBottomNav) {
+            TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
+        } else {
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+        TopBarIcon(Icons.Default.Settings, onClick = { onNavigate(Destination.Settings) })
     }
 }
 
@@ -271,17 +317,17 @@ private fun TopBarIcon(
 }
 
 private data class BottomDestination(
-    val route: String,
+    val dest: Destination,
     val labelRes: StringResource,
     val icon: ImageVector
 )
 
 private val bottomDestinations = listOf(
-    BottomDestination(Routes.Home, Res.string.nav_home, AiIcons.Dashboard),
-    BottomDestination(Routes.Workout, Res.string.nav_workout, AiIcons.Strength),
-    BottomDestination(Routes.Nutrition, Res.string.nav_nutrition, AiIcons.Nutrition),
-    BottomDestination(Routes.Sleep, Res.string.nav_sleep, AiIcons.Sleep),
-    BottomDestination(Routes.Progress, Res.string.nav_progress, AiIcons.Progress)
+    BottomDestination(Destination.Home, Res.string.nav_home, AiIcons.Dashboard),
+    BottomDestination(Destination.Workout, Res.string.nav_workout, AiIcons.Strength),
+    BottomDestination(Destination.Nutrition, Res.string.nav_nutrition, AiIcons.Nutrition),
+    BottomDestination(Destination.Sleep, Res.string.nav_sleep, AiIcons.Sleep),
+    BottomDestination(Destination.Progress, Res.string.nav_progress, AiIcons.Progress)
 )
 
 

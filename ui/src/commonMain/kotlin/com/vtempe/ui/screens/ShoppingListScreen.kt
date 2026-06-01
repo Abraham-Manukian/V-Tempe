@@ -2,6 +2,8 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.NutritionPresenter
+import com.vtempe.ui.presenter.NutritionState
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween

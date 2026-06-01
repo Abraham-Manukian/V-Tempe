@@ -54,6 +54,18 @@
     <string name="goal_maintain">Поддерживать</string>
     <string name="goal_gain_muscle">Набрать массу</string>
     <string name="label_experience">Опыт: %1$d</string>
+    <string name="label_training_mode">Формат тренировок</string>
+    <string name="label_coach_trainer">Выберите тренера</string>
+    <string name="coach_trainer_hint">Этот тренер будет показываться в демонстрациях упражнений и чате.</string>
+    <string name="coach_trainer_avatar_hint">Ваш персональный тренер</string>
+    <string name="coach_artur_name">Артур</string>
+    <string name="coach_mia_name">Мия</string>
+    <string name="coach_vtempe_name">V-Tempe</string>
+    <string name="training_mode_hint">Выберите, где вы тренируетесь чаще всего, чтобы коуч подбирал реальные упражнения.</string>
+    <string name="training_mode_gym">Зал</string>
+    <string name="training_mode_home">Дом</string>
+    <string name="training_mode_outdoor">Улица</string>
+    <string name="training_mode_mixed">Смешанный</string>
     <string name="label_equipment_presets">Оборудование, которое у вас есть</string>
     <string name="label_equipment_manual">Добавьте своё оборудование (через запятую или с новой строки)</string>
     <string name="placeholder_equipment_manual">например, гантели, штанга, гребной тренажёр</string>
@@ -113,7 +125,8 @@
     <string name="workout_exercise_yoga">Йога</string>
     <string name="workout_reps_label">Повторения</string>
     <string name="workout_weight_label">Вес</string>
-    <string name="workout_rpe_label">RPE</string>
+    <string name="workout_rpe_label">Усилие</string>
+    <string name="workout_rpe_scale">1–10</string>
     <string name="workout_add_button">Добавить</string>
     <string name="workout_rest_timer_title">Таймер отдыха</string>
     <string name="workout_rest_start">Старт</string>
@@ -129,6 +142,45 @@
     <string name="workout_weight_display">%1$.1f кг</string>
     <string name="workout_weight_bodyweight">Собственный вес</string>
     <string name="workout_set_summary">%1$d повт. • %2$s</string>
+    <string name="workout_rpe_suffix"> • RPE %1$s</string>
+    <string name="workout_plan_title">План тренировок</string>
+    <string name="workout_plan_intro">Оставляем привычные карточки. Нажми на любую карточку, чтобы открыть подробную сессию с картинками упражнений, подсказками, таймерами и фиксацией результата.</string>
+    <string name="workout_start_first">Начать первую тренировку</string>
+    <string name="workout_empty_title">Тренировка ещё не загружена</string>
+    <string name="workout_empty_body">Заверши онбординг или дождись синхронизации коуча, чтобы получить первый план.</string>
+    <string name="workout_more_exercises">+%1$d упражнений внутри</string>
+    <string name="workout_coach_notes_added">Есть заметки</string>
+    <string name="workout_extra_sets_count">%1$d доп. подходов</string>
+    <string name="workout_saved">Сохранено</string>
+    <string name="workout_open_details">Открыть детали тренировки</string>
+    <string name="workout_details_title">Детали тренировки</string>
+    <string name="workout_stat_done">Сделано</string>
+    <string name="workout_stat_progress">Прогресс</string>
+    <string name="workout_stat_session">Сессия</string>
+    <string name="workout_summary_help">Ниже каждая карточка показывает упражнение визуально, объясняет технику и даёт сохранить фактические повторы, вес и усилие для адаптации AI.</string>
+    <string name="workout_status_done">Готово</string>
+    <string name="workout_status_planned">План</string>
+    <string name="workout_image_fullscreen_hint">Открыть полностью</string>
+    <string name="workout_target_set">Цель этого подхода</string>
+    <string name="workout_how_to_perform">Как выполнять</string>
+    <string name="workout_step_line">%1$d. %2$s</string>
+    <string name="workout_coach_cue">Подсказка тренера</string>
+    <string name="workout_suggested_rest">Рекомендуемый отдых</string>
+    <string name="workout_rest_seconds_display">%1$d с</string>
+    <string name="workout_rest_seconds_compact">%1$dс</string>
+    <string name="workout_use_preset">Применить</string>
+    <string name="workout_training_controls">Зафиксировать подход</string>
+    <string name="workout_save_result">Сохранить · без отдыха</string>
+    <string name="workout_start">Начать</string>
+    <string name="workout_mark_not_done">Снять выполнение</string>
+    <string name="workout_mark_set_done">Отметить подход</string>
+    <string name="workout_ask_coach">Спросить тренера</string>
+    <string name="workout_ask_coach_prompt">Объясни технику упражнения %1$s и на что смотреть во время этого подхода.</string>
+    <string name="workout_extra_sets_title">Дополнительные подходы</string>
+    <string name="workout_feedback_help">Сохрани, как ощущалась сессия, чтобы следующий AI-план учитывал реальную усталость, объём и заметки.</string>
+    <string name="workout_feedback_saved">Сохранено. AI сможет учесть этот результат в следующий раз.</string>
+    <string name="workout_rest_skip">Пропустить</string>
+    <string name="workout_done_start_rest">Готово · Отдых</string>
 
     <!-- Nutrition -->
     <string name="action_refresh">Обновить</string>
@@ -201,8 +253,60 @@
     <string name="paywall_monthly">Месяц</string>
     <string name="paywall_yearly">Год</string>
     <string name="paywall_best_value">Лучшее предложение</string>
-    <string name="edit_profile_title">Редактирование профиля</string>
+    <string name="edit_profile_title">Мой профиль</string>
     <string name="edit_profile_save">Сохранить изменения</string>
+    <string name="edit_profile_diet_section">Питание и ограничения</string>
+    <string name="edit_profile_diet_hint">Разделяйте значения запятой. Применятся к следующему сгенерированному плану.</string>
+
+    <!-- Settings extra -->
+    <string name="settings_choose_theme_color">Выбрать другой цвет</string>
+    <string name="settings_reset_app">Заново регистрация</string>
+
+    <!-- Progress extra -->
+    <string name="progress_summary_title">Общий итог</string>
+    <string name="progress_metric_workouts">Тренировки</string>
+    <string name="progress_metric_sets">Подходы</string>
+    <string name="progress_metric_volume_kg">Объём (кг)</string>
+    <string name="progress_metric_avg_volume">Ср. объём/трен.</string>
+    <string name="progress_active_days">Активные дни</string>
+    <string name="progress_best_day">Лучш. день</string>
+    <string name="progress_week_total">Сумма недели</string>
+    <string name="progress_avg_sleep">Средний сон</string>
+    <string name="progress_sleep_goal">До цели 8ч</string>
+    <string name="progress_sleep_hint">Стабильный сон ускоряет восстановление и рост рабочих весов</string>
+    <string name="progress_sleep_no_data">Пока нет записей сна — подключим, как только добавим трекинг сна в данные профиля.</string>
+    <string name="progress_avg_weight_title">Средний рабочий вес (до 14 тренировок)</string>
+    <string name="progress_weight_change">Изменение: %1$s кг</string>
+    <string name="progress_calories_title">Калории (7 дней)</string>
+    <string name="progress_calories_avg">Среднее: %1$d ккал/день</string>
+    <string name="progress_week_volume_kg">%1$d кг</string>
+    <string name="progress_sleep_hours_short">%1$d ч</string>
+    <string name="progress_best_day_value">%1$s · %2$d</string>
+    <string name="progress_active_days_value">%1$d / 7</string>
+
+    <!-- Calendar month names -->
+    <string name="month_1">Январь</string>
+    <string name="month_2">Февраль</string>
+    <string name="month_3">Март</string>
+    <string name="month_4">Апрель</string>
+    <string name="month_5">Май</string>
+    <string name="month_6">Июнь</string>
+    <string name="month_7">Июль</string>
+    <string name="month_8">Август</string>
+    <string name="month_9">Сентябрь</string>
+    <string name="month_10">Октябрь</string>
+    <string name="month_11">Ноябрь</string>
+    <string name="month_12">Декабрь</string>
+    <!-- Calendar detail -->
+    <string name="calendar_no_workout">Тренировок нет</string>
+    <string name="calendar_no_meals">Питание не загружено</string>
+    <string name="calendar_workout_header">Тренировка</string>
+    <string name="calendar_nutrition_header">Питание</string>
+    <string name="calendar_sets">%1$d подходов</string>
+    <string name="calendar_volume_kg">%1$d кг суммарно</string>
+    <string name="calendar_total_kcal">%1$d ккал</string>
+    <string name="calendar_day_empty">За этот день ничего не записано</string>
+    <string name="calendar_daily_totals">Итого за день</string>
 
     <!-- Chat -->
     <string name="chat_title">AI‑коуч</string>
@@ -219,5 +323,3 @@
     <string name="chat_empty_title">С чего начнем?</string>
     <string name="chat_empty_body">Напиши цель, самочувствие и доступное оборудование. Я подстрою программу под тебя.</string>
 </resources>
-
-

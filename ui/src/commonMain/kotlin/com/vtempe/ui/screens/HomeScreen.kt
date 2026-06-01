@@ -2,6 +2,8 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.HomePresenter
+import com.vtempe.ui.presenter.HomeState
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -30,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.components.StatChip
 import com.vtempe.core.designsystem.theme.AiPalette
-import com.vtempe.ui.navigation.Routes
+import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.util.kmpFormat
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
@@ -38,7 +40,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun HomeScreen(
-    onNavigate: (String) -> Unit = {},
+    onNavigate: (Destination) -> Unit = {},
     presenter: HomePresenter = rememberHomePresenter()
 ) {
     val uiState by presenter.state.collectAsState()
@@ -166,7 +168,7 @@ private fun OverviewCard(sets: Int, volume: Int, sleepMinutes: Int) {
 }
 
 @Composable
-private fun QuickActionCard(onNavigate: (String) -> Unit) {
+private fun QuickActionCard(onNavigate: (Destination) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -182,24 +184,24 @@ private fun QuickActionCard(onNavigate: (String) -> Unit) {
                     icon = Icons.Filled.FitnessCenter,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
-                ) { onNavigate(Routes.Workout) }
+                ) { onNavigate(Destination.Workout) }
                 ActionIcon(
                     icon = Icons.Filled.Whatshot,
                     tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.weight(1f)
-                ) { onNavigate(Routes.Nutrition) }
+                ) { onNavigate(Destination.Nutrition) }
                 ActionIcon(
                     icon = Icons.Filled.Bedtime,
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f)
-                ) { onNavigate(Routes.Sleep) }
+                ) { onNavigate(Destination.Sleep) }
             }
         }
     }
 }
 
 @Composable
-private fun TodayWorkoutCard(onNavigate: (String) -> Unit) {
+private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -230,11 +232,11 @@ private fun TodayWorkoutCard(onNavigate: (String) -> Unit) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
-                    onClick = { onNavigate(Routes.Workout) },
+                    onClick = { onNavigate(Destination.Workout) },
                     colors = homeButtonColors(),
                     elevation = homeButtonElevation()
                 ) { Text(stringResource(Res.string.home_start)) }
-                OutlinedButton(onClick = { /* preview plan */ }) {
+                OutlinedButton(onClick = { onNavigate(Destination.Workout) }) {
                     Text(stringResource(Res.string.home_preview))
                 }
             }
@@ -243,7 +245,7 @@ private fun TodayWorkoutCard(onNavigate: (String) -> Unit) {
 }
 
 @Composable
-private fun NutritionSummaryCard(onNavigate: (String) -> Unit) {
+private fun NutritionSummaryCard(onNavigate: (Destination) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -273,7 +275,7 @@ private fun NutritionSummaryCard(onNavigate: (String) -> Unit) {
                 }
             }
             Button(
-                onClick = { onNavigate(Routes.Nutrition) },
+                onClick = { onNavigate(Destination.Nutrition) },
                 colors = homeButtonColors(),
                 elevation = homeButtonElevation(),
                 modifier = Modifier.fillMaxWidth()

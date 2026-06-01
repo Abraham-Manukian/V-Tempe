@@ -52,3 +52,8 @@ DELETE FROM WorkoutSet WHERE workoutId IN (SELECT id FROM Workout WHERE weekInde
 
 deleteAllWorkouts:
 DELETE FROM Workout;
+
+-- Deletes plan workouts for all weeks >= given index (WorkoutSet cascades automatically).
+-- Used when profile changes to invalidate stale pre-fetched future weeks.
+deleteWorkoutsFromWeek:
+DELETE FROM Workout WHERE weekIndex >= ?;

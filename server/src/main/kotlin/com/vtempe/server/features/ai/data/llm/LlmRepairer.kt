@@ -17,7 +17,8 @@ class LlmRepairer(
         callModel: suspend (String) -> String,
         strategy: DeserializationStrategy<T>,
         validator: SchemaValidator<T>,
-        extractionMode: ExtractionMode = ExtractionMode.FirstJsonObject
+        extractionMode: ExtractionMode = ExtractionMode.FirstJsonObject,
+        feedbackSuffix: String? = null,
     ): T = pipeline.run(
         logger = logger,
         operation = operation,
@@ -26,6 +27,7 @@ class LlmRepairer(
         callModel = callModel,
         strategy = strategy,
         validator = validator,
-        extractionMode = extractionMode
+        extractionMode = extractionMode,
+        feedbackSuffix = feedbackSuffix,
     )
 }

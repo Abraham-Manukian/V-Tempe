@@ -1,5 +1,7 @@
-﻿package com.vtempe.ui.vm
+package com.vtempe.ui.vm
 
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.model.AiModelMode
@@ -7,76 +9,39 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
-import com.vtempe.ui.screens.SettingsPresenter
-import com.vtempe.ui.screens.SettingsState
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.vtempe.shared.domain.usecase.ResetCoachData
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.SettingsPresenterDelegate
+import com.vtempe.ui.presenter.SettingsState
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    private val profileRepository: ProfileRepository,
-    private val preferencesRepository: PreferencesRepository,
-    private val ensureCoachData: EnsureCoachData
+    profileRepository: ProfileRepository,
+    preferencesRepository: PreferencesRepository,
+    ensureCoachData: EnsureCoachData,
+    resetCoachData: ResetCoachData,
 ) : ViewModel(), SettingsPresenter {
-    private val _state = MutableStateFlow(SettingsState())
-    override val state: StateFlow<SettingsState> = _state.asStateFlow()
 
-    init { refresh() }
-
-    override fun refresh() {
-        viewModelScope.launch {
-            _state.value = SettingsState(
-                profile = profileRepository.getProfile(),
-                aiModelMode = preferencesRepository.getAiModelMode()
-            )
+    private val delegate = SettingsPresenterDelegate(
+        profileRepository = profileRepository,
+        preferencesRepository = preferencesRepository,
+        ensureCoachData = ensureCoachData,
+        resetCoachData = resetCoachData,
+        scope = viewModelScope,
+        applyLocale = { tag ->
+            if (tag.isNullOrBlank()) {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+            } else {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+            }
         }
-    }
+    )
 
-    override fun reset(onDone: () -> Unit) {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(saving = true)
-            profileRepository.clearAll()
-            _state.value = SettingsState(
-                profile = null,
-                saving = false,
-                aiModelMode = preferencesRepository.getAiModelMode()
-            )
-            onDone()
-        }
-    }
-
-    override fun save(profile: Profile) {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(saving = true)
-            profileRepository.upsertProfile(profile)
-            _state.value = SettingsState(
-                profile = profile,
-                saving = false,
-                aiModelMode = preferencesRepository.getAiModelMode()
-            )
-        }
-    }
-
-    override fun setUnits(units: String) {
-        preferencesRepository.setUnits(units)
-    }
-
-    override fun setLanguage(tag: String?) {
-        preferencesRepository.setLanguageTag(tag)
-        if (tag.isNullOrBlank()) {
-            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.getEmptyLocaleList())
-        } else {
-            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(tag))
-        }
-        viewModelScope.launch {
-            runCatching { ensureCoachData(weekIndex = 0, force = true) }
-        }
-    }
-
-    override fun setAiModelMode(mode: AiModelMode) {
-        preferencesRepository.setAiModelMode(mode)
-        _state.value = _state.value.copy(aiModelMode = mode)
-    }
+    override val state: StateFlow<SettingsState> get() = delegate.state
+    override fun refresh() = delegate.refresh()
+    override fun save(profile: Profile) = delegate.save(profile)
+    override fun reset(onDone: () -> Unit) = delegate.reset(onDone)
+    override fun setUnits(units: String) = delegate.setUnits(units)
+    override fun setLanguage(tag: String?) = delegate.setLanguage(tag)
+    override fun setAiModelMode(mode: AiModelMode) = delegate.setAiModelMode(mode)
 }
-

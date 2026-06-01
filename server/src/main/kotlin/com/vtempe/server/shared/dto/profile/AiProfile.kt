@@ -18,5 +18,8 @@ data class AiProfile(
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
     val locale: String? = null,
     val budgetLevel: Int? = 2,
-    val llmMode: String? = null
+    val trainingMode: String = "AUTO",
+    val coachTrainerId: String = "mia",
+    val llmMode: String? = null,
+    val recentWorkouts: List<AiRecentWorkout> = emptyList()
 )

@@ -2,6 +2,12 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.SettingsState
+import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import com.vtempe.ui.presenter.TRAINING_MODE_HOME
+import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
+import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,6 +57,10 @@ fun EditProfileScreen(
     val height = remember { mutableStateOf("") }
     val weight = remember { mutableStateOf("") }
     val goal = remember { mutableStateOf(Goal.MAINTAIN) }
+    val trainingMode = remember { mutableStateOf(TRAINING_MODE_GYM) }
+    val dietaryPrefs = remember { mutableStateOf("") }
+    val allergies = remember { mutableStateOf("") }
+    val coachTrainerId = remember { mutableStateOf(com.vtempe.shared.domain.model.CoachTrainerIds.DEFAULT) }
     
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -61,6 +71,15 @@ fun EditProfileScreen(
             height.value = it.heightCm.toString()
             weight.value = it.weightKg.toString()
             goal.value = it.goal
+            trainingMode.value = when (it.trainingMode.lowercase()) {
+                TRAINING_MODE_HOME -> TRAINING_MODE_HOME
+                TRAINING_MODE_OUTDOOR -> TRAINING_MODE_OUTDOOR
+                TRAINING_MODE_MIXED -> TRAINING_MODE_MIXED
+                else -> TRAINING_MODE_GYM
+            }
+            dietaryPrefs.value = it.dietaryPreferences.joinToString(", ")
+            allergies.value = it.allergies.joinToString(", ")
+            coachTrainerId.value = it.coachTrainerId
         }
     }
 
@@ -136,19 +155,109 @@ fun EditProfileScreen(
                             Text(label, color = Color(0xFF1C1C28))
                         }
                     }
+                    Text(
+                        stringResource(Res.string.label_training_mode),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    listOf(
+                        TRAINING_MODE_GYM to stringResource(Res.string.training_mode_gym),
+                        TRAINING_MODE_HOME to stringResource(Res.string.training_mode_home),
+                        TRAINING_MODE_OUTDOOR to stringResource(Res.string.training_mode_outdoor),
+                        TRAINING_MODE_MIXED to stringResource(Res.string.training_mode_mixed)
+                    ).forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RadioButton(selected = trainingMode.value == mode, onClick = { trainingMode.value = mode })
+                            Text(label, color = Color(0xFF1C1C28))
+                        }
+                    }
                 }
             }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        stringResource(Res.string.edit_profile_diet_section),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(Res.string.edit_profile_diet_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1C1C28).copy(alpha = 0.6f)
+                    )
+                    OutlinedTextField(
+                        value = dietaryPrefs.value,
+                        onValueChange = { dietaryPrefs.value = it },
+                        label = { Text(stringResource(Res.string.label_dietary_prefs)) },
+                        placeholder = { Text(stringResource(Res.string.placeholder_dietary_prefs)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                    OutlinedTextField(
+                        value = allergies.value,
+                        onValueChange = { allergies.value = it },
+                        label = { Text(stringResource(Res.string.label_allergies)) },
+                        placeholder = { Text(stringResource(Res.string.placeholder_allergies)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                }
+            }
+
+            // Trainer selection card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        stringResource(Res.string.label_coach_trainer),
+                        color = Color(0xFF1C1C28),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    coachTrainerOptions.forEach { coach ->
+                        CoachChoiceCard(
+                            coach = coach,
+                            selected = coachTrainerId.value == coach.id,
+                            onClick = { coachTrainerId.value = coach.id }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     val ageInt = age.value.toIntOrNull()
                     val heightInt = height.value.toIntOrNull()
                     val weightDouble = weight.value.toDoubleOrNull()
                     if (ageInt != null && heightInt != null && weightDouble != null) {
+                        val parsedDietaryPrefs = dietaryPrefs.value
+                            .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        val parsedAllergies = allergies.value
+                            .split(",").map { it.trim() }.filter { it.isNotEmpty() }
                         val updated: Profile = profile.copy(
                             age = ageInt,
                             heightCm = heightInt,
                             weightKg = weightDouble,
-                            goal = goal.value
+                            goal = goal.value,
+                            trainingMode = trainingMode.value,
+                            dietaryPreferences = parsedDietaryPrefs,
+                            allergies = parsedAllergies,
+                            coachTrainerId = coachTrainerId.value
                         )
                         presenter.save(updated)
                         presenter.refresh()

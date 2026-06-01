@@ -87,8 +87,8 @@ private val tagKeywords: Map<FoodRestrictionTag, Set<String>> = mapOf(
     FoodRestrictionTag.Fish to setOf("fish", "salmon", "tuna", "cod", "рыб", "лосос", "тун", "треск"),
     FoodRestrictionTag.Shellfish to setOf("shrimp", "prawn", "mussel", "clam", "lobster", "oyster", "кревет", "мид", "устриц", "омар", "ракообраз"),
     FoodRestrictionTag.Sesame to setOf("sesame", "tahini", "кунжут", "тахин"),
-    FoodRestrictionTag.Meat to setOf("beef", "pork", "lamb", "veal", "говя", "свин", "барани", "телят"),
-    FoodRestrictionTag.Poultry to setOf("chicken", "turkey", "duck", "куриц", "индейк", "утк")
+    FoodRestrictionTag.Meat to setOf("meat", "beef", "pork", "lamb", "veal", "мяс", "говя", "свин", "барани", "телят"),
+    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "индейк", "утк")
 )
 
 private val lactoseFreeMarkers = setOf(
@@ -99,29 +99,68 @@ private val lactoseFreeMarkers = setOf(
     "\u0431\u0435\u0437\u043b\u0430\u043a\u0442\u043e\u0437",
     "\u0431\u0435\u0437 \u043b\u0430\u043a\u0442\u043e\u0437"
 )
-private val dairyNegationMarkers = setOf(
-    "without milk",
-    "no milk",
-    "without dairy",
-    "no dairy",
-    "без молока",
-    "без молочн",
-    "без лактоз"
-)
+/**
+ * General-purpose negation detector for allergen keywords.
+ *
+ * Returns true when the allergen keyword (found at [matchIdx] in [text]) is preceded within
+ * [windowChars] characters by a negation word ("без" / "no" / "without"), with NO positive
+ * connector (" с " / " with " / comma) appearing between that negation and the keyword.
+ *
+ * Returns true  (allergen-FREE → do NOT flag):
+ *   "без орехов"                             "без" directly before "орех"
+ *   "без молока и орехов"                    "без" before "орех", no "с" in between
+ *   "Изолят протеина (без молока и орехов)"  same
+ *   "protein bar without nuts and dairy"     "without" before "nuts"
+ *   "gluten-free bread"                      explicit free-label
+ *
+ * Returns false (allergen IS present → flag violation):
+ *   "каша без сахара с орехами"  "с" between "без" and "орех" breaks negation context
+ *   "грецкие орехи с мёдом"      no negation before "орех"
+ *   "молоко 3.2%"                no negation at all
+ */
+private fun isKeywordNegatedInContext(text: String, matchIdx: Int, windowChars: Int = 48): Boolean {
+    val contextBefore = text.substring((matchIdx - windowChars).coerceAtLeast(0), matchIdx)
+
+    // Russian "без" (without)
+    val bezIdx = contextBefore.lastIndexOf("без")
+    if (bezIdx != -1) {
+        val segment = contextBefore.substring(bezIdx)
+        if (!segment.contains(" с ") && !segment.contains(",")) return true
+    }
+
+    // English "without" / "no "
+    for (negWord in listOf("without ", "no ")) {
+        val negIdx = contextBefore.lastIndexOf(negWord)
+        if (negIdx != -1) {
+            val segment = contextBefore.substring(negIdx)
+            if (!segment.contains(" with ") && !segment.contains(",")) return true
+        }
+    }
+
+    // Explicit *-free labels anywhere in the full ingredient text
+    return text.contains("-free") || text.contains("non-dairy") || text.contains("vegan")
+}
+
 private val plantDairyAlternativeMarkers = setOf(
-    "almond milk",
-    "soy milk",
-    "oat milk",
-    "coconut milk",
-    "rice milk",
-    "plant milk",
-    "vegan milk",
-    "миндальное молоко",
-    "соевое молоко",
-    "овсяное молоко",
-    "кокосовое молоко",
-    "рисовое молоко",
-    "растительное молоко"
+    // English — full phrases
+    "almond milk", "soy milk", "oat milk", "coconut milk", "rice milk",
+    "plant milk", "vegan milk", "plant cream", "oat cream", "coconut cream",
+    "plant yogurt", "coconut yogurt", "soy yogurt", "dairy-free", "non-dairy",
+    // Russian — root forms that match all grammatical cases:
+    // "кокосов" → кокосовое/кокосовым/кокосовые молоко/молоком/сливки/йогурт
+    "кокосов",
+    // "растительн" → растительное/растительным/растительные/растительный
+    "растительн",
+    // "овсян" → овсяное/овсяным/овсяные молоко/сливки
+    "овсян",
+    // "миндальн" → миндальное/миндальным молоко
+    "миндальн",
+    // "рисов" → рисовое/рисовым молоко
+    "рисов",
+    // "соев" → соевое/соевым молоко/йогурт
+    "соев",
+    // "ореховое молоко" and similar nut milks
+    "ореховое молок", "ореховым молок"
 )
 
 internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictions {
@@ -152,7 +191,10 @@ internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictio
     }
 
     preferenceLines.forEach { line ->
-        tags += inferTags(line)
+        // NOTE: do NOT call inferTags() here — dietary preferences express what the user LIKES,
+        // not what they're allergic to. inferTags("мясо, макароны") would wrongly add Meat
+        // to the restriction set, causing the system to forbid meat for someone who enjoys it.
+        // Only explicit diet-pattern keywords drive tag inference from preferences.
         if (containsAny(line, setOf("vegan", "веган"))) {
             tags += setOf(
                 FoodRestrictionTag.Dairy,
@@ -187,22 +229,52 @@ internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictio
     )
 }
 
+private val tagForbiddenDescription: Map<FoodRestrictionTag, String> = mapOf(
+    FoodRestrictionTag.Meat     to "MEAT (beef, pork, lamb, veal, говядина, свинина, баранина, телятина)",
+    FoodRestrictionTag.Poultry  to "POULTRY (chicken, turkey, duck, курица, индейка, утка)",
+    FoodRestrictionTag.Dairy    to "DAIRY (milk, cream, butter, cheese, yogurt, kefir, curd, whey, casein — молоко, сливки, масло, сыр, йогурт, кефир, творог, сметана)",
+    FoodRestrictionTag.Lactose  to "LACTOSE (milk, yogurt, cream, kefir, curd — молоко, йогурт, кефир, творог; lactose-free alternatives are OK if noted)",
+    FoodRestrictionTag.Egg      to "EGGS (egg, яйцо, яйца)",
+    FoodRestrictionTag.Fish     to "FISH (fish, salmon, tuna, cod — рыба, лосось, тунец, треска)",
+    FoodRestrictionTag.Shellfish to "SHELLFISH (shrimp, prawn, lobster, mussel, oyster — креветки, мидии, устрицы, омар)",
+    FoodRestrictionTag.Gluten   to "GLUTEN (wheat, barley, rye, bread, pasta, flour — пшеница, рожь, ячмень, хлеб, макароны, мука)",
+    FoodRestrictionTag.Peanut   to "PEANUTS (peanut, groundnut — арахис)",
+    FoodRestrictionTag.TreeNut  to "TREE NUTS (almond, walnut, cashew, hazelnut, pecan — орехи, миндаль, кешью)",
+    FoodRestrictionTag.Soy      to "SOY (soy, soya, tofu — соя, тофу)",
+    FoodRestrictionTag.Sesame   to "SESAME (sesame, tahini — кунжут, тахини)"
+)
+
 internal fun nutritionRestrictionsPrompt(profile: AiProfile): String {
     val restrictions = buildNutritionRestrictions(profile)
     if (restrictions.isEmpty) {
         return "- No explicit allergy restrictions were provided."
     }
-    val tags = restrictions.tags.joinToString(", ") { it.name }
-    val custom = restrictions.customTerms.take(10).joinToString(", ")
     return buildString {
-        appendLine("- HARD FOOD RESTRICTIONS: $tags")
+        appendLine("!!! ABSOLUTE DIETARY RESTRICTIONS — NEVER VIOLATE UNDER ANY CIRCUMSTANCES !!!")
+        restrictions.tags.forEach { tag ->
+            val desc = tagForbiddenDescription[tag] ?: tag.name
+            appendLine("- STRICTLY FORBIDDEN: $desc")
+        }
+        val custom = restrictions.customTerms.take(10).joinToString(", ")
         if (custom.isNotBlank()) {
-            appendLine("- User-specific restricted terms: $custom")
+            appendLine("- ALSO FORBIDDEN (user-specified): $custom")
         }
         if (restrictions.allowLactoseFreeAlternatives) {
-            appendLine("- Lactose intolerance detected: lactose-free alternatives are allowed, regular lactose ingredients are forbidden.")
+            appendLine("- Lactose intolerance: regular milk/cream/yogurt are FORBIDDEN; lactose-free alternatives are allowed.")
         }
-        append("- Never include ingredients that violate these restrictions.")
+        appendLine("Every single meal and every ingredient MUST comply. Any meal containing even one forbidden item will be REJECTED. Use only fully compliant alternatives.")
+        appendLine()
+        appendLine("ALLERGEN TAGGING — MANDATORY:")
+        appendLine("For EVERY meal object, include an \"allergenTags\" array listing which of the following allergens are present:")
+        appendLine("  ${FoodRestrictionTag.entries.joinToString(", ") { it.name }}")
+        appendLine("Rules:")
+        appendLine("- If a meal contains milk, yogurt, cheese, cream → include \"Dairy\"")
+        appendLine("- If a meal contains any nut (almond, walnut, cashew, etc.) → include \"TreeNut\"")
+        appendLine("- If a meal contains gluten/wheat/bread/pasta → include \"Gluten\"")
+        appendLine("- Use the ENGLISH tag names exactly as listed above.")
+        appendLine("- If no allergens are present → output an empty array: \"allergenTags\": []")
+        appendLine("- This tagging must be accurate regardless of the language you are writing the meal names in.")
+        append("Example: {\"name\":\"Овсянка с молоком\",\"ingredients\":[\"овсяные хлопья\",\"молоко\"],\"allergenTags\":[\"Dairy\",\"Gluten\"],\"kcal\":300,\"macros\":{...}}")
     }
 }
 
@@ -233,6 +305,30 @@ internal fun validateNutritionPlanQuality(
         }
     }
 
+    val repeatedDaySignatures = qualityDays
+        .associateWith { day ->
+            plan.mealsByDay[day].orEmpty().joinToString("||") { meal ->
+                val name = normalizeMealName(meal.name)
+                val ingredients = meal.ingredients
+                    .map(::canonicalText)
+                    .filter { it.isNotBlank() }
+                    .joinToString("|")
+                "$name::$ingredients"
+            }
+        }
+        .filterValues { it.isNotBlank() }
+        .entries
+        .groupBy({ it.value }, { it.key })
+        .values
+        .filter { it.size > 2 }
+
+    if (repeatedDaySignatures.isNotEmpty()) {
+        val summary = repeatedDaySignatures
+            .take(3)
+            .joinToString("; ") { days -> days.joinToString(", ") }
+        errors += "identical daily meal plan repeated across too many days: $summary"
+    }
+
     val allMeals = plan.mealsByDay.values.flatten()
     val repeatedNames = allMeals
         .groupingBy { normalizeMealName(it.name) }
@@ -258,18 +354,33 @@ internal fun validateNutritionPlanQuality(
         qualityDays.forEach { day ->
             if (errors.size >= maxValidationErrors) return@forEach
             val meals = plan.mealsByDay[day].orEmpty()
-            meals.forEachIndexed mealLoop@{ mealIndex, meal ->
-                val nameViolation = restrictionViolationReason(meal.name, restrictions)
-                if (nameViolation != null) {
-                    errors += "allergen restriction violation in $day meal[$mealIndex].name: $nameViolation"
-                    if (errors.size >= maxValidationErrors) return@mealLoop
-                }
-                meal.ingredients.forEachIndexed { ingredientIndex, ingredient ->
-                    val ingredientViolation = restrictionViolationReason(ingredient, restrictions)
-                    if (ingredientViolation != null) {
-                        errors += "allergen restriction violation in $day meal[$mealIndex].ingredients[$ingredientIndex]: $ingredientViolation"
+            meals.forEachIndexed { mealIndex, meal ->
+                if (errors.size >= maxValidationErrors) return@forEachIndexed
+
+                // Primary check: use LLM-provided allergenTags (language-agnostic)
+                if (meal.allergenTags.isNotEmpty()) {
+                    val forbiddenTags = meal.allergenTags
+                        .mapNotNull { tagName ->
+                            runCatching { FoodRestrictionTag.valueOf(tagName) }.getOrNull()
+                        }
+                        .filter { it in restrictions.tags }
+                    forbiddenTags.forEach { tag ->
+                        errors += "allergen restriction violation in $day meal[$mealIndex]: " +
+                            "LLM tagged '${tag.name}' which is forbidden for this user"
                     }
-                    if (errors.size >= maxValidationErrors) return@mealLoop
+                } else {
+                    // Fallback: keyword-based check for old responses without allergenTags
+                    val nameViolation = restrictionViolationReason(meal.name, restrictions)
+                    if (nameViolation != null) {
+                        errors += "allergen restriction violation in $day meal[$mealIndex].name: $nameViolation"
+                    }
+                    meal.ingredients.forEachIndexed { ingredientIndex, ingredient ->
+                        if (errors.size >= maxValidationErrors) return@forEachIndexed
+                        val ingredientViolation = restrictionViolationReason(ingredient, restrictions)
+                        if (ingredientViolation != null) {
+                            errors += "allergen restriction violation in $day meal[$mealIndex].ingredients[$ingredientIndex]: $ingredientViolation"
+                        }
+                    }
                 }
             }
         }
@@ -336,7 +447,7 @@ private fun goalMealRange(goalRaw: String): MealFrequencyRange {
 
 private fun normalizeMealName(raw: String): String =
     canonicalText(raw)
-        .replace(Regex("""[^a-zР°-СЏ0-9\s]"""), " ")
+        .replace(Regex("""[^a-zа-я0-9\s]"""), " ")
         .replace(Regex("""\s+"""), " ")
         .trim()
 
@@ -361,8 +472,8 @@ private fun inferTags(line: String): Set<FoodRestrictionTag> {
     if (containsAny(line, setOf("sesame", "кунжут", "тахин"))) tags += FoodRestrictionTag.Sesame
     if (containsAny(line, setOf("dairy", "milk allergy", "молоч", "казеин", "сыворот"))) tags += FoodRestrictionTag.Dairy
     if (containsAny(line, setOf("lactose", "лактоз"))) tags += FoodRestrictionTag.Lactose
-    if (containsAny(line, setOf("beef", "pork", "lamb", "говя", "свин", "баран"))) tags += FoodRestrictionTag.Meat
-    if (containsAny(line, setOf("chicken", "turkey", "duck", "куриц", "индейк", "утк"))) tags += FoodRestrictionTag.Poultry
+    if (containsAny(line, setOf("meat", "beef", "pork", "lamb", "мяс", "говя", "свин", "барани", "телят"))) tags += FoodRestrictionTag.Meat
+    if (containsAny(line, setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "индейк", "утк"))) tags += FoodRestrictionTag.Poultry
     return tags
 }
 
@@ -405,17 +516,18 @@ private fun restrictionViolationReason(raw: String, restrictions: NutritionRestr
 
     restrictions.tags.forEach { tag ->
         val keywords = tagKeywords[tag].orEmpty()
-        val match = keywords.firstOrNull { keyword -> text.contains(keyword) }
-        if (match != null) {
-            val isDairyFamilyTag = tag == FoodRestrictionTag.Lactose || tag == FoodRestrictionTag.Dairy
-            val hasNegation = isDairyFamilyTag && dairyNegationMarkers.any { marker -> text.contains(marker) }
-            val hasPlantAlternative = isDairyFamilyTag && plantDairyAlternativeMarkers.any { marker -> text.contains(marker) }
-            val lactoseFree = restrictions.allowLactoseFreeAlternatives &&
-                tag == FoodRestrictionTag.Lactose &&
-                lactoseFreeMarkers.any { marker -> text.contains(marker) }
-            if (!lactoseFree && !hasNegation && !hasPlantAlternative) {
-                return "${tag.name} keyword '$match' in '$raw'"
-            }
+        val match = keywords.firstOrNull { keyword -> text.contains(keyword) } ?: return@forEach
+        val matchIdx = text.indexOf(match)
+
+        val isDairyFamilyTag = tag == FoodRestrictionTag.Lactose || tag == FoodRestrictionTag.Dairy
+        val isNegated        = isKeywordNegatedInContext(text, matchIdx)
+        val hasPlantAlt      = isDairyFamilyTag && plantDairyAlternativeMarkers.any { text.contains(it) }
+        val lactoseFreeOk    = restrictions.allowLactoseFreeAlternatives &&
+            tag == FoodRestrictionTag.Lactose &&
+            lactoseFreeMarkers.any { text.contains(it) }
+
+        if (!lactoseFreeOk && !isNegated && !hasPlantAlt) {
+            return "${tag.name} keyword '$match' in '$raw'"
         }
     }
 

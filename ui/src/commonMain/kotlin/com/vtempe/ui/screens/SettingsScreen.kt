@@ -5,6 +5,8 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.SettingsState
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -221,7 +223,7 @@ fun SettingsScreen(
                                 .clip(CircleShape)
                                 .background(AiPalette.Primary)
                         )
-                        Text("\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0434\u0440\u0443\u0433\u043e\u0439 \u0446\u0432\u0435\u0442", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(Res.string.settings_choose_theme_color), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -281,7 +283,7 @@ fun SettingsScreen(
                 shape = MaterialTheme.shapes.large,
                 enabled = !state.saving
             ) {
-                Text("\u0417\u0430\u043d\u043e\u0432\u043e \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f", fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.settings_reset_app), fontWeight = FontWeight.Bold)
             }
             
             Spacer(Modifier.height(bottomBarHeight + 16.dp))
@@ -364,9 +366,9 @@ private fun ProfileStatsGrid(profile: Profile) {
     val bmi = profile.weightKg / ((profile.heightCm / 100.0) * (profile.heightCm / 100.0))
     val bmiLabel = ((bmi * 10).roundToInt() / 10.0).toString()
     val goalLabel = when (profile.goal) {
-        com.vtempe.shared.domain.model.Goal.LOSE_FAT -> "Fat loss"
-        com.vtempe.shared.domain.model.Goal.GAIN_MUSCLE -> "Muscle gain"
-        com.vtempe.shared.domain.model.Goal.MAINTAIN -> "Maintain"
+        com.vtempe.shared.domain.model.Goal.LOSE_FAT -> stringResource(Res.string.goal_lose_fat)
+        com.vtempe.shared.domain.model.Goal.GAIN_MUSCLE -> stringResource(Res.string.goal_gain_muscle)
+        com.vtempe.shared.domain.model.Goal.MAINTAIN -> stringResource(Res.string.goal_maintain)
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -455,13 +457,21 @@ private fun ProfileStatPill(
                     modifier = Modifier.padding(8.dp)
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = Color(0xFF4B4B61))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
                 Text(
                     value,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1C1C28)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }

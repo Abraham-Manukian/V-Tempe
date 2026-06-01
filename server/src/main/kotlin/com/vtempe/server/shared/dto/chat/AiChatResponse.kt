@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AiChatResponse(
     val reply: String,
+    val actions: List<AiChatAction> = emptyList(),
     val trainingPlan: AiTrainingResponse? = null,
     val nutritionPlan: AiNutritionResponse? = null,
     val sleepAdvice: AiAdviceResponse? = null,

@@ -3,11 +3,15 @@
 package com.vtempe.ui.screens
 
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.ChatPresenter
+import com.vtempe.ui.presenter.ChatSendState
+import com.vtempe.ui.presenter.ChatState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -31,7 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -42,23 +46,29 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.ChatMessage
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatScreen(
+    initialPrompt: String? = null,
+    onPromptConsumed: () -> Unit = {},
     presenter: ChatPresenter = rememberChatPresenter()
 ) {
     val state by presenter.state.collectAsState()
@@ -68,6 +78,14 @@ fun ChatScreen(
     val errorMessage = (state.sendState as? ChatSendState.Error)?.message
     val quickShowWorkoutPrompt = stringResource(Res.string.chat_quick_show_workout_prompt)
     val quickHomePlanPrompt = stringResource(Res.string.chat_quick_make_home_plan_prompt)
+
+    LaunchedEffect(initialPrompt) {
+        val prompt = initialPrompt?.trim().orEmpty()
+        if (prompt.isNotBlank()) {
+            presenter.updateInput(prompt)
+            onPromptConsumed()
+        }
+    }
 
     BrandScreen(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -110,7 +128,7 @@ fun ChatScreen(
                                 animationSpec = tween(220)
                             )
                         ) {
-                            MessageBubble(msg = msg)
+                            MessageBubble(msg = msg, coachTrainerId = state.coachTrainerId)
                         }
                     }
 
@@ -177,7 +195,7 @@ private fun EmptyConversationCard() {
 }
 
 @Composable
-private fun MessageBubble(msg: ChatMessage) {
+private fun MessageBubble(msg: ChatMessage, coachTrainerId: String) {
     val isUser = msg.role == "user"
     val roleTitle = if (isUser) {
         stringResource(Res.string.chat_role_you)
@@ -211,23 +229,18 @@ private fun MessageBubble(msg: ChatMessage) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!isUser) {
-                Box(
+                Image(
+                    painter = painterResource(coachAvatarFor(coachTrainerId)),
+                    contentDescription = roleTitle,
                     modifier = Modifier
                         .size(28.dp)
                         .background(
                             brush = Brush.radialGradient(listOf(AiPalette.Primary, AiPalette.DeepAccent)),
                             shape = CircleShape
                         )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .align(Alignment.Center)
-                    )
-                }
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
                 Spacer(Modifier.size(8.dp))
             }
 
@@ -417,7 +430,7 @@ private fun ComposerBar(
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Filled.Send,
+                            imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
