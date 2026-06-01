@@ -28,6 +28,13 @@ class NutritionRepositoryDb(
 
     private val planFlow = MutableStateFlow<NutritionPlan?>(null)
 
+    /**
+     * The weekIndex currently displayed on screen.
+     * Only plans for this week update the observable flow — background
+     * prefetch for future weeks writes to DB silently without touching the UI.
+     */
+    @Volatile private var activeWeekIndex: Int = -1
+
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): NutritionPlan {
         // NetworkAiTrainerRepository already handles cache fallback internally.
         // We only need to persist on success or fall through to the offline plan.
@@ -56,37 +63,73 @@ class NutritionRepositoryDb(
 
     override fun observePlan(): Flow<NutritionPlan?> = planFlow.asStateFlow()
 
+    /** Pure DB check — does NOT touch planFlow (safe to call during background prefetch). */
     override suspend fun hasPlan(weekIndex: Int): Boolean {
-        if (planFlow.value?.weekIndex != weekIndex) {
-            planFlow.value = withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) }
-        }
-        return planFlow.value?.weekIndex == weekIndex
+        if (planFlow.value?.weekIndex == weekIndex) return true
+        return withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) != null }
     }
 
-    private fun persistPlan(plan: NutritionPlan) {
-        db.nutritionQueries.deleteMealsForWeek(plan.weekIndex.toLong())
-        plan.mealsByDay.forEach { (day, meals) ->
-            meals.forEachIndexed { idx, meal ->
-                val mealId = "m_${plan.weekIndex}_${day}_${idx}"
-                db.nutritionQueries.insertMeal(
-                    mealId,
-                    meal.name,
-                    meal.kcal.toLong(),
-                    meal.macros.proteinGrams.toLong(),
-                    meal.macros.fatGrams.toLong(),
-                    meal.macros.carbsGrams.toLong()
-                )
-                db.nutritionQueries.deleteIngredientsForMeal(mealId)
-                meal.ingredients.forEach { ingredient ->
-                    val clean = ingredient.trim()
-                    if (clean.isNotEmpty()) {
-                        db.nutritionQueries.insertMealIngredient(mealId, clean)
+    /**
+     * Sets this week as the active (displayed) week and loads its plan from DB into
+     * the observable flow so the UI renders immediately without waiting for the network.
+     * Returns true if a cached plan existed.
+     */
+    override suspend fun setActiveWeek(weekIndex: Int): Boolean {
+        activeWeekIndex = weekIndex
+        val plan = withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) }
+        planFlow.value = plan
+        return plan != null
+    }
+
+    /**
+     * Registers the active week instantly (no IO) so that [savePlan] knows to push
+     * the incoming plan to the flow once the network request finishes.
+     * Use before a force-refresh to avoid showing stale cached data.
+     */
+    override fun registerActiveWeek(weekIndex: Int) {
+        activeWeekIndex = weekIndex
+    }
+
+    override suspend fun deleteWeeksFrom(weekIndex: Int) {
+        withContext(Dispatchers.IO) {
+            db.nutritionQueries.deleteMealsFromWeek(weekIndex.toLong())
+        }
+        // If the current active week was nuked, clear the flow too
+        if (activeWeekIndex >= weekIndex) planFlow.value = null
+    }
+
+    private suspend fun persistPlan(plan: NutritionPlan) {
+        withContext(Dispatchers.IO) {
+            // Note: only DB writes here — flow update is below, outside IO context
+            db.nutritionQueries.deleteMealsForWeek(plan.weekIndex.toLong())
+            plan.mealsByDay.forEach { (day, meals) ->
+                meals.forEachIndexed { idx, meal ->
+                    val mealId = "m_${plan.weekIndex}_${day}_${idx}"
+                    db.nutritionQueries.insertMeal(
+                        mealId,
+                        meal.name,
+                        meal.kcal.toLong(),
+                        meal.macros.proteinGrams.toLong(),
+                        meal.macros.fatGrams.toLong(),
+                        meal.macros.carbsGrams.toLong()
+                    )
+                    db.nutritionQueries.deleteIngredientsForMeal(mealId)
+                    meal.ingredients.forEach { ingredient ->
+                        val clean = ingredient.trim()
+                        if (clean.isNotEmpty()) {
+                            db.nutritionQueries.insertMealIngredient(mealId, clean)
+                        }
                     }
+                    db.nutritionQueries.insertMealByDay(plan.weekIndex.toLong(), day, idx.toLong(), mealId)
                 }
-                db.nutritionQueries.insertMealByDay(plan.weekIndex.toLong(), day, idx.toLong(), mealId)
             }
         }
-        planFlow.value = plan
+        // Only update the observable flow for the week currently on screen.
+        // Background prefetch for future weeks must NOT touch planFlow — it would
+        // switch the UI to next week's data while the user is still viewing this week.
+        if (plan.weekIndex == activeWeekIndex) {
+            planFlow.value = plan
+        }
     }
 
     private fun loadPlanFromDb(weekIndex: Int): NutritionPlan? {

@@ -8,7 +8,6 @@ import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.temporal.TemporalAdjusters
 
 private const val MaxWorkoutsPerPlan = 5
@@ -112,9 +111,12 @@ internal fun validateTrainingPlan(
 }
 
 private fun expectedWeekStart(weekIndex: Int): LocalDate {
-    val today = LocalDate.now(ZoneOffset.UTC)
-    val nextMonday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
-    return nextMonday.plusWeeks(weekIndex.toLong())
+    // Use previousOrSame so that on any day of the week we anchor to the CURRENT week's Monday,
+    // not the NEXT Monday. This prevents normalizeWorkoutDate from rejecting dates that were
+    // correctly generated for the current week (e.g. Mon–Fri) when the plan is called on Tue+.
+    val today = LocalDate.now()
+    val mondayOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    return mondayOfCurrentWeek.plusWeeks(weekIndex.toLong())
 }
 
 private fun normalizeWorkoutDate(raw: String, weekStart: LocalDate, index: Int): String {

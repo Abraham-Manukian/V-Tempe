@@ -13,19 +13,39 @@ interface ProfileRepository {
 interface TrainingRepository {
     suspend fun generatePlan(profile: Profile, weekIndex: Int): TrainingPlan
     suspend fun logSet(workoutId: String, set: WorkoutSet)
+    /** All workouts — for history / progress screens. */
     fun observeWorkouts(): Flow<List<Workout>>
+    /** Only workouts for the given week — for the active workout screen. */
+    fun observeWorkoutsByWeek(weekIndex: Int): Flow<List<Workout>>
     fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>>
     suspend fun saveWorkoutProgress(progress: WorkoutProgress)
     suspend fun recentWorkoutSummaries(limit: Int = 6): List<WorkoutSummary>
     suspend fun savePlan(plan: TrainingPlan)
     suspend fun hasPlan(weekIndex: Int): Boolean
+    /** Deletes plan workouts for all weeks >= weekIndex. Called on force-refresh (profile change). */
+    suspend fun deleteWeeksFrom(weekIndex: Int)
 }
 
 interface NutritionRepository {
     suspend fun generatePlan(profile: Profile, weekIndex: Int): NutritionPlan
     suspend fun savePlan(plan: NutritionPlan)
     fun observePlan(): Flow<NutritionPlan?>
+    /** Pure DB check — no side effects on the observable flow. */
     suspend fun hasPlan(weekIndex: Int): Boolean
+    /**
+     * Marks [weekIndex] as the week currently on screen.
+     * Loads that week's plan from DB into the observable flow so the UI renders immediately.
+     * Returns true if a cached plan was found.
+     */
+    suspend fun setActiveWeek(weekIndex: Int): Boolean
+    /**
+     * Registers the active week WITHOUT loading from DB (no IO, instant).
+     * Call this before a force-refresh so [savePlan] knows to update the flow
+     * once the new AI plan arrives, but without showing stale cached data first.
+     */
+    fun registerActiveWeek(weekIndex: Int)
+    /** Deletes meal plans for all weeks >= weekIndex. Called on force-refresh. */
+    suspend fun deleteWeeksFrom(weekIndex: Int)
 }
 
 interface AdviceRepository {
@@ -108,6 +128,17 @@ interface CoachCacheRepository {
     fun bundleTimestampMillis(): Long?
     fun markBundleFresh(version: Int, timestampMillis: Long)
     fun clearAll()
+
+    /** Epoch = timestamp of the very first successful bootstrap. Never changes after set. */
+    fun planEpochDateMs(): Long?
+    fun setPlanEpochDate(ms: Long)
+
+    /**
+     * Clears the epoch date (and all other cache).
+     * Call ONLY on full reset / re-registration so the week counter restarts from zero.
+     * Regular cache clears (schema upgrades etc.) should NOT reset the epoch.
+     */
+    fun clearAllAndResetEpoch()
 }
 
 

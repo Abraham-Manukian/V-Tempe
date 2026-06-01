@@ -21,7 +21,11 @@ import com.vtempe.shared.data.stub.StubAdviceRepository
 import com.vtempe.shared.data.stub.StubPurchasesRepository
 import com.vtempe.shared.data.stub.StubSyncRepository
 import com.russhwolf.settings.Settings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 object DI {
@@ -83,12 +87,20 @@ object DI {
         single<PurchasesRepository> { StubPurchasesRepository() }
         single<SyncRepository> { StubSyncRepository() }
 
+        // App-level coroutine scope — lives as long as the process, used for background prefetch.
+        // Background prefetch must NOT be tied to any single screen's lifecycle.
+        single(named("appScope")) {
+            CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        }
+
         // Use cases
         factory { GenerateTrainingPlan(get(), get()) }
         factory { LogWorkoutSet(get()) }
         factory { GenerateNutritionPlan(get(), get()) }
-        factory { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
-        factory { EnsureCoachData(get(), get(), get(), get(), get(), get()) }
+        // single (not factory) — holds the Mutex that prevents parallel bootstrap calls
+        single { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
+        factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope"))) }
+        factory { ResetCoachData(get(), get()) }
         factory { SyncWithBackend(get()) }
         factory { ValidateSubscription(get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }

@@ -63,3 +63,8 @@ DELETE FROM MealIngredient;
 
 deleteAllMeals:
 DELETE FROM Meal;
+
+-- Deletes all meals (+ ingredients via CASCADE, + MealByDay via CASCADE)
+-- for weeks >= given index. Used to invalidate stale pre-fetched future weeks.
+deleteMealsFromWeek:
+DELETE FROM Meal WHERE id IN (SELECT mealId FROM MealByDay WHERE weekIndex >= ?);

@@ -37,7 +37,7 @@ class StubAdviceRepository : AdviceRepository {
         adviceMap.map { it[topic.lowercase()] ?: defaultAdvice(topic.lowercase()) }
 
     override suspend fun hasAdvice(topic: String): Boolean =
-        adviceMap.value.containsKey(topic.lowercase())
+        true  // Stub always has default advice — prevents bootstrap on every launch
 
     private fun defaultAdvice(topic: String): Advice = when (topic) {
         "sleep" -> Advice(

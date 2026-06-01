@@ -18,6 +18,7 @@ private const val KEY_BUNDLE = "cache_bootstrap_bundle"
 private const val KEY_CHAT = "cache_chat_response"
 private const val KEY_BUNDLE_VERSION = "cache_bundle_version"
 private const val KEY_BUNDLE_TIMESTAMP = "cache_bundle_timestamp"
+private const val KEY_PLAN_EPOCH = "coach_plan_epoch_ms"
 
 class AiResponseCache(
     private val settings: Settings,
@@ -60,9 +61,16 @@ class AiResponseCache(
         settings.putLong(KEY_BUNDLE_TIMESTAMP, timestampMillis)
     }
 
+    override fun planEpochDateMs(): Long? = settings.getLongOrNull(KEY_PLAN_EPOCH)
+
+    override fun setPlanEpochDate(ms: Long) {
+        settings.putLong(KEY_PLAN_EPOCH, ms)
+    }
+
     fun clearBundleMetadata() {
         settings.remove(KEY_BUNDLE_VERSION)
         settings.remove(KEY_BUNDLE_TIMESTAMP)
+        // Note: KEY_PLAN_EPOCH is intentionally NOT cleared — epoch date is permanent
     }
 
     override fun clearAll() {
@@ -72,6 +80,13 @@ class AiResponseCache(
         settings.remove(KEY_BUNDLE)
         settings.remove(KEY_CHAT)
         clearBundleMetadata()
+        // KEY_PLAN_EPOCH intentionally kept — week count must survive cache clears
+    }
+
+    /** Full wipe including epoch. Use ONLY on re-registration / account reset. */
+    override fun clearAllAndResetEpoch() {
+        clearAll()
+        settings.remove(KEY_PLAN_EPOCH)
     }
 
     fun storeChatResponse(dto: ChatResponse) {

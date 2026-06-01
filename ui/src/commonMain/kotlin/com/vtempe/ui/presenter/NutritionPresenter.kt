@@ -2,8 +2,10 @@ package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.NutritionPlan
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.ui.state.UiState
 import io.github.aakira.napier.Napier
@@ -81,13 +83,14 @@ data class NutritionState(
 
 interface NutritionPresenter {
     val state: StateFlow<NutritionState>
-    fun refresh(weekIndex: Int = 0, force: Boolean = true)
+    fun refresh(force: Boolean = false)
     fun selectDay(day: String)
 }
 
 class NutritionPresenterDelegate(
     private val ensureCoachData: EnsureCoachData,
     private val nutritionRepository: NutritionRepository,
+    private val coachCache: CoachCacheRepository,
     private val scope: CoroutineScope,
 ) : NutritionPresenter {
 
@@ -115,16 +118,33 @@ class NutritionPresenterDelegate(
             .catch { Napier.e("NutritionPresenter observe error", it) }
             .launchIn(scope)
 
-        refresh(weekIndex = 0, force = false)
+        refresh(force = false)
     }
 
-    override fun refresh(weekIndex: Int, force: Boolean) {
+    override fun refresh(force: Boolean) {
         scope.launch {
-            _state.update { it.copy(ui = UiState.Loading) }
-            runCatching { ensureCoachData(weekIndex = weekIndex, force = force) }
+            val weekIndex = CoachSchedule.currentWeekIndex(coachCache.planEpochDateMs())
+
+            if (force) {
+                // Register as active week WITHOUT loading stale cached data into the flow —
+                // we're about to overwrite it. persistPlan will push the new plan once ready.
+                nutritionRepository.registerActiveWeek(weekIndex)
+                _state.update { it.copy(ui = UiState.Loading) }
+            } else {
+                // Fast path: setActiveWeek loads cached DB plan into planFlow immediately.
+                // The observer above fires → UiState.Data before the network even starts.
+                val hasCached = nutritionRepository.setActiveWeek(weekIndex)
+                if (!hasCached) {
+                    _state.update { it.copy(ui = UiState.Loading) }
+                }
+            }
+
+            runCatching { ensureCoachData(force = force) }
                 .onFailure { e ->
                     Napier.e("NutritionPresenter refresh failed", e)
-                    _state.update { it.copy(ui = UiState.Error(e.message)) }
+                    if (_state.value.ui !is UiState.Data) {
+                        _state.update { it.copy(ui = UiState.Error(e.message)) }
+                    }
                 }
         }
     }

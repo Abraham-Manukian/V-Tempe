@@ -7,9 +7,11 @@ import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +60,7 @@ class WorkoutPresenterDelegate(
     private val logWorkoutSet: LogWorkoutSet,
     private val ensureCoachData: EnsureCoachData,
     private val profileRepository: ProfileRepository,
+    private val coachCache: CoachCacheRepository,
     private val scope: CoroutineScope,
 ) : WorkoutPresenter {
 
@@ -65,8 +68,12 @@ class WorkoutPresenterDelegate(
     override val state: StateFlow<WorkoutState> = _state.asStateFlow()
 
     init {
+        val weekIndex = CoachSchedule.currentWeekIndex(coachCache.planEpochDateMs())
+
+        // Show only the current week's planned workouts — background prefetch for future
+        // weeks must not leak next-week plans into the active workout screen.
         combine(
-            trainingRepository.observeWorkouts(),
+            trainingRepository.observeWorkoutsByWeek(weekIndex),
             trainingRepository.observeWorkoutProgress()
         ) { workouts, progress -> workouts to progress }
             .onEach { (workouts, progress) ->

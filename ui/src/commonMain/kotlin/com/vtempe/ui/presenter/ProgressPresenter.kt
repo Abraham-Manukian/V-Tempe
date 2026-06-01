@@ -4,8 +4,10 @@ import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
+import com.vtempe.shared.domain.util.CoachSchedule
 import io.github.aakira.napier.Napier
 import com.vtempe.ui.util.toShortKey
 import com.vtempe.ui.util.toWeekIndex
@@ -19,9 +21,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 
 @Immutable
@@ -57,17 +60,27 @@ internal fun buildProgressState(
     today: LocalDate,
     calendarYearMonth: Pair<Int, Int>,
     selectedDate: LocalDate?,
+    /** First day of week 0 — set once on first bootstrap, never changes. */
+    epochDate: LocalDate?,
 ): ProgressState {
-    val totalSets = workouts.sumOf { it.sets.size }
-    val totalVolume = workouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
+    // Only consider workouts from the registration date onwards.
+    // This filters out leftover data from development testing and prevents
+    // pre-fetched future-week workouts from appearing as dots on the calendar.
+    val validWorkouts = if (epochDate != null)
+        workouts.filter { it.date >= epochDate }
+    else
+        workouts
+
+    val totalSets   = validWorkouts.sumOf { it.sets.size }
+    val totalVolume = validWorkouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
 
     val weeklyVolumesArray = IntArray(7) { 0 }
-    workouts.forEach { workout ->
+    validWorkouts.forEach { workout ->
         val dayVolume = workout.sets.sumOf { set -> ((set.weightKg ?: 0.0) * set.reps).toInt() }
         weeklyVolumesArray[workout.date.dayOfWeek.toWeekIndex()] += dayVolume
     }
 
-    val recentWeightSeries = workouts
+    val recentWeightSeries = validWorkouts
         .sortedBy { it.date }
         .takeLast(14)
         .mapNotNull { workout ->
@@ -83,28 +96,45 @@ internal fun buildProgressState(
         }
         .orEmpty()
 
-    val workoutDates = workouts.map { it.date }.toSet()
+    // Calendar dots: only show dates the user actually registered for and up to today.
+    // Excludes pre-fetched future weeks from showing as future dots.
+    val workoutDates = validWorkouts
+        .map { it.date }
+        .filter { it <= today }
+        .toSet()
 
-    val dayWorkouts = if (selectedDate != null) workouts.filter { it.date == selectedDate } else emptyList()
-    val dayMeals = if (selectedDate != null && nutritionPlan != null) {
-        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.toShortKey()].orEmpty()
+    val dayWorkouts = if (selectedDate != null)
+        validWorkouts.filter { it.date == selectedDate }
+    else
+        emptyList()
+
+    // Show nutrition only for dates within the registered plan period.
+    // Prevents the plan from appearing on arbitrary past dates (the plan is keyed
+    // by day-of-week, so without this guard every Monday/Tuesday/... looks like
+    // it has meals — even before the user registered).
+    val dateIsInPlanRange = selectedDate != null &&
+            nutritionPlan != null &&
+            (epochDate == null || selectedDate >= epochDate) &&
+            selectedDate <= today
+    val dayMeals = if (dateIsInPlanRange) {
+        nutritionPlan!!.mealsByDay[selectedDate!!.dayOfWeek.toShortKey()].orEmpty()
     } else emptyList()
 
     return ProgressState(
-        totalWorkouts = workouts.size,
-        totalSets = totalSets,
-        totalVolume = totalVolume,
+        totalWorkouts = validWorkouts.size,
+        totalSets     = totalSets,
+        totalVolume   = totalVolume,
         weeklyVolumes = weeklyVolumesArray.toList(),
-        weightSeries = recentWeightSeries,
+        weightSeries  = recentWeightSeries,
         caloriesSeries = caloriesSeries,
         sleepHoursWeek = emptyList(),
-        today = today,
-        calendarYear = calendarYearMonth.first,
-        calendarMonth = calendarYearMonth.second,
-        workoutDates = workoutDates,
-        selectedDate = selectedDate,
-        dayWorkouts = dayWorkouts,
-        dayMeals = dayMeals,
+        today            = today,
+        calendarYear     = calendarYearMonth.first,
+        calendarMonth    = calendarYearMonth.second,
+        workoutDates     = workoutDates,
+        selectedDate     = selectedDate,
+        dayWorkouts      = dayWorkouts,
+        dayMeals         = dayMeals,
     )
 }
 
@@ -112,10 +142,17 @@ internal fun buildProgressState(
 class ProgressPresenterDelegate(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
+    private val coachCache: CoachCacheRepository,
     private val scope: CoroutineScope,
 ) : ProgressPresenter {
 
     private val today: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
+
+    /** The date of the very first bootstrap — week 0 day 0. Null until first bootstrap. */
+    private val epochDate: LocalDate? = coachCache.planEpochDateMs()?.let { ms ->
+        Instant.fromEpochMilliseconds(ms)
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    }
 
     private val _selectedDate = MutableStateFlow<LocalDate?>(null)
     private val _calendarYearMonth = MutableStateFlow(Pair(today.year, today.monthNumber))
@@ -130,7 +167,7 @@ class ProgressPresenterDelegate(
             _selectedDate,
             _calendarYearMonth,
         ) { workouts, plan, selectedDate, yearMonth ->
-            buildProgressState(workouts, plan, today, yearMonth, selectedDate)
+            buildProgressState(workouts, plan, today, yearMonth, selectedDate, epochDate)
         }
             .onEach { progressState -> _state.update { progressState } }
             .catch { Napier.e("ProgressPresenter observe error", it) }

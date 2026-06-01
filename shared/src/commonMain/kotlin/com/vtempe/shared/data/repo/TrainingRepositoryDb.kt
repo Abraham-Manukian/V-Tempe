@@ -15,8 +15,10 @@ import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -64,13 +66,30 @@ class TrainingRepositoryDb(
     }
 
     override suspend fun hasPlan(weekIndex: Int): Boolean =
-        db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong()).executeAsList().isNotEmpty()
+        withContext(Dispatchers.IO) {
+            db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong()).executeAsList().isNotEmpty()
+        }
 
+    /** All workouts across all weeks — for history / progress screens. */
     override fun observeWorkouts(): Flow<List<Workout>> =
         db.workoutQueries.selectWorkoutsWithSets()
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { rows -> rows.toWorkoutDomainList() }
+
+    /** Only the current week's plan — for the active workout screen. */
+    override fun observeWorkoutsByWeek(weekIndex: Int): Flow<List<Workout>> =
+        db.workoutQueries.selectWorkoutsWithSetsByWeek(weekIndex.toLong())
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { rows -> rows.toWorkoutDomainList() }
+
+    override suspend fun deleteWeeksFrom(weekIndex: Int) {
+        withContext(Dispatchers.IO) {
+            // WorkoutSet rows cascade automatically via ON DELETE CASCADE
+            db.workoutQueries.deleteWorkoutsFromWeek(weekIndex.toLong())
+        }
+    }
 
     override fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>> = progressStore.observe()
 
@@ -81,15 +100,17 @@ class TrainingRepositoryDb(
     override suspend fun recentWorkoutSummaries(limit: Int): List<WorkoutSummary> =
         progressStore.recentSummaries(limit)
 
-    private fun persistPlan(plan: TrainingPlan) {
-        db.workoutQueries.transaction {
-            db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())
-            db.workoutQueries.deleteWorkoutsByWeek(plan.weekIndex.toLong())
-            plan.workouts.forEach { workout ->
-                db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.date.toString())
-                db.workoutQueries.deleteSetsForWorkout(workout.id)
-                workout.sets.forEach { set ->
-                    db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+    private suspend fun persistPlan(plan: TrainingPlan) {
+        withContext(Dispatchers.IO) {
+            db.workoutQueries.transaction {
+                db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())
+                db.workoutQueries.deleteWorkoutsByWeek(plan.weekIndex.toLong())
+                plan.workouts.forEach { workout ->
+                    db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.date.toString())
+                    db.workoutQueries.deleteSetsForWorkout(workout.id)
+                    workout.sets.forEach { set ->
+                        db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+                    }
                 }
             }
         }

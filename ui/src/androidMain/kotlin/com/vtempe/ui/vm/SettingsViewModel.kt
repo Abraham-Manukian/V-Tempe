@@ -9,6 +9,7 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.ResetCoachData
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsPresenterDelegate
 import com.vtempe.ui.presenter.SettingsState
@@ -17,13 +18,15 @@ import kotlinx.coroutines.flow.StateFlow
 class SettingsViewModel(
     profileRepository: ProfileRepository,
     preferencesRepository: PreferencesRepository,
-    ensureCoachData: EnsureCoachData
+    ensureCoachData: EnsureCoachData,
+    resetCoachData: ResetCoachData,
 ) : ViewModel(), SettingsPresenter {
 
     private val delegate = SettingsPresenterDelegate(
         profileRepository = profileRepository,
         preferencesRepository = preferencesRepository,
         ensureCoachData = ensureCoachData,
+        resetCoachData = resetCoachData,
         scope = viewModelScope,
         applyLocale = { tag ->
             if (tag.isNullOrBlank()) {

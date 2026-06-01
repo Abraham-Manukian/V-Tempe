@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.ResetCoachData
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ class SettingsPresenterDelegate(
     private val profileRepository: ProfileRepository,
     private val preferencesRepository: PreferencesRepository,
     private val ensureCoachData: EnsureCoachData,
+    private val resetCoachData: ResetCoachData,
     private val scope: CoroutineScope,
     /** Platform hook: Android calls AppCompatDelegate, iOS is no-op. */
     private val applyLocale: (tag: String?) -> Unit = {}
@@ -64,7 +66,10 @@ class SettingsPresenterDelegate(
 
     override fun reset(onDone: () -> Unit) {
         scope.launch {
-            runCatching { profileRepository.clearAll() }
+            // Full wipe: DB (profile + workouts + nutrition) + AI cache + epoch date.
+            // Week counter restarts from zero on the next bootstrap.
+            runCatching { resetCoachData() }
+                .onFailure { Napier.e("Reset failed", it) }
             _state.value = SettingsState()
             onDone()
         }
