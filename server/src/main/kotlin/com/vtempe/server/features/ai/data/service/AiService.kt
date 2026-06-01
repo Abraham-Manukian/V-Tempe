@@ -471,16 +471,24 @@ class AiService(
             trainingModeRaw = profile.trainingMode,
             equipment = profile.equipment
         )
+        val today = java.time.LocalDate.now()
+        val workoutDates = computeWorkoutDatesForWeek(profile.weeklySchedule, today)
         return buildString {
             appendLine("You are an elite strength coach.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply with JSON only.")
+            appendLine("TODAY'S DATE: $today — use this as the reference.")
             appendLine("Measurement system: $measurementSystem. Use $weightUnit for load.")
             appendLine("If PROFILE JSON contains recentWorkouts, use it to progress, hold, or regress load, volume, and exercise difficulty.")
+            if (workoutDates.isNotEmpty()) {
+                appendLine("MANDATORY workout dates — use EXACTLY these ISO dates, one workout per date, no other dates allowed:")
+                appendLine("  ${workoutDates.joinToString(", ")}")
+            } else {
+                appendLine("Plan for weekIndex=$weekIndex starting from $today. All workout dates must be >= $today.")
+            }
             appendLine("Return ONLY this JSON schema:")
             appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")
             appendLine(trainingResolverPrompt)
             appendLine("Max 5 workouts, max 6 sets per workout, no duplicate workout IDs.")
-            appendLine("Plan for weekIndex=$weekIndex and use valid ISO dates in that week.")
             appendLine("PROFILE JSON:")
             append(profileJson)
         }
@@ -497,6 +505,7 @@ class AiService(
         val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
         val profileJson = json.encodeToString(AiProfile.serializer(), profile)
         val restrictionsSummary = nutritionRestrictionsPrompt(profile)
+        val targets = computeTargetNutrition(profile)
         return buildString {
             appendLine("You are an elite sports nutritionist.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply in this language.")
@@ -504,8 +513,15 @@ class AiService(
             appendLine()
             appendLine(restrictionsSummary)
             appendLine()
+            appendLine("PRE-COMPUTED TARGETS — use EXACTLY these values, do NOT recalculate:")
+            appendLine("  Daily kcal: ${targets.kcal}  |  Protein: ${targets.proteinG}g  |  Fat: ${targets.fatG}g  |  Carbs: ${targets.carbsG}g")
+            appendLine("The sum of all meals every day MUST be within ±5% of these targets.")
+            if (profile.dietaryPreferences.isNotEmpty()) {
+                appendLine("PREFERRED FOODS (include these in meals where possible, they are likes — not restrictions): ${profile.dietaryPreferences.joinToString(", ")}")
+            }
+            appendLine()
             appendLine("Return ONLY this JSON schema:")
-            appendLine("{\"weekIndex\": Int, \"mealsByDay\": {\"Mon\":[{\"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": {\"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int}}], \"Tue\": [...], \"Wed\": [...], \"Thu\": [...], \"Fri\": [...], \"Sat\": [...], \"Sun\": [...]}, \"shoppingList\": [String]}")
+            appendLine("{\"weekIndex\": Int, \"mealsByDay\": {\"Mon\":[{\"name\": String, \"ingredients\": [String], \"allergenTags\": [String], \"kcal\": Int, \"macros\": {\"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int}}], \"Tue\": [...], \"Wed\": [...], \"Thu\": [...], \"Fri\": [...], \"Sat\": [...], \"Sun\": [...]}, \"shoppingList\": [String]}")
             appendLine("Nutrition hard rules:")
             appendLine("- Cover Mon..Sun with required day keys.")
             appendLine("- Meals/day by goal: lose -> 3-4, maintain -> 3-5, gain -> 4-6.")
