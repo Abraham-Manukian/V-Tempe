@@ -24,9 +24,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        // TODO: Replace with your Cloud Run URL after deployment
-        // Format: https://vtempe-server-XXXXXXXX-XX.a.run.app
-        buildConfigField("String", "API_BASE_URL", "\"https://REPLACE_WITH_CLOUD_RUN_URL\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-eoofh53gda-ew.a.run.app\"")
         buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
     }
 

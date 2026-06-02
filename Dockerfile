@@ -14,7 +14,12 @@ RUN sed -i 's/\r//' gradlew && chmod +x gradlew
 RUN echo "" > build.gradle.kts
 
 # Override settings.gradle.kts to include ONLY :server (avoids resolving Android SDK)
+# Pin Kotlin version explicitly so kotlin("jvm") resolves without the root build.gradle.kts
 RUN printf 'pluginManagement {\n\
+    plugins {\n\
+        kotlin("jvm") version "2.0.21"\n\
+        kotlin("plugin.serialization") version "2.0.21"\n\
+    }\n\
     repositories {\n\
         mavenCentral()\n\
         gradlePluginPortal()\n\
