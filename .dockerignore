@@ -1,0 +1,29 @@
+# Build artifacts
+.gradle/
+build/
+*/build/
+**/.gradle/
+
+# Android app modules — not needed in Docker build
+app-android/
+app-ios/
+shared/
+ui/
+core-designsystem/
+
+# Secrets & local config
+*.env
+*.env.local
+server/.env
+server/.env.local
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Docs / tests not needed in container
+docs/
+images/
+*.md
