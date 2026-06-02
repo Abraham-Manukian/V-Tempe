@@ -503,13 +503,22 @@ private fun restrictionViolationReason(raw: String, restrictions: NutritionRestr
 
     restrictions.customTerms.forEach { term ->
         if (term.isNotBlank() && text.contains(term)) {
-            val lactoseTerm =
-                term.contains("lactos") || term.contains("\u043b\u0430\u043a\u0442\u043e\u0437")
-            val allowLactoseFreeTerm =
-                restrictions.allowLactoseFreeAlternatives &&
-                    lactoseTerm &&
-                    lactoseFreeMarkers.any { marker -> text.contains(marker) }
+            val termIdx = text.indexOf(term)
+
+            // Skip if the term is negated in context ("\u0431\u0435\u0437 \u043c\u043e\u043b\u043e\u043a\u0430", "no milk", etc.)
+            if (isKeywordNegatedInContext(text, termIdx)) return@forEach
+
+            // Skip dairy/lactose custom terms when the ingredient is a plant-based alternative
+            // e.g. user has "\u043c\u043e\u043b\u043e\u043a\u043e" allergy but "\u043c\u0438\u043d\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e" / "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e" is fine
+            val isDairyTerm = tagKeywords[FoodRestrictionTag.Dairy].orEmpty().any { term.contains(it) } ||
+                tagKeywords[FoodRestrictionTag.Lactose].orEmpty().any { term.contains(it) }
+            if (isDairyTerm && plantDairyAlternativeMarkers.any { text.contains(it) }) return@forEach
+
+            val lactoseTerm = term.contains("lactos") || term.contains("\u043b\u0430\u043a\u0442\u043e\u0437")
+            val allowLactoseFreeTerm = restrictions.allowLactoseFreeAlternatives &&
+                lactoseTerm && lactoseFreeMarkers.any { text.contains(it) }
             if (allowLactoseFreeTerm) return@forEach
+
             return "forbidden term '$term' in '$raw'"
         }
     }

@@ -165,7 +165,7 @@ class AiService(
                 callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "coach-bundle", requestId) },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
-                    val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver)
+                    val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
                     val errors = validateBundle(normalizedCandidate, profile, locale)
                     val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                     if (criticalErrors.isNotEmpty()) {
@@ -185,7 +185,7 @@ class AiService(
                 feedbackSuffix = restrictionsFeedback,
             )
 
-            val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver)
+            val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
             cacheMutex.withLock {
                 bundleCache[requestId] = CacheEntry(
                     bundle = normalized,
@@ -321,7 +321,8 @@ class AiService(
                     ),
                     locale,
                     profile,
-                    trainingPlanResolver
+                    trainingPlanResolver,
+                    enforcedWeekIndex = weekIndex
                 )
                 val errors = validateBundle(bundle, profile, locale)
                 val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
@@ -370,12 +371,12 @@ class AiService(
             callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "training-section", sectionRequestId) },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
-                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver)
+                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
                 validateTrainingPlan(normalized, exerciseCatalog)?.let(::listOf) ?: emptyList()
             },
             extractionMode = ExtractionMode.FirstJsonObject
         )
-        return normalizeTrainingPlan(generated, profile, trainingPlanResolver)
+        return normalizeTrainingPlan(generated, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
     }
 
     private suspend fun generateNutritionSection(

@@ -21,9 +21,12 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 
@@ -41,6 +44,8 @@ data class ProgressState(
     val calendarYear: Int = 2000,
     val calendarMonth: Int = 1,
     val workoutDates: Set<LocalDate> = emptySet(),
+    /** All dates in the active nutrition plan week (Mon–Sun) mapped to calendar dates. */
+    val nutritionDates: Set<LocalDate> = emptySet(),
     val selectedDate: LocalDate? = null,
     val dayWorkouts: List<Workout> = emptyList(),
     val dayMeals: List<Meal> = emptyList(),
@@ -96,45 +101,67 @@ internal fun buildProgressState(
         }
         .orEmpty()
 
-    // Calendar dots: only show dates the user actually registered for and up to today.
-    // Excludes pre-fetched future weeks from showing as future dots.
-    val workoutDates = validWorkouts
-        .map { it.date }
-        .filter { it <= today }
-        .toSet()
+    // Workout dots: all scheduled workout dates from registration onward.
+    // Include future workouts so user can see upcoming training days.
+    val workoutDates = validWorkouts.map { it.date }.toSet()
+
+    // Nutrition dots: all 7 days of the active nutrition plan week.
+    // Mapped from plan's week-of-epoch to actual calendar dates.
+    val nutritionDates: Set<LocalDate> = if (nutritionPlan != null && epochDate != null) {
+        // Find the Monday that starts this plan's week
+        val weekStartOffset = nutritionPlan.weekIndex * 7
+        val weekMonday = epochDate.plus(DatePeriod(days = weekStartOffset)).let { anchor ->
+            // Align to the Monday of the week containing anchor
+            val dow = anchor.dayOfWeek.toWeekIndex() // 0=Mon
+            anchor.plus(DatePeriod(days = -dow))
+        }
+        // Map each day key that has meals to an actual calendar date
+        val dayOffsets = mapOf(
+            "Mon" to 0, "Tue" to 1, "Wed" to 2, "Thu" to 3,
+            "Fri" to 4, "Sat" to 5, "Sun" to 6,
+        )
+        nutritionPlan.mealsByDay.keys
+            .filter { nutritionPlan.mealsByDay[it].orEmpty().isNotEmpty() }
+            .mapNotNull { key ->
+                dayOffsets[key]?.let { offset ->
+                    weekMonday.plus(DatePeriod(days = offset))
+                }
+            }
+            .filter { it >= epochDate } // never show pre-registration dates
+            .toSet()
+    } else emptySet()
 
     val dayWorkouts = if (selectedDate != null)
         validWorkouts.filter { it.date == selectedDate }
     else
         emptyList()
 
-    // Show nutrition only for dates within the registered plan period.
-    // Prevents the plan from appearing on arbitrary past dates (the plan is keyed
-    // by day-of-week, so without this guard every Monday/Tuesday/... looks like
-    // it has meals — even before the user registered).
-    val dateIsInPlanRange = selectedDate != null &&
-            nutritionPlan != null &&
-            (epochDate == null || selectedDate >= epochDate) &&
-            selectedDate <= today
-    val dayMeals = if (dateIsInPlanRange) {
-        nutritionPlan!!.mealsByDay[selectedDate!!.dayOfWeek.toShortKey()].orEmpty()
+    // Show nutrition for any selected date that falls within the active plan's week.
+    // No longer restricted to past dates — the nutrition plan covers the whole week
+    // including future training days.
+    val dayMeals = if (selectedDate != null && nutritionPlan != null &&
+        (epochDate == null || selectedDate >= epochDate) &&
+        selectedDate in nutritionDates
+    ) {
+        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.toShortKey()].orEmpty()
     } else emptyList()
 
     return ProgressState(
-        totalWorkouts = validWorkouts.size,
-        totalSets     = totalSets,
-        totalVolume   = totalVolume,
-        weeklyVolumes = weeklyVolumesArray.toList(),
-        weightSeries  = recentWeightSeries,
+        totalWorkouts  = validWorkouts.size,
+        totalSets      = totalSets,
+        totalVolume    = totalVolume,
+        weeklyVolumes  = weeklyVolumesArray.toList(),
+        weightSeries   = recentWeightSeries,
         caloriesSeries = caloriesSeries,
         sleepHoursWeek = emptyList(),
-        today            = today,
-        calendarYear     = calendarYearMonth.first,
-        calendarMonth    = calendarYearMonth.second,
-        workoutDates     = workoutDates,
-        selectedDate     = selectedDate,
-        dayWorkouts      = dayWorkouts,
-        dayMeals         = dayMeals,
+        today          = today,
+        calendarYear   = calendarYearMonth.first,
+        calendarMonth  = calendarYearMonth.second,
+        workoutDates   = workoutDates,
+        nutritionDates = nutritionDates,
+        selectedDate   = selectedDate,
+        dayWorkouts    = dayWorkouts,
+        dayMeals       = dayMeals,
     )
 }
 

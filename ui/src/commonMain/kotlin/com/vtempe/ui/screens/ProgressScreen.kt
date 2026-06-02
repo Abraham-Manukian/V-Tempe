@@ -103,6 +103,7 @@ fun ProgressScreen(
                     monthName = monthName,
                     today = state.today,
                     workoutDates = state.workoutDates,
+                    nutritionDates = state.nutritionDates,
                     selectedDate = state.selectedDate,
                     onPrev = { presenter.prevMonth() },
                     onNext = { presenter.nextMonth() },

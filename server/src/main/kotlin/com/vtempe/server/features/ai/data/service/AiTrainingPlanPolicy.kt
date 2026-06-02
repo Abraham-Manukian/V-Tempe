@@ -16,16 +16,24 @@ private const val MaxSetsPerWorkout = 6
 internal fun normalizeTrainingPlan(
     plan: AiTrainingResponse,
     profile: AiProfile? = null,
-    trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver
+    trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver,
+    /**
+     * When set, overrides whatever weekIndex the LLM returned.
+     * LLMs sometimes output the wrong weekIndex (e.g. 1 instead of 0),
+     * which causes the client to store workouts under the wrong week and
+     * never find them via observeWorkoutsByWeek(requestedWeekIndex).
+     */
+    enforcedWeekIndex: Int? = null
 ): AiTrainingResponse {
-    val weekStart = expectedWeekStart(plan.weekIndex)
+    val resolvedWeekIndex = enforcedWeekIndex ?: plan.weekIndex
+    val weekStart = expectedWeekStart(resolvedWeekIndex)
     val usedWorkoutIds = mutableSetOf<String>()
     val workouts = plan.workouts
         .take(MaxWorkoutsPerPlan)
         .mapIndexed { index, workout ->
             val safeDate = normalizeWorkoutDate(workout.date, weekStart, index)
-            val rawId = sanitizeText(workout.id).ifEmpty { "w_${plan.weekIndex}_$index" }
-            val safeId = uniqueWorkoutId(rawId, plan.weekIndex, index, usedWorkoutIds)
+            val rawId = sanitizeText(workout.id).ifEmpty { "w_${resolvedWeekIndex}_$index" }
+            val safeId = uniqueWorkoutId(rawId, resolvedWeekIndex, index, usedWorkoutIds)
             val usedExerciseIds = mutableSetOf<String>()
 
             val normalizedSets = workout.sets
@@ -70,7 +78,7 @@ internal fun normalizeTrainingPlan(
             )
         }
 
-    return plan.copy(workouts = workouts)
+    return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
 }
 
 internal fun validateTrainingPlan(

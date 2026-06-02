@@ -9,10 +9,13 @@ internal fun normalizeBundle(
     bundle: AiBootstrapResponse,
     locale: Locale,
     profile: AiProfile? = null,
-    trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver
+    trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver,
+    enforcedWeekIndex: Int? = null
 ): AiBootstrapResponse =
     AiBootstrapResponse(
-        trainingPlan = bundle.trainingPlan?.let { normalizeTrainingPlan(it, profile, trainingPlanResolver) },
+        trainingPlan = bundle.trainingPlan?.let {
+            normalizeTrainingPlan(it, profile, trainingPlanResolver, enforcedWeekIndex = enforcedWeekIndex)
+        },
         nutritionPlan = bundle.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
         sleepAdvice = bundle.sleepAdvice?.let { normalizeAdvice(it) }
     )

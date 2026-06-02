@@ -40,6 +40,7 @@ internal fun CalendarCard(
     monthName: String,
     today: LocalDate,
     workoutDates: Set<LocalDate>,
+    nutritionDates: Set<LocalDate> = emptySet(),
     selectedDate: LocalDate?,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -118,9 +119,11 @@ internal fun CalendarCard(
                             Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                         } else {
                             val date = LocalDate(year, month, dayNumber)
-                            val isSelected = date == selectedDate
-                            val isToday = date == today
-                            val hasWorkout = date in workoutDates
+                            val isSelected   = date == selectedDate
+                            val isToday      = date == today
+                            val hasWorkout   = date in workoutDates
+                            val hasNutrition = date in nutritionDates
+                            val dotColor     = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else primary
 
                             Box(
                                 modifier = Modifier
@@ -144,17 +147,43 @@ internal fun CalendarCard(
                                         fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else onSurface,
                                     )
-                                    if (hasWorkout) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .background(
-                                                    color = if (isSelected)
-                                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                                                    else primary,
-                                                    shape = CircleShape,
+                                    // Dots row: workout dot (large) and/or nutrition dot (small)
+                                    if (hasWorkout || hasNutrition) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            if (hasWorkout) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(4.dp)
+                                                        .background(dotColor, CircleShape)
                                                 )
-                                        )
+                                            }
+                                            if (hasNutrition && !hasWorkout) {
+                                                // Nutrition-only day: smaller secondary dot
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(3.dp)
+                                                        .background(
+                                                            if (isSelected) dotColor
+                                                            else primary.copy(alpha = 0.45f),
+                                                            CircleShape
+                                                        )
+                                                )
+                                            } else if (hasNutrition) {
+                                                // Both: add a small secondary dot next to workout dot
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(3.dp)
+                                                        .background(
+                                                            if (isSelected) dotColor
+                                                            else primary.copy(alpha = 0.45f),
+                                                            CircleShape
+                                                        )
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
