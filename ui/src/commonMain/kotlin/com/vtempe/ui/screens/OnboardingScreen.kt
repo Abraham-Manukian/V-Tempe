@@ -315,7 +315,7 @@ fun OnboardingScreen(
                             ) { page ->
                                 val coach = coachTrainerOptions[page]
                                 val coachName = stringResource(coach.nameRes)
-                                val photo = coachExerciseIllustration(coach.id, "squat", coach.avatar)
+                                val photo = coach.avatar  // use portrait photo, not exercise shot
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
