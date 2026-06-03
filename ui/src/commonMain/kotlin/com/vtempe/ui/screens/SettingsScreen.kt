@@ -248,28 +248,6 @@ fun SettingsScreen(
                 }
             }
 
-            PreferenceCard(title = stringResource(Res.string.settings_ai_model_title)) {
-                Text(
-                    text = if (state.aiModelMode == AiModelMode.FREE) {
-                        stringResource(Res.string.settings_ai_model_current_free)
-                    } else {
-                        stringResource(Res.string.settings_ai_model_current_paid)
-                    },
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OptionRow {
-                    OptionButton(
-                        text = stringResource(Res.string.settings_ai_model_paid),
-                        selected = state.aiModelMode == AiModelMode.PAID
-                    ) { presenter.setAiModelMode(AiModelMode.PAID) }
-                    OptionButton(
-                        text = stringResource(Res.string.settings_ai_model_free),
-                        selected = state.aiModelMode == AiModelMode.FREE
-                    ) { presenter.setAiModelMode(AiModelMode.FREE) }
-                }
-            }
-
             if (state.saving) {
                 Text(stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
             }

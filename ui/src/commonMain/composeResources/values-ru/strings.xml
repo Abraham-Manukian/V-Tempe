@@ -19,6 +19,8 @@
     <string name="home_sets">Сеты</string>
     <string name="home_volume">Объем</string>
     <string name="home_sleep_hours">Сон</string>
+    <string name="home_exercises">Упражнений</string>
+    <string name="home_kcal_plan">Ккал / день</string>
     <string name="home_quick_actions">Быстрые действия</string>
     <string name="home_workout_today_title">Тренировка на сегодня</string>
     <string name="home_workout_today_sub">Все тело — 45 мин — 8 упражнений</string>
@@ -207,6 +209,10 @@
     <string name="sleep_title">Советы по сну</string>
     <string name="sleep_weekly_chart_title">Сон за неделю</string>
     <string name="sleep_sync_health">Синхронизировать с Health</string>
+    <string name="sleep_log_title">Отметить сегодняшний сон</string>
+    <string name="sleep_log_duration">%1$d ч %2$d мин</string>
+    <string name="sleep_log_save">Сохранить</string>
+    <string name="sleep_log_saved">✓ Сохранено</string>
 
     <!-- Progress -->
     <string name="progress_title">Статистика</string>

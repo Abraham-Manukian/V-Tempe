@@ -258,36 +258,38 @@ private fun TopBar(
         else                         -> stringResource(Res.string.app_name)
     }
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        // Left side: chat icon OR back arrow
-        if (canGoBack) {
-            TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = onBack)
-        } else {
-            TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
-        }
-
-        Spacer(Modifier.weight(1f))
-
+        // Centered title (absolute)
         Text(
             text = currentTitle,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
 
-        Spacer(Modifier.weight(1f))
+        // Left/right icons on top of the title layer
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            if (canGoBack) {
+                TopBarIcon(Icons.AutoMirrored.Default.ArrowBack, onClick = onBack)
+            } else {
+                TopBarIcon(Icons.AutoMirrored.Default.Chat, onClick = { onNavigate(Destination.Chat) })
+            }
 
-        // Right side: always settings; star/paywall only on bottom-nav screens
-        if (current.isBottomNav) {
-            TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
-        } else {
-            Spacer(modifier = Modifier.width(48.dp))
+            Row {
+                if (current.isBottomNav) {
+                    TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
+                }
+                TopBarIcon(Icons.Default.Settings, onClick = { onNavigate(Destination.Settings) })
+            }
         }
-        TopBarIcon(Icons.Default.Settings, onClick = { onNavigate(Destination.Settings) })
     }
 }
 

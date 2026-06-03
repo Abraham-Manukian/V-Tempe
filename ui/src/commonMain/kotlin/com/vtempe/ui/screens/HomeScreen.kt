@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -74,7 +75,8 @@ fun HomeScreen(
                     ) {
                         OverviewCard(
                             sets = uiState.todaySets,
-                            volume = uiState.totalVolume,
+                            exercisesCount = uiState.todayExercisesCount,
+                            dailyKcal = uiState.dailyKcalPlan,
                             sleepMinutes = uiState.sleepMinutes
                         )
                     }
@@ -118,7 +120,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun OverviewCard(sets: Int, volume: Int, sleepMinutes: Int) {
+private fun OverviewCard(sets: Int, exercisesCount: Int, dailyKcal: Int, sleepMinutes: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -126,7 +128,7 @@ private fun OverviewCard(sets: Int, volume: Int, sleepMinutes: Int) {
         shape = MaterialTheme.shapes.large
     ) {
         Column(
-            modifier = Modifier.padding(20.dp), 
+            modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -142,15 +144,15 @@ private fun OverviewCard(sets: Int, volume: Int, sleepMinutes: Int) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StatChip(
-                    label = stringResource(Res.string.home_sets),
-                    value = stringResource(Res.string.home_sets_value).kmpFormat(sets),
+                    label = stringResource(Res.string.home_exercises),
+                    value = exercisesCount.toString(),
                     icon = Icons.Filled.FitnessCenter,
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
-                    label = stringResource(Res.string.home_volume),
-                    value = stringResource(Res.string.home_volume_value).kmpFormat(volume),
-                    icon = Icons.Filled.Whatshot,
+                    label = stringResource(Res.string.home_kcal_plan),
+                    value = if (dailyKcal > 0) "$dailyKcal" else "—",
+                    icon = Icons.Filled.LocalFireDepartment,
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(

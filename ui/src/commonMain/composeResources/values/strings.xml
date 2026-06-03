@@ -19,6 +19,8 @@
     <string name="home_sets">Sets</string>
     <string name="home_volume">Volume</string>
     <string name="home_sleep_hours">Sleep</string>
+    <string name="home_exercises">Exercises</string>
+    <string name="home_kcal_plan">Kcal / day</string>
     <string name="home_quick_actions">Quick actions</string>
     <string name="home_workout_today_title">Today workout</string>
     <string name="home_workout_today_sub">Full body - 45 min - 8 exercises</string>
@@ -206,6 +208,10 @@
     <string name="sleep_title">Sleep tips</string>
     <string name="sleep_weekly_chart_title">Weekly sleep</string>
     <string name="sleep_sync_health">Sync with Health</string>
+    <string name="sleep_log_title">Log today\'s sleep</string>
+    <string name="sleep_log_duration">%1$d h %2$d min</string>
+    <string name="sleep_log_save">Save</string>
+    <string name="sleep_log_saved">✓ Saved</string>
 
     <!-- Progress -->
     <string name="progress_title">Statistics</string>

@@ -22,10 +22,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -127,6 +131,15 @@ fun SleepScreen(
                     }
                 }
             }
+            // ── Log sleep card ─────────────────────────────────────
+            item {
+                SleepLogCard(
+                    loggedMinutes = state.loggedMinutes,
+                    saved = state.logSaved,
+                    onSave = { h, m -> presenter.logSleep(h, m) }
+                )
+            }
+
             item {
                 Button(
                     onClick = { presenter.sync() },
@@ -163,6 +176,68 @@ fun SleepScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SleepLogCard(
+    loggedMinutes: Int,
+    saved: Boolean,
+    onSave: (hours: Int, minutes: Int) -> Unit,
+) {
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).coerceIn(0f, 16f)) }
+    val totalMinutes = (sliderValue * 30).toInt()
+    val hours = totalMinutes / 60
+    val mins = totalMinutes % 60
+
+    Card(
+        colors = sleepCardColors(),
+        elevation = sleepCardElevation(),
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                stringResource(Res.string.sleep_log_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+            Text(
+                stringResource(Res.string.sleep_log_duration).kmpFormat(hours, mins),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AiPalette.DeepAccent
+            )
+            Slider(
+                value = sliderValue,
+                onValueChange = { sliderValue = it },
+                valueRange = 0f..16f,
+                steps = 15,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("0ч", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+                Text("8ч", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+                Text("12ч+", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+            }
+            Button(
+                onClick = { onSave(hours, mins) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = sleepButtonColors(),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(
+                    if (saved) stringResource(Res.string.sleep_log_saved)
+                    else stringResource(Res.string.sleep_log_save)
+                )
             }
         }
     }

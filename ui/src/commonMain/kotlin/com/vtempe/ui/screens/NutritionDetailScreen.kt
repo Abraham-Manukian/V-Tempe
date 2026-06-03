@@ -66,36 +66,9 @@ fun NutritionDetailScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Отступ под "парящий" топ бар
+            // Отступ под топ бар
             Spacer(Modifier.height(topBarHeight + 16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Card(
-                    onClick = onBack,
-                    shape = CircleShape,
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-                Text(
-                    stringResource(Res.string.nutrition_detail_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
             when (ui) {
                 UiState.Loading -> Text(stringResource(Res.string.loading), color = MaterialTheme.colorScheme.onBackground)
                 is UiState.Error -> Text(
