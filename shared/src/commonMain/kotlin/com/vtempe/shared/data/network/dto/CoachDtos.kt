@@ -327,7 +327,7 @@ data class AiBootstrapResponseDto(
 
 @Serializable
 data class ChatResponse(
-    val reply: String,
+    val reply: String = "",
     val trainingPlan: TrainingPlanDto? = null,
     val nutritionPlan: NutritionPlanDto? = null,
     val sleepAdvice: AdviceDto? = null,
