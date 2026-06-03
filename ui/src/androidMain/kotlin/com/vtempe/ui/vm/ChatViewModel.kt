@@ -3,6 +3,7 @@ package com.vtempe.ui.vm
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
@@ -14,12 +15,14 @@ import kotlinx.coroutines.flow.StateFlow
 class ChatViewModel(
     ask: AskAiTrainer,
     languagePrefs: LanguagePreferences,
-    profileRepository: ProfileRepository
+    profileRepository: ProfileRepository,
+    chatHistoryStore: ChatHistoryStore,
 ) : ViewModel(), ChatPresenter {
 
     private val delegate = ChatPresenterDelegate(
         ask = ask,
         profileRepository = profileRepository,
+        chatHistoryStore = chatHistoryStore,
         scope = viewModelScope,
         localeProvider = {
             languagePrefs.getLanguageTag()

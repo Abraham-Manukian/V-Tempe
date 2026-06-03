@@ -14,21 +14,27 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.components.StatChip
@@ -45,6 +51,7 @@ fun HomeScreen(
     presenter: HomePresenter = rememberHomePresenter()
 ) {
     val uiState by presenter.state.collectAsState()
+    val homePresenter = presenter // keep a stable ref for lambdas
     
     // Получаем динамическую высоту баров
     val topBarHeight = LocalTopBarHeight.current
@@ -79,6 +86,24 @@ fun HomeScreen(
                             dailyKcal = uiState.dailyKcalPlan,
                             sleepMinutes = uiState.sleepMinutes
                         )
+                    }
+                }
+                if (uiState.showWeightCheckin) {
+                    item {
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(animationSpec = tween(320, delayMillis = 50)) + slideInVertically(
+                                initialOffsetY = { it / 3 },
+                                animationSpec = tween(320)
+                            )
+                        ) {
+                            WeightCheckinCard(
+                                lastWeightKg = uiState.lastWeightKg,
+                                saved = uiState.weightSaved,
+                                onSave = { homePresenter.logWeight(it) },
+                                onDismiss = { homePresenter.dismissWeightCheckin() }
+                            )
+                        }
                     }
                 }
                 item {
@@ -323,3 +348,82 @@ private fun homeButtonColors() =
 @Composable
 private fun homeButtonElevation() =
     ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+
+@Composable
+private fun WeightCheckinCard(
+    lastWeightKg: Double?,
+    saved: Boolean,
+    onSave: (Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val initialText = lastWeightKg?.let { "%.1f".format(it) } ?: ""
+    var input by remember { mutableStateOf(initialText) }
+    val parsed = input.replace(",", ".").toDoubleOrNull()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = homeCardColors(),
+        elevation = homeCardElevation(),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    Icons.Filled.MonitorWeight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column {
+                    Text(
+                        stringResource(Res.string.home_weight_checkin_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        stringResource(Res.string.home_weight_checkin_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it },
+                label = { Text(stringResource(Res.string.home_weight_checkin_hint)) },
+                suffix = { Text("kg") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(Res.string.home_weight_checkin_skip))
+                }
+                Button(
+                    onClick = { parsed?.let { onSave(it) } },
+                    enabled = parsed != null && parsed in 20.0..500.0 && !saved,
+                    colors = homeButtonColors(),
+                    elevation = homeButtonElevation(),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        if (saved) stringResource(Res.string.home_weight_checkin_saved)
+                        else stringResource(Res.string.home_weight_checkin_save)
+                    )
+                }
+            }
+        }
+    }
+}

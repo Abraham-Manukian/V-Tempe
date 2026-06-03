@@ -1,6 +1,7 @@
 package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
+import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -38,9 +39,9 @@ interface ChatPresenter {
 class ChatPresenterDelegate(
     private val ask: AskAiTrainer,
     private val profileRepository: ProfileRepository,
+    private val chatHistoryStore: ChatHistoryStore,
     private val scope: CoroutineScope,
-    /** Platform hook: returns the locale string to pass to the AI.
-     *  Android: stored pref with device-locale fallback. iOS: null (AskAiTrainer reads languagePrefs). */
+    /** Platform hook: returns the locale string to pass to the AI. */
     private val localeProvider: () -> String? = { null }
 ) : ChatPresenter {
 
@@ -49,9 +50,14 @@ class ChatPresenterDelegate(
 
     init {
         scope.launch {
+            // Load persisted history + coach avatar in parallel
+            val history = chatHistoryStore.load()
             val profile = runCatching { profileRepository.getProfile() }.getOrNull()
-            if (profile != null) {
-                _state.update { it.copy(coachTrainerId = profile.coachTrainerId) }
+            _state.update {
+                it.copy(
+                    messages = history,
+                    coachTrainerId = profile?.coachTrainerId ?: CoachTrainerIds.DEFAULT
+                )
             }
         }
     }
@@ -68,6 +74,8 @@ class ChatPresenterDelegate(
         val userMsg = ChatMessage(role = "user", content = text)
         val history = current.messages + userMsg
         _state.update { it.copy(messages = history, input = "", sendState = ChatSendState.Loading) }
+        // Persist immediately so the user message survives if the app is killed mid-request
+        chatHistoryStore.save(history)
 
         scope.launch {
             val result = ask(
@@ -78,7 +86,10 @@ class ChatPresenterDelegate(
             when (result) {
                 is DataResult.Success -> {
                     val assistantMsg = ChatMessage(role = "assistant", content = result.data.reply)
-                    _state.update { it.copy(messages = it.messages + assistantMsg, sendState = ChatSendState.Success) }
+                    val updatedMessages = _state.value.messages + assistantMsg
+                    _state.update { it.copy(messages = updatedMessages, sendState = ChatSendState.Success) }
+                    // Persist full conversation including the coach reply
+                    chatHistoryStore.save(updatedMessages)
                 }
                 is DataResult.Failure -> {
                     Napier.w("Chat error: ${result.message}", result.throwable)

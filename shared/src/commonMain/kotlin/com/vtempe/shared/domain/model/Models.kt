@@ -160,3 +160,11 @@ data class Advice(
     val disclaimer: String = "Not medical advice"
 )
 
+/** One night of logged sleep, used in the AI profile to personalise recovery advice. */
+@Serializable
+data class SleepEntry(val date: String, val durationMinutes: Int)
+
+/** One body-weight measurement, used in the AI profile to track progress trends. */
+@Serializable
+data class WeightEntry(val date: String, val weightKg: Double)
+

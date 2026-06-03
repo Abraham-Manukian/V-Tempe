@@ -1,0 +1,256 @@
+{
+  "reply": "Понял — показываю вашу текущую тренировку и объясняю нагрузку. Ниже — два полноценных полнотелых занятия на ваши дни (понедельник и среда). Ключевая идея: каждый тренировочный день содержит 1–2 тяжелых базовых упражнения для силы (низкий диапазон повторений, RPE 7–8) и 3–4 вспомогательных для гипертрофии (8–12 повторений, RPE 7–8). Как использовать нагрузку: выбирайте рабочий вес так, чтобы последние 1–2 повтора в сете оставались сложными, но техника не рушилась (RPE в указанных пределах). Для базовых: отдых 2–3 минуты; для вспомогательных — 60–90 секунд. Прогрессия: если вы завершили все подходы и повторы на целевом RPE два занятия подряд — добавляйте +2.5–5 кг в базовых упражнениях, в вспомогательных — увеличивайте повторения или вес на 1–2. Следующие шаги: скажите, хотите ли я подставить рекомендуемые рабочие веса исходя из ваших сил/веса, или составить 4‑недельный цикл прогрессии. Также подтвердите, устраивает ли объём и упражнения.",
+  "trainingPlan": {
+    "weekIndex": 1,
+    "workouts": [
+      {
+        "id": "Mon-FullBody-2026-03-09",
+        "date": "2026-03-09",
+        "sets": [
+          {
+            "exerciseId": "Присед со штангой (Back Squat)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Присед со штангой (Back Squat)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Присед со штангой (Back Squat)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Присед со штангой (Back Squat)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Жим лёжа штангой (Bench Press)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Жим лёжа штангой (Bench Press)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Жим лёжа штангой (Bench Press)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Жим лёжа штангой (Bench Press)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Тяга штанги в наклоне (Barbell Row)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Тяга штанги в наклоне (Barbell Row)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Тяга штанги в наклоне (Barbell Row)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Румынская становая (Romanian Deadlift)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Румынская становая (Romanian Deadlift)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Румынская становая (Romanian Deadlift)",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Жим гантелей сидя (Dumbbell Overhead Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Жим гантелей сидя (Dumbbell Overhead Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Жим гантелей сидя (Dumbbell Overhead Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Подтягивания (Pull-ups) — собственный вес",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Подтягивания (Pull-ups) — собственный вес",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Подтягивания (Pull-ups) — собственный вес",
+            "reps": 6,
+            "weightKg": null,
+            "rpe": 8.0
+          }
+        ]
+      },
+      {
+        "id": "Wed-Hypertrophy-2026-03-11",
+        "date": "2026-03-11",
+        "sets": [
+          {
+            "exerciseId": "Становая тяга (Deadlift)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Становая тяга (Deadlift)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Становая тяга (Deadlift)",
+            "reps": 5,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Наклонный жим гантелей (Incline DB Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Наклонный жим гантелей (Incline DB Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Наклонный жим гантелей (Incline DB Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Наклонный жим гантелей (Incline DB Press)",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "Болгарские выпады (Bulgarian Split Squat) — на каждую ногу",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Болгарские выпады (Bulgarian Split Squat) — на каждую ногу",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Болгарские выпады (Bulgarian Split Squat) — на каждую ногу",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Тяга гантели в наклоне (Dumbbell Row)",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Тяга гантели в наклоне (Dumbbell Row)",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Тяга гантели в наклоне (Dumbbell Row)",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Ягодичный мост (Hip Thrust / Glute Bridge)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Ягодичный мост (Hip Thrust / Glute Bridge)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Ягодичный мост (Hip Thrust / Glute Bridge)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "Подъёмы ног в висе (Hanging Leg Raises)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Подъёмы ног в висе (Hanging Leg Raises)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "Подъёмы ног в висе (Hanging Leg Raises)",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 8.0
+          }
+        ]
+      }
+    ]
+  },
+  "nutritionPlan": null,
+  "sleepAdvice": null
+}

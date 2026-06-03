@@ -2,7 +2,7 @@ package com.vtempe.ui.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.Settings
+import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.domain.repository.AdviceRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.ui.presenter.SleepPresenter
@@ -13,13 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 class SleepViewModel(
     adviceRepository: AdviceRepository,
     profileRepository: ProfileRepository,
-    settings: Settings,
+    sleepStore: SleepStore,
 ) : ViewModel(), SleepPresenter {
 
     private val delegate = SleepPresenterDelegate(
         adviceRepository = adviceRepository,
         profileRepository = profileRepository,
-        settings = settings,
+        sleepStore = sleepStore,
         scope = viewModelScope
     )
 

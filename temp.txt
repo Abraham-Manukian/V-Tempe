@@ -1,0 +1,515 @@
+﻿package com.vtempe.ui.screens
+
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.vtempe.R
+import com.vtempe.core.designsystem.components.PlaceholderScreen
+import com.vtempe.core.designsystem.components.RingChart
+import com.vtempe.core.designsystem.components.StatChip
+import com.vtempe.core.designsystem.components.BrandScreen
+import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.ui.state.UiState
+import com.vtempe.ui.vm.NutritionViewModel
+import org.koin.androidx.compose.koinViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Egg
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.BakeryDining
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
+import java.util.Locale
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun NutritionScreen(
+    onOpenMeal: (day: String, index: Int) -> Unit = { _, _ -> }
+) {
+    val vm: NutritionViewModel = koinViewModel()
+    val s by vm.state.collectAsState()
+    val locale = remember { Locale.getDefault() }
+    val weekDays = buildWeekDays(locale)
+    val contentColor = AiPalette.OnGradient
+
+    var tab by remember { mutableStateOf(0) }
+    val tabTitles = listOf(
+        R.string.nutrition_tab_menu,
+        R.string.nutrition_tab_shopping
+    )
+
+    BrandScreen(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.Top
+        ) {
+            WeekCalendar(
+                days = weekDays,
+                selectedKey = s.selectedDay,
+                onDaySelected = vm::selectDay,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                locale = locale
+            )
+            TabRow(
+                selectedTabIndex = tab,
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.White.copy(alpha = 0.12f)),
+                containerColor = Color.Transparent,
+                contentColor = Color.White,
+                divider = {},
+                indicator = { tabPositions ->
+                    Box(
+                        modifier = Modifier
+                            .tabIndicatorOffset(tabPositions[tab])
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(Color.White.copy(alpha = 0.35f))
+                    )
+                }
+            ) {
+                tabTitles.forEachIndexed { index, titleRes ->
+                    Tab(
+                        selected = tab == index,
+                        onClick = { tab = index },
+                        text = {
+                            Text(
+                                stringResource(titleRes),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        selectedContentColor = Color(0xFF2D2D2D),
+                        unselectedContentColor = Color.White.copy(alpha = 0.75f)
+                    )
+                }
+            }
+            Crossfade<UiState<com.vtempe.shared.domain.model.NutritionPlan>>(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                targetState = s.ui,
+                label = "nutrition-ui"
+            ) { st ->
+                when (st) {
+                    UiState.Loading -> Box(Modifier.fillMaxSize()) {
+                        PlaceholderScreen(title = stringResource(R.string.nutrition_loading_title), sections = listOf(":"))
+                    }
+                    is UiState.Error -> Box(Modifier.fillMaxSize()) {
+                        PlaceholderScreen(title = stringResource(R.string.nutrition_error_title), sections = listOf(stringResource(R.string.nutrition_error_hint)))
+                    }
+                    is UiState.Data -> {
+                        val plan = st.value
+                        if (tab == 1) {
+                            val items = plan.shoppingList
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(items.size) { i -> Text(stringResource(R.string.nutrition_shopping_bullet, items[i])) }
+                            }
+                            return@Crossfade
+                        }
+                        val meals = plan.mealsByDay[s.selectedDay].orEmpty()
+                        val proteinDay = meals.sumOf { it.macros.proteinGrams }
+                        val fatDay = meals.sumOf { it.macros.fatGrams }
+                        val carbsDay = meals.sumOf { it.macros.carbsGrams }
+                        val kcalDay = meals.sumOf { it.macros.kcal }
+                        val allMeals = plan.mealsByDay.values.flatten()
+                        val proteinWeek = allMeals.sumOf { it.macros.proteinGrams }
+                        val fatWeek = allMeals.sumOf { it.macros.fatGrams }
+                        val carbsWeek = allMeals.sumOf { it.macros.carbsGrams }
+                        val kcalWeek = allMeals.sumOf { it.macros.kcal }
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            item {
+                            AnimatedVisibility(visible = true, enter = fadeIn(tween(300)) + slideInVertically(initialOffsetY = { it / 6 }, animationSpec = tween(300))) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = nutritionCardColors(),
+                                    elevation = nutritionCardElevation(),
+                                    shape = MaterialTheme.shapes.extraLarge
+                                ) {
+                                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text(
+                                            stringResource(R.string.nutrition_macros_chart_title),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentColor
+                                        )
+                                        RingChart(
+                                            values = listOf(proteinDay.toFloat(), fatDay.toFloat(), carbsDay.toFloat()),
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.tertiary,
+                                                MaterialTheme.colorScheme.secondary
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            maxItemsInEachRow = 2
+                                        ) {
+                                            StatChip(stringResource(R.string.nutrition_macro_protein).uppercase(locale), "${proteinDay} g", icon = Icons.Filled.Egg)
+                                            StatChip(stringResource(R.string.nutrition_macro_fat).uppercase(locale), "${fatDay} g", icon = Icons.Filled.BakeryDining)
+                                            StatChip(stringResource(R.string.nutrition_macro_carbs).uppercase(locale), "${carbsDay} g", icon = Icons.Filled.WaterDrop)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        item {
+                            AnimatedVisibility(visible = true, enter = fadeIn(tween(350, delayMillis = 60)) + slideInVertically(initialOffsetY = { it / 6 }, animationSpec = tween(350))) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = nutritionCardColors(),
+                                    elevation = nutritionCardElevation(),
+                                    shape = MaterialTheme.shapes.extraLarge
+                                ) {
+                                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text(
+                                            stringResource(R.string.nutrition_day_totals),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentColor
+                                        )
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            maxItemsInEachRow = 2
+                                        ) {
+                                            StatChip(stringResource(R.string.nutrition_macro_protein).uppercase(locale), "${proteinDay} g", icon = Icons.Filled.Egg)
+                                            StatChip(stringResource(R.string.nutrition_macro_fat).uppercase(locale), "${fatDay} g", icon = Icons.Filled.BakeryDining)
+                                            StatChip(stringResource(R.string.nutrition_macro_carbs).uppercase(locale), "${carbsDay} g", icon = Icons.Filled.WaterDrop)
+                                            StatChip(stringResource(R.string.nutrition_macro_kcal).uppercase(locale), kcalDay.toString(), icon = Icons.Filled.LocalFireDepartment)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        item {
+                            AnimatedVisibility(visible = true, enter = fadeIn(tween(400, delayMillis = 100)) + slideInVertically(initialOffsetY = { it / 6 }, animationSpec = tween(400))) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = nutritionCardColors(),
+                                    elevation = nutritionCardElevation(),
+                                    shape = MaterialTheme.shapes.extraLarge
+                                ) {
+                                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text(
+                                            stringResource(R.string.nutrition_week_totals),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentColor
+                                        )
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            maxItemsInEachRow = 2
+                                        ) {
+                                            StatChip(stringResource(R.string.nutrition_macro_protein).uppercase(locale), "${proteinWeek} g", icon = Icons.Filled.Egg)
+                                            StatChip(stringResource(R.string.nutrition_macro_fat).uppercase(locale), "${fatWeek} g", icon = Icons.Filled.BakeryDining)
+                                            StatChip(stringResource(R.string.nutrition_macro_carbs).uppercase(locale), "${carbsWeek} g", icon = Icons.Filled.WaterDrop)
+                                            StatChip(stringResource(R.string.nutrition_macro_kcal).uppercase(locale), kcalWeek.toString(), icon = Icons.Filled.LocalFireDepartment)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        itemsIndexed(meals) { idx, meal ->
+                            val accent = macroAccentPalette[idx % macroAccentPalette.size]
+                            AnimatedVisibility(visible = true, enter = fadeIn(tween(350)) + slideInVertically(initialOffsetY = { it / 8 }, animationSpec = tween(350))) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onOpenMeal(s.selectedDay, idx) },
+                                    colors = nutritionCardColors(),
+                                    elevation = nutritionCardElevation(),
+                                    shape = MaterialTheme.shapes.extraLarge
+                                ) {
+                                    Column(
+                                        Modifier.padding(20.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .height(48.dp)
+                                                        .width(6.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(accent)
+                                                )
+                                                Column {
+                                                    Text(
+                                                        meal.name,
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF2D2D2D)
+                                                    )
+                                                    Text(
+                                                        "${meal.ingredients.size} items · ${meal.macros.kcal} kcal",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color(0xFF4B4B4B)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                "${meal.kcal} kcal",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            MacroPill(
+                                                stringResource(R.string.nutrition_macro_protein),
+                                                "${meal.macros.proteinGrams} g",
+                                                accent,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            MacroPill(
+                                                stringResource(R.string.nutrition_macro_fat),
+                                                "${meal.macros.fatGrams} g",
+                                                MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            MacroPill(
+                                                stringResource(R.string.nutrition_macro_carbs),
+                                                "${meal.macros.carbsGrams} g",
+                                                MaterialTheme.colorScheme.tertiary,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        Text(
+                                            text = stringResource(R.string.nutrition_ingredients) + ": " + meal.ingredients.joinToString(),
+                                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                                            color = Color(0xFF3A3A3A)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun nutritionCardColors() = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.97f))
+
+@Composable
+private fun nutritionCardElevation() = CardDefaults.cardElevation(defaultElevation = 10.dp)
+
+@Composable
+private fun accentButtonColors() = ButtonDefaults.buttonColors(containerColor = AiPalette.DeepAccent, contentColor = Color.White)
+
+private val macroAccentPalette = listOf(
+    Color(0xFFB388FF),
+    Color(0xFF80DEEA),
+    Color(0xFFFFB74D),
+    Color(0xFFFF8A80)
+)
+
+@Composable
+private fun WeekCalendar(
+    days: List<WeekDayUi>,
+    selectedKey: String,
+    onDaySelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    locale: Locale = Locale.getDefault()
+) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp)
+    ) {
+        items(days, key = { it.key }) { day ->
+            val selected = day.key == selectedKey
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 68.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        if (selected) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.18f)
+                    )
+                    .border(
+                        width = if (selected) 1.2.dp else 1.dp,
+                        color = if (selected) Color(0xFF7C4DFF) else Color.White.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .clickable { onDaySelected(day.key) }
+                    .padding(vertical = 14.dp, horizontal = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    day.weekLabel.uppercase(locale),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) Color(0xFF512DA8) else Color.White.copy(alpha = 0.9f)
+                )
+                Text(
+                    day.dayOfMonth,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (selected) Color(0xFF2D2D2D) else Color.White
+                )
+                Text(
+                    day.monthLabel.uppercase(locale),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (selected) Color(0xFF5C4FB5) else Color.White.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+private data class WeekDayUi(
+    val key: String,
+    val weekLabel: String,
+    val dayOfMonth: String,
+    val monthLabel: String
+)
+
+private fun buildWeekDays(locale: Locale): List<WeekDayUi> {
+    val startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    return (0..6).map { offset ->
+        val date = startOfWeek.plusDays(offset.toLong())
+        WeekDayUi(
+            key = date.dayOfWeek.toPlanKey(),
+            weekLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale),
+            dayOfMonth = date.dayOfMonth.toString(),
+            monthLabel = date.month.getDisplayName(TextStyle.SHORT, locale)
+        )
+    }
+}
+
+private fun DayOfWeek.toPlanKey(): String = when (this) {
+    DayOfWeek.MONDAY -> "Mon"
+    DayOfWeek.TUESDAY -> "Tue"
+    DayOfWeek.WEDNESDAY -> "Wed"
+    DayOfWeek.THURSDAY -> "Thu"
+    DayOfWeek.FRIDAY -> "Fri"
+    DayOfWeek.SATURDAY -> "Sat"
+    DayOfWeek.SUNDAY -> "Sun"
+    else -> "Mon"
+}
+
+@Composable
+private fun MacroPill(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.Start,
+        modifier = modifier
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color(0xFF646A81))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(accent)
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2D2D2D)
+            )
+        }
+    }
+}
+
+
+
+
+
+
+
+

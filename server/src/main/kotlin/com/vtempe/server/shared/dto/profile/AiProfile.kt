@@ -21,5 +21,21 @@ data class AiProfile(
     val trainingMode: String = "AUTO",
     val coachTrainerId: String = "mia",
     val llmMode: String? = null,
-    val recentWorkouts: List<AiRecentWorkout> = emptyList()
+    val recentWorkouts: List<AiRecentWorkout> = emptyList(),
+    val sleepHistory: List<AiSleepEntry> = emptyList(),
+    val recentWeights: List<AiWeightEntry> = emptyList()
+)
+
+/** One night of logged sleep sent from the client to help the coach adapt recovery advice. */
+@Serializable
+data class AiSleepEntry(
+    val date: String,
+    val durationMinutes: Int
+)
+
+/** One body-weight measurement sent from the client to help the coach track progress trends. */
+@Serializable
+data class AiWeightEntry(
+    val date: String,
+    val weightKg: Double
 )

@@ -1,0 +1,590 @@
+```json
+{
+  "trainingPlan": {
+    "weekIndex": 0,
+    "workouts": [
+      {
+        "id": "w_0_0",
+        "date": "2025-01-06",
+        "sets": [
+          {
+            "exerciseId": "pattern:knee_dominant",
+            "reps": 8,
+            "weightKg": 60.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pattern:horizontal_push",
+            "reps": 10,
+            "weightKg": 40.0,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "pattern:horizontal_pull",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pattern:single_leg",
+            "reps": 12,
+            "weightKg": 15.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "pattern:arm_flexion",
+            "reps": 12,
+            "weightKg": 10.0,
+            "rpe": 7.0
+          }
+        ]
+      },
+      {
+        "id": "w_0_1",
+        "date": "2025-01-08",
+        "sets": [
+          {
+            "exerciseId": "pattern:hinge",
+            "reps": 6,
+            "weightKg": 70.0,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "pattern:vertical_push",
+            "reps": 8,
+            "weightKg": 30.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pattern:vertical_pull",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "pattern:core",
+            "reps": 15,
+            "weightKg": null,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "pattern:arm_extension",
+            "reps": 12,
+            "weightKg": 10.0,
+            "rpe": 7.0
+          }
+        ]
+      },
+      {
+        "id": "w_0_2",
+        "date": "2025-01-10",
+        "sets": [
+          {
+            "exerciseId": "pattern:knee_dominant",
+            "reps": 10,
+            "weightKg": 50.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "pattern:horizontal_push",
+            "reps": 8,
+            "weightKg": 45.0,
+            "rpe": 8.5
+          },
+          {
+            "exerciseId": "pattern:horizontal_pull",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pattern:single_leg",
+            "reps": 10,
+            "weightKg": 17.5,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pattern:arm_flexion",
+            "reps": 10,
+            "weightKg": 12.5,
+            "rpe": 7.5
+          }
+        ]
+      }
+    ]
+  },
+  "nutritionPlan": {
+    "weekIndex": 0,
+    "mealsByDay": {
+      "Mon": [
+        {
+          "name": "Завтрак с яйцами и тостами",
+          "ingredients": [
+            "яйца",
+            "цельнозерновой хлеб",
+            "авокадо",
+            "помидоры"
+          ],
+          "kcal": 450,
+          "macros": {
+            "proteinGrams": 25,
+            "fatGrams": 25,
+            "carbsGrams": 35,
+            "kcal": 455
+          }
+        },
+        {
+          "name": "Курица с рисом и овощами",
+          "ingredients": [
+            "куриное филе",
+            "рис",
+            "брокколи",
+            "морковь"
+          ],
+          "kcal": 600,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 15,
+            "carbsGrams": 70,
+            "kcal": 605
+          }
+        },
+        {
+          "name": "Протеиновый смузи",
+          "ingredients": [
+            "банан",
+            "шпинат",
+            "протеиновый порошок на растительной основе",
+            "вода"
+          ],
+          "kcal": 300,
+          "macros": {
+            "proteinGrams": 30,
+            "fatGrams": 5,
+            "carbsGrams": 35,
+            "kcal": 305
+          }
+        },
+        {
+          "name": "Макароны с индейкой и томатным соусом",
+          "ingredients": [
+            "макароны из твердых сортов пшеницы",
+            "фарш из индейки",
+            "томатный соус",
+            "цукини"
+          ],
+          "kcal": 700,
+          "macros": {
+            "proteinGrams": 50,
+            "fatGrams": 20,
+            "carbsGrams": 85,
+            "kcal": 700
+          }
+        }
+      ],
+      "Tue": [
+        {
+          "name": "Овсянка с ягодами и семенами чиа",
+          "ingredients": [
+            "овсяные хлопья",
+            "вода",
+            "ягоды",
+            "семена чиа"
+          ],
+          "kcal": 400,
+          "macros": {
+            "proteinGrams": 15,
+            "fatGrams": 10,
+            "carbsGrams": 60,
+            "kcal": 410
+          }
+        },
+        {
+          "name": "Салат с тунцом и киноа",
+          "ingredients": [
+            "тунец консервированный",
+            "киноа",
+            "огурцы",
+            "помидоры",
+            "листья салата"
+          ],
+          "kcal": 550,
+          "macros": {
+            "proteinGrams": 40,
+            "fatGrams": 20,
+            "carbsGrams": 50,
+            "kcal": 540
+          }
+        },
+        {
+          "name": "Куриный суп с лапшой",
+          "ingredients": [
+            "куриное филе",
+            "лапша",
+            "морковь",
+            "лук",
+            "картофель"
+          ],
+          "kcal": 650,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 15,
+            "carbsGrams": 80,
+            "kcal": 655
+          }
+        },
+        {
+          "name": "Творог с фруктами",
+          "ingredients": [
+            "творог без лактозы",
+            "яблоко",
+            "банан"
+          ],
+          "kcal": 350,
+          "macros": {
+            "proteinGrams": 30,
+            "fatGrams": 5,
+            "carbsGrams": 45,
+            "kcal": 345
+          }
+        }
+      ],
+      "Wed": [
+        {
+          "name": "Гречневая каша с яйцом",
+          "ingredients": [
+            "гречневая крупа",
+            "яйцо",
+            "овощи"
+          ],
+          "kcal": 420,
+          "macros": {
+            "proteinGrams": 20,
+            "fatGrams": 15,
+            "carbsGrams": 50,
+            "kcal": 435
+          }
+        },
+        {
+          "name": "Рыба на пару с картофелем",
+          "ingredients": [
+            "треска",
+            "картофель",
+            "зеленая фасоль"
+          ],
+          "kcal": 600,
+          "macros": {
+            "proteinGrams": 40,
+            "fatGrams": 10,
+            "carbsGrams": 80,
+            "kcal": 610
+          }
+        },
+        {
+          "name": "Протеиновый батончик",
+          "ingredients": [
+            "протеиновый батончик без орехов и молока"
+          ],
+          "kcal": 250,
+          "macros": {
+            "proteinGrams": 20,
+            "fatGrams": 10,
+            "carbsGrams": 20,
+            "kcal": 260
+          }
+        },
+        {
+          "name": "Паста с креветками и овощами",
+          "ingredients": [
+            "паста",
+            "креветки",
+            "перец",
+            "лук",
+            "помидоры"
+          ],
+          "kcal": 750,
+          "macros": {
+            "proteinGrams": 55,
+            "fatGrams": 20,
+            "carbsGrams": 90,
+            "kcal": 750
+          }
+        }
+      ],
+      "Thu": [
+        {
+          "name": "Омлет с овощами",
+          "ingredients": [
+            "яйца",
+            "перец",
+            "лук",
+            "шпинат"
+          ],
+          "kcal": 400,
+          "macros": {
+            "proteinGrams": 25,
+            "fatGrams": 20,
+            "carbsGrams": 25,
+            "kcal": 400
+          }
+        },
+        {
+          "name": "Куриный салат с булгуром",
+          "ingredients": [
+            "куриное филе",
+            "булгур",
+            "огурцы",
+            "помидоры",
+            "зелень"
+          ],
+          "kcal": 580,
+          "macros": {
+            "proteinGrams": 40,
+            "fatGrams": 15,
+            "carbsGrams": 65,
+            "kcal": 575
+          }
+        },
+        {
+          "name": "Фруктовый салат с семенами подсолнечника",
+          "ingredients": [
+            "яблоко",
+            "банан",
+            "апельсин",
+            "семена подсолнечника"
+          ],
+          "kcal": 320,
+          "macros": {
+            "proteinGrams": 10,
+            "fatGrams": 10,
+            "carbsGrams": 50,
+            "kcal": 330
+          }
+        },
+        {
+          "name": "Рис с овощами и тофу",
+          "ingredients": [
+            "рис",
+            "тофу",
+            "брокколи",
+            "морковь",
+            "соевый соус"
+          ],
+          "kcal": 700,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 25,
+            "carbsGrams": 80,
+            "kcal": 705
+          }
+        }
+      ],
+      "Fri": [
+        {
+          "name": "Сырники без молока с фруктами",
+          "ingredients": [
+            "творог без лактозы",
+            "мука",
+            "яйцо",
+            "ягоды"
+          ],
+          "kcal": 450,
+          "macros": {
+            "proteinGrams": 30,
+            "fatGrams": 15,
+            "carbsGrams": 50,
+            "kcal": 455
+          }
+        },
+        {
+          "name": "Индейка с кускусом и овощами",
+          "ingredients": [
+            "филе индейки",
+            "кускус",
+            "кабачки",
+            "перец"
+          ],
+          "kcal": 620,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 10,
+            "carbsGrams": 85,
+            "kcal": 620
+          }
+        },
+        {
+          "name": "Протеиновый коктейль",
+          "ingredients": [
+            "протеиновый порошок на растительной основе",
+            "вода",
+            "банан"
+          ],
+          "kcal": 300,
+          "macros": {
+            "proteinGrams": 30,
+            "fatGrams": 5,
+            "carbsGrams": 35,
+            "kcal": 305
+          }
+        },
+        {
+          "name": "Макароны с курицей и грибами",
+          "ingredients": [
+            "макароны",
+            "куриное филе",
+            "шампиньоны",
+            "лук"
+          ],
+          "kcal": 700,
+          "macros": {
+            "proteinGrams": 50,
+            "fatGrams": 15,
+            "carbsGrams": 90,
+            "kcal": 705
+          }
+        }
+      ],
+      "Sat": [
+        {
+          "name": "Овсянка с яблоком и корицей",
+          "ingredients": [
+            "овсяные хлопья",
+            "вода",
+            "яблоко",
+            "корица"
+          ],
+          "kcal": 380,
+          "macros": {
+            "proteinGrams": 12,
+            "fatGrams": 8,
+            "carbsGrams": 65,
+            "kcal": 388
+          }
+        },
+        {
+          "name": "Куриный салат с картофелем",
+          "ingredients": [
+            "куриное филе",
+            "картофель",
+            "огурцы",
+            "помидоры"
+          ],
+          "kcal": 550,
+          "macros": {
+            "proteinGrams": 40,
+            "fatGrams": 15,
+            "carbsGrams": 60,
+            "kcal": 555
+          }
+        },
+        {
+          "name": "Смузи с ягодами",
+          "ingredients": [
+            "ягоды",
+            "банан",
+            "вода"
+          ],
+          "kcal": 280,
+          "macros": {
+            "proteinGrams": 5,
+            "fatGrams": 2,
+            "carbsGrams": 60,
+            "kcal": 278
+          }
+        },
+        {
+          "name": "Рыбные котлеты с рисом",
+          "ingredients": [
+            "рыбный фарш (треска)",
+            "рис",
+            "лук",
+            "морковь"
+          ],
+          "kcal": 680,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 20,
+            "carbsGrams": 80,
+            "kcal": 680
+          }
+        }
+      ],
+      "Sun": [
+        {
+          "name": "Тосты с авокадо и яйцом",
+          "ingredients": [
+            "цельнозерновой хлеб",
+            "авокадо",
+            "яйцо"
+          ],
+          "kcal": 420,
+          "macros": {
+            "proteinGrams": 20,
+            "fatGrams": 25,
+            "carbsGrams": 30,
+            "kcal": 425
+          }
+        },
+        {
+          "name": "Индейка с гречкой и овощами",
+          "ingredients": [
+            "филе индейки",
+            "гречневая крупа",
+            "брокколи",
+            "перец"
+          ],
+          "kcal": 600,
+          "macros": {
+            "proteinGrams": 45,
+            "fatGrams": 10,
+            "carbsGrams": 80,
+            "kcal": 610
+          }
+        },
+        {
+          "name": "Фрукты",
+          "ingredients": [
+            "яблоко",
+            "банан"
+          ],
+          "kcal": 200,
+          "macros": {
+            "proteinGrams": 2,
+            "fatGrams": 1,
+            "carbsGrams": 45,
+            "kcal": 197
+          }
+        },
+        {
+          "name": "Макароны с овощным соусом",
+          "ingredients": [
+            "макароны",
+            "томатный соус",
+            "цукини",
+            "баклажан",
+            "перец"
+          ],
+          "kcal": 650,
+          "macros": {
+            "proteinGrams": 20,
+            "fatGrams": 10,
+            "carbsGrams": 120,
+            "kcal": 650
+          }
+        }
+      ]
+    }
+  },
+  "sleepAdvice": {
+    "messages": [
+      "Стремитесь ложиться спать и просыпаться в одно и то же время каждый день, даже в выходные, чтобы наладить циркадные ритмы.",
+      "Создайте расслабляющий ритуал перед сном: теплая ванна, чтение книги или легкая растяжка.",
+      "Убедитесь, что ваша спальня темная, тихая и прохладная. Это поможет улучшить качество сна.",
+      "Избегайте кофеина и тяжелой пищи за несколько часов до сна, так как они могут нарушить ваш сон.",
+      "Постарайтесь не использовать электронные устройства (телефоны, планшеты, компьютеры) как минимум за час до сна, чтобы уменьшить воздействие синего света.",
+      "Включите в свой распорядок дня короткие периоды расслабления или медитации, чтобы снизить уровень стресса и улучшить засыпание."
+    ],
+    "disclaimer": "Эти советы носят общий характер и не являются медицинской рекомендацией. При наличии серьезных проблем со сном проконсультируйтесь с врачом."
+  }
+}
+```

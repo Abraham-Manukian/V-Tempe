@@ -1,0 +1,133 @@
+```json
+{
+  "weekIndex": 0,
+  "workouts": [
+    {
+      "id": "2025-W00-MON",
+      "date": "2024-12-30",
+      "sets": [
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 8,
+          "weightKg": 60.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 8,
+          "weightKg": 60.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_push",
+          "reps": 10,
+          "weightKg": 40.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:horizontal_push",
+          "reps": 10,
+          "weightKg": 40.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_pull",
+          "reps": 10,
+          "weightKg": 35.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:arm_flexion",
+          "reps": 12,
+          "weightKg": 12.0,
+          "rpe": 8.0
+        }
+      ]
+    },
+    {
+      "id": "2025-W00-WED",
+      "date": "2025-01-01",
+      "sets": [
+        {
+          "exerciseId": "pattern:hinge",
+          "reps": 6,
+          "weightKg": 70.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:hinge",
+          "reps": 6,
+          "weightKg": 70.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:vertical_pull",
+          "reps": 8,
+          "weightKg": null,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:vertical_pull",
+          "reps": 8,
+          "weightKg": null,
+          "rpe": 8.5
+        },
+        {
+          "exerciseId": "pattern:single_leg",
+          "reps": 10,
+          "weightKg": 16.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:core",
+          "reps": 15,
+          "weightKg": null,
+          "rpe": 7.0
+        }
+      ]
+    },
+    {
+      "id": "2025-W00-FRI",
+      "date": "2025-01-03",
+      "sets": [
+        {
+          "exerciseId": "pattern:vertical_push",
+          "reps": 8,
+          "weightKg": 30.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:vertical_push",
+          "reps": 8,
+          "weightKg": 30.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_pull",
+          "reps": 10,
+          "weightKg": 35.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 12,
+          "weightKg": 50.0,
+          "rpe": 7.5
+        },
+        {
+          "exerciseId": "pattern:arm_extension",
+          "reps": 12,
+          "weightKg": 20.0,
+          "rpe": 8.0
+        },
+        {
+          "exerciseId": "pattern:core",
+          "reps": 20,
+          "weightKg": null,
+          "rpe": 7.5
+        }
+      ]
+    }
+  ]
+}
+```

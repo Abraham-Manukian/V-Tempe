@@ -11,11 +11,14 @@ import com.vtempe.shared.data.repo.TrainingRepositoryDb
 import com.vtempe.shared.data.repo.NetworkAiTrainerRepository
 import com.vtempe.shared.data.repo.NetworkChatRepository
 import com.vtempe.shared.data.repo.AiResponseCache
+import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
 import com.vtempe.shared.data.repo.NutritionRepositoryDb
 import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SettingsPreferencesRepository
+import com.vtempe.shared.data.repo.SleepStore
+import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
 import com.vtempe.shared.data.stub.StubAdviceRepository
 import com.vtempe.shared.data.stub.StubPurchasesRepository
@@ -38,6 +41,9 @@ object DI {
         single { AiResponseCache(get()) }
         single<CoachCacheRepository> { get<AiResponseCache>() }
         single { WorkoutProgressStore(get(), get()) }
+        single { SleepStore(get()) }
+        single { WeightStore(get()) }
+        single { ChatHistoryStore(get()) }
         single<ExerciseCalibrationRepository> { ExerciseCalibrationSettingsRepository(get()) }
 
         // Repositories
@@ -52,7 +58,9 @@ object DI {
                 languagePrefs = get(),
                 aiModelPrefs = get(),
                 cache = get(),
-                progressStore = get()
+                progressStore = get(),
+                sleepStore = get(),
+                weightStore = get()
             )
         }
         single<ChatRepository> {
@@ -60,7 +68,9 @@ object DI {
                 api = get(),
                 cache = get(),
                 aiModelPrefs = get(),
-                progressStore = get()
+                progressStore = get(),
+                sleepStore = get(),
+                weightStore = get()
             )
         }
         single<TrainingRepository> {

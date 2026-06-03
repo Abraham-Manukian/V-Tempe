@@ -1,0 +1,79 @@
+```json
+{
+  "weekIndex": 0,
+  "workouts": [
+    {
+      "id": "workout_0_1",
+      "date": "2024-05-20",
+      "sets": [
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 8,
+          "weightKg": 60.0
+        },
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 8,
+          "weightKg": 60.0
+        },
+        {
+          "exerciseId": "pattern:knee_dominant",
+          "reps": 8,
+          "weightKg": 60.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_push",
+          "reps": 8,
+          "weightKg": 50.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_push",
+          "reps": 8,
+          "weightKg": 50.0
+        },
+        {
+          "exerciseId": "pattern:horizontal_push",
+          "reps": 8,
+          "weightKg": 50.0
+        }
+      ]
+    },
+    {
+      "id": "workout_0_2",
+      "date": "2024-05-22",
+      "sets": [
+        {
+          "exerciseId": "pattern:hinge",
+          "reps": 8,
+          "weightKg": 70.0
+        },
+        {
+          "exerciseId": "pattern:hinge",
+          "reps": 8,
+          "weightKg": 70.0
+        },
+        {
+          "exerciseId": "pattern:hinge",
+          "reps": 8,
+          "weightKg": 70.0
+        },
+        {
+          "exerciseId": "pattern:vertical_pull",
+          "reps": 8,
+          "weightKg": 40.0
+        },
+        {
+          "exerciseId": "pattern:vertical_pull",
+          "reps": 8,
+          "weightKg": 40.0
+        },
+        {
+          "exerciseId": "pattern:vertical_pull",
+          "reps": 8,
+          "weightKg": 40.0
+        }
+      ]
+    }
+  ]
+}
+```

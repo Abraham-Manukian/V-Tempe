@@ -25,7 +25,9 @@ class NetworkAiTrainerRepository(
     private val languagePrefs: LanguagePreferences,
     private val aiModelPrefs: AiModelPreferences,
     private val cache: AiResponseCache,
-    private val progressStore: WorkoutProgressStore
+    private val progressStore: WorkoutProgressStore,
+    private val sleepStore: SleepStore,
+    private val weightStore: WeightStore,
 ) : AiTrainerRepository {
 
     private fun currentLocale(): String? = languagePrefs.getLanguageTag()?.takeIf { it.isNotBlank() }
@@ -37,7 +39,9 @@ class NetworkAiTrainerRepository(
             weekIndex = weekIndex,
             locale = currentLocale(),
             llmMode = currentLlmMode(),
-            recentWorkouts = progressStore.recentSummaries()
+            recentWorkouts = progressStore.recentSummaries(),
+            sleepHistory = sleepStore.recentEntries(),
+            recentWeights = weightStore.recentEntries()
         )
         return when (val result = api.postResult<AiTrainingRequestDto, TrainingPlanDto>("/ai/training", request)) {
             is DataResult.Success -> {
@@ -61,7 +65,9 @@ class NetworkAiTrainerRepository(
             weekIndex = weekIndex,
             locale = currentLocale(),
             llmMode = currentLlmMode(),
-            recentWorkouts = progressStore.recentSummaries()
+            recentWorkouts = progressStore.recentSummaries(),
+            sleepHistory = sleepStore.recentEntries(),
+            recentWeights = weightStore.recentEntries()
         )
         return when (val result = api.postResult<AiNutritionRequestDto, NutritionPlanDto>("/ai/nutrition", request)) {
             is DataResult.Success -> {
@@ -84,7 +90,9 @@ class NetworkAiTrainerRepository(
             profile = profile,
             locale = currentLocale(),
             llmMode = currentLlmMode(),
-            recentWorkouts = progressStore.recentSummaries()
+            recentWorkouts = progressStore.recentSummaries(),
+            sleepHistory = sleepStore.recentEntries(),
+            recentWeights = weightStore.recentEntries()
         )
         return when (val result = api.postResult<AiAdviceRequestDto, AdviceDto>("/ai/sleep", request)) {
             is DataResult.Success -> {
@@ -108,7 +116,9 @@ class NetworkAiTrainerRepository(
             weekIndex = weekIndex,
             locale = currentLocale(),
             llmMode = currentLlmMode(),
-            recentWorkouts = progressStore.recentSummaries()
+            recentWorkouts = progressStore.recentSummaries(),
+            sleepHistory = sleepStore.recentEntries(),
+            recentWeights = weightStore.recentEntries()
         )
         val result = api.postResult<AiBootstrapRequestDto, AiBootstrapResponseDto>("/ai/bootstrap", request)
         return when (result) {

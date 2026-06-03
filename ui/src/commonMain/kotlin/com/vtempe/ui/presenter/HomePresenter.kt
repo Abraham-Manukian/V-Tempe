@@ -1,6 +1,8 @@
 package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
+import com.vtempe.shared.data.repo.SleepStore
+import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.repository.NutritionRepository
@@ -18,7 +20,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -30,16 +31,26 @@ data class HomeState(
     val dailyKcalPlan: Int = 0,
     val sleepMinutes: Int = 0,
     val loading: Boolean = false,
+    /** True when the user hasn't logged their weight this week. */
+    val showWeightCheckin: Boolean = false,
+    /** Last known weight (kg) to pre-fill the check-in field. Null = never logged. */
+    val lastWeightKg: Double? = null,
+    /** Briefly true after a weight is saved to show a confirmation. */
+    val weightSaved: Boolean = false,
 )
 
 interface HomePresenter {
     val state: StateFlow<HomeState>
+    fun logWeight(kg: Double)
+    fun dismissWeightCheckin()
 }
 
 class HomePresenterDelegate(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
     private val ensureCoachData: EnsureCoachData,
+    private val sleepStore: SleepStore,
+    private val weightStore: WeightStore,
     private val scope: CoroutineScope,
 ) : HomePresenter {
 
@@ -51,6 +62,14 @@ class HomePresenterDelegate(
     private var cachedPlan: NutritionPlan? = null
 
     init {
+        // Populate weight check-in and last known weight up front (no IO needed)
+        _state.update {
+            it.copy(
+                showWeightCheckin = weightStore.shouldShowCheckin(),
+                lastWeightKg = weightStore.latestWeight()
+            )
+        }
+
         trainingRepository.observeWorkouts()
             .onEach { workouts ->
                 cachedWorkouts = workouts
@@ -73,23 +92,40 @@ class HomePresenterDelegate(
         }
     }
 
+    override fun logWeight(kg: Double) {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        weightStore.logWeight(today.toString(), kg)
+        _state.update { it.copy(showWeightCheckin = false, lastWeightKg = kg, weightSaved = true) }
+        scope.launch {
+            kotlinx.coroutines.delay(2_000)
+            _state.update { it.copy(weightSaved = false) }
+        }
+    }
+
+    override fun dismissWeightCheckin() {
+        weightStore.dismissCheckin()
+        _state.update { it.copy(showWeightCheckin = false) }
+    }
+
     private fun buildHomeState(workouts: List<Workout>, plan: NutritionPlan?): HomeState {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val todayWorkouts = workouts.filter { it.date == today }
         val todaySets = todayWorkouts.sumOf { it.sets.size }
         // If today has a workout, show its exercise count.
-        // Fall back to the week's total exercise variety so the stat is never zero/one on rest days.
+        // Fall back to the week's total exercise variety so the stat is never zero on rest days.
         val todayExercisesCount = todayWorkouts
             .flatMap { it.sets }.map { it.exerciseId }.distinct().size
             .takeIf { it > 0 }
             ?: workouts.flatMap { it.sets }.map { it.exerciseId }.distinct().size
         val dayKey = today.dayOfWeek.toShortKey()
         val dailyKcalPlan = plan?.mealsByDay?.get(dayKey)?.sumOf { it.kcal } ?: 0
-        return HomeState(
+        val sleepMinutes = sleepStore.getForDate(today.toString())
+        return _state.value.copy(
             workouts = workouts,
             todaySets = todaySets,
             todayExercisesCount = todayExercisesCount,
             dailyKcalPlan = dailyKcalPlan,
+            sleepMinutes = sleepMinutes,
             loading = false
         )
     }

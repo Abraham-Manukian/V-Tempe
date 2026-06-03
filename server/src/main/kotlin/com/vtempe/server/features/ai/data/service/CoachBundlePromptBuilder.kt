@@ -239,5 +239,34 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
             )
         }
     }
+    if (profile.sleepHistory.isNotEmpty()) {
+        appendLine("- Sleep history (last ${profile.sleepHistory.size} nights — use to personalise recovery advice and training intensity):")
+        profile.sleepHistory.take(7).forEach { entry ->
+            val h = entry.durationMinutes / 60
+            val m = entry.durationMinutes % 60
+            appendLine("  ${entry.date}: ${h}h ${m}min")
+        }
+        val avgMinutes = profile.sleepHistory.take(7).map { it.durationMinutes }.average()
+        val avgH = avgMinutes.toInt() / 60
+        val avgM = avgMinutes.toInt() % 60
+        appendLine("  Average sleep: ${avgH}h ${avgM}min/night")
+    }
+    if (profile.recentWeights.isNotEmpty()) {
+        appendLine("- Body weight history (last ${profile.recentWeights.size} measurements — use to fine-tune calorie targets and progression):")
+        profile.recentWeights.take(8).forEach { entry ->
+            appendLine("  ${entry.date}: ${String.format(Locale.US, "%.1f", entry.weightKg)} kg")
+        }
+        if (profile.recentWeights.size >= 2) {
+            val newest = profile.recentWeights.first().weightKg
+            val oldest = profile.recentWeights.last().weightKg
+            val diff = newest - oldest
+            val trend = when {
+                diff > 0.5 -> "gaining weight (+${String.format(Locale.US, "%.1f", diff)} kg)"
+                diff < -0.5 -> "losing weight (${String.format(Locale.US, "%.1f", diff)} kg)"
+                else -> "stable (${String.format(Locale.US, "%+.1f", diff)} kg)"
+            }
+            appendLine("  Weight trend: $trend over the recorded period.")
+        }
+    }
 }
 

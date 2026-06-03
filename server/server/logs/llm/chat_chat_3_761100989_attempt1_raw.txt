@@ -1,0 +1,6 @@
+```json
+{"reply": "Привет! Понял, ты хочешь адаптировать план под домашние тренировки без доступа к залу. Это потребует изменений в тренировочном плане, чтобы использовать только доступное оборудование. Мы перейдем к плану тренировок с использованием гантелей и веса тела. План питания и рекомендации по сну останутся прежними, если ты не запросишь их изменения.",
+ "trainingPlan": {"weekIndex": 1, "workouts": [{ "id": "home_workout_1", "date": "2024-02-26", "sets": [{ "exerciseId": "dumbbell_squat", "reps": 10, "weightKg": 10.0, "rpe": 7.0 }, { "exerciseId": "dumbbell_bench_press", "reps": 8, "weightKg": 8.0, "rpe": 7.0 }, { "exerciseId": "dumbbell_row", "reps": 10, "weightKg": 8.0, "rpe": 7.0 }, { "exerciseId": "push_ups", "reps": 12, "weightKg": null, "rpe": 7.0 }, { "exerciseId": "dumbbell_shoulder_press", "reps": 8, "weightKg": 6.0, "rpe": 7.0 }] }, { "id": "home_workout_2", "date": "2024-02-28", "sets": [{ "exerciseId": "lunges", "reps": 12, "weightKg": null, "rpe": 7.0 }, { "exerciseId": "dumbbell_deadlift", "reps": 10, "weightKg": 12.0, "rpe": 7.0 }, { "exerciseId": "dumbbell_bicep_curl", "reps": 10, "weightKg": 6.0, "rpe": 7.0 }, { "exerciseId": "dumbbell_triceps_extension", "reps": 10, "weightKg": 6.0, "rpe": 7.0 }, { "exerciseId": "plank", "reps": 3, "weightKg": null, "rpe": 7.0 }] }],
+ "nutritionPlan": null,
+ "sleepAdvice": null }
+```

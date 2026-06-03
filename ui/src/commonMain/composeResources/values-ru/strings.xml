@@ -29,6 +29,12 @@
     <string name="home_nutrition_title">Питание</string>
     <string name="home_open_menu">Открыть меню</string>
     <string name="home_macros_sample">Белки 120 г  Жиры 60 г  Углеводы 250 г</string>
+    <string name="home_weight_checkin_title">Текущий вес</string>
+    <string name="home_weight_checkin_subtitle">Обновляйте раз в неделю</string>
+    <string name="home_weight_checkin_hint">Вес, кг</string>
+    <string name="home_weight_checkin_save">Сохранить</string>
+    <string name="home_weight_checkin_saved">✓ Сохранено</string>
+    <string name="home_weight_checkin_skip">Пропустить</string>
 
     <!-- Common day labels -->
     <string name="day_mon_short">Пн</string>

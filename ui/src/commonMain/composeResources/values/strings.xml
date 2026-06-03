@@ -29,6 +29,12 @@
     <string name="home_nutrition_title">Nutrition</string>
     <string name="home_open_menu">Open menu</string>
     <string name="home_macros_sample">Protein 120 g  Fat 60 g  Carbs 250 g</string>
+    <string name="home_weight_checkin_title">Current Weight</string>
+    <string name="home_weight_checkin_subtitle">Update once a week</string>
+    <string name="home_weight_checkin_hint">Weight, kg</string>
+    <string name="home_weight_checkin_save">Save</string>
+    <string name="home_weight_checkin_saved">✓ Saved</string>
+    <string name="home_weight_checkin_skip">Skip</string>
 
     <!-- Common day labels -->
     <string name="day_mon_short">Mon</string>

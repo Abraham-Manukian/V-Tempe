@@ -1,0 +1,614 @@
+{
+  "trainingPlan": {
+    "weekIndex": 0,
+    "workouts": [
+      {
+        "id": "w_0_0",
+        "date": "2026-02-24",
+        "sets": [
+          {
+            "exerciseId": "squat",
+            "reps": 8,
+            "weightKg": 100.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "bench",
+            "reps": 10,
+            "weightKg": 80.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "row",
+            "reps": 10,
+            "weightKg": 70.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "plank",
+            "reps": 1,
+            "weightKg": null,
+            "rpe": 6.0
+          }
+        ]
+      },
+      {
+        "id": "w_0_1",
+        "date": "2026-02-25",
+        "sets": [
+          {
+            "exerciseId": "deadlift",
+            "reps": 6,
+            "weightKg": 120.0,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "ohp",
+            "reps": 8,
+            "weightKg": 50.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "pullup",
+            "reps": 8,
+            "weightKg": null,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "dip",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 7.0
+          }
+        ]
+      },
+      {
+        "id": "w_0_2",
+        "date": "2026-02-26",
+        "sets": [
+          {
+            "exerciseId": "lunge",
+            "reps": 12,
+            "weightKg": 40.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "curl",
+            "reps": 12,
+            "weightKg": 25.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "tricep_extension",
+            "reps": 12,
+            "weightKg": 30.0,
+            "rpe": 7.0
+          },
+          {
+            "exerciseId": "hip_thrust",
+            "reps": 10,
+            "weightKg": 80.0,
+            "rpe": 7.5
+          }
+        ]
+      },
+      {
+        "id": "w_0_3",
+        "date": "2026-02-27",
+        "sets": [
+          {
+            "exerciseId": "squat",
+            "reps": 5,
+            "weightKg": 120.0,
+            "rpe": 8.5
+          },
+          {
+            "exerciseId": "bench",
+            "reps": 8,
+            "weightKg": 85.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "row",
+            "reps": 8,
+            "weightKg": 75.0,
+            "rpe": 7.5
+          },
+          {
+            "exerciseId": "plank",
+            "reps": 1,
+            "weightKg": null,
+            "rpe": 6.5
+          }
+        ]
+      },
+      {
+        "id": "w_0_4",
+        "date": "2026-02-28",
+        "sets": [
+          {
+            "exerciseId": "deadlift",
+            "reps": 5,
+            "weightKg": 130.0,
+            "rpe": 8.5
+          },
+          {
+            "exerciseId": "ohp",
+            "reps": 6,
+            "weightKg": 55.0,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "pullup",
+            "reps": 10,
+            "weightKg": null,
+            "rpe": 8.0
+          },
+          {
+            "exerciseId": "dip",
+            "reps": 12,
+            "weightKg": null,
+            "rpe": 7.5
+          }
+        ]
+      }
+    ]
+  },
+  "nutritionPlan": {
+    "weekIndex": 0,
+    "mealsByDay": {
+      "Mon": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Tue": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Wed": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Thu": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Fri": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Sat": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ],
+      "Sun": [
+        {
+          "name": "Овсянка с протеином",
+          "ingredients": [
+            "овсяные хлопья",
+            "молоко",
+            "сывороточный протеин",
+            "мед"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Курица с рисом",
+          "ingredients": [
+            "куриная грудка",
+            "рис басmati",
+            "олливковое масло"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Творог с орехами",
+          "ingredients": [
+            "творог",
+            "миндаль",
+            "мёд"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        },
+        {
+          "name": "Говядина с картофелем",
+          "ingredients": [
+            "говядина",
+            "картофель",
+            "масло сливочное"
+          ],
+          "kcal": 872,
+          "macros": {
+            "proteinGrams": 70,
+            "fatGrams": 28,
+            "carbsGrams": 85,
+            "kcal": 872
+          }
+        }
+      ]
+    }
+  },
+  "sleepAdvice": {
+    "messages": [
+      "Старайтесь спать 7‑9 часов в сутки, чтобы поддерживать гормональный баланс.",
+      "Ложитесь в постель в одно и то же время каждый день, даже в выходные.",
+      "Избегайте яркого света экранов за час до сна, включайте темный режим.",
+      "Создайте комфортную температуру в комнате (18‑20 °C) и минимальный шум.",
+      "Не употребляйте кофеин после полудня, особенно в тренировочные дни.",
+      "Перед сном практикуйте лёгкую растяжку или дыхательные упражнения для снятия напряжения."
+    ],
+    "disclaimer": "Эти рекомендации носят информационный характер и не заменяют профессиональную медицинскую консультацию."
+  }
+}

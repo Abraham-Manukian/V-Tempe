@@ -6,10 +6,12 @@ import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.model.SleepEntry
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.model.WorkoutSummary
+import com.vtempe.shared.domain.model.WeightEntry
 import com.vtempe.shared.domain.repository.CoachBundle
 import com.vtempe.shared.domain.repository.CoachResponse
 import kotlinx.datetime.LocalDate
@@ -56,13 +58,17 @@ internal data class AiProfileDto(
     val trainingMode: String = "AUTO",
     val coachTrainerId: String = "mia",
     val llmMode: String? = null,
-    val recentWorkouts: List<RecentWorkoutDto> = emptyList()
+    val recentWorkouts: List<RecentWorkoutDto> = emptyList(),
+    val sleepHistory: List<SleepEntry> = emptyList(),
+    val recentWeights: List<WeightEntry> = emptyList()
 ) {
     companion object {
         fun fromDomain(
             profile: Profile,
             llmMode: AiModelMode,
-            recentWorkouts: List<WorkoutSummary> = emptyList()
+            recentWorkouts: List<WorkoutSummary> = emptyList(),
+            sleepHistory: List<SleepEntry> = emptyList(),
+            recentWeights: List<WeightEntry> = emptyList()
         ) = AiProfileDto(
             age = profile.age,
             sex = profile.sex.name,
@@ -80,7 +86,9 @@ internal data class AiProfileDto(
             trainingMode = profile.trainingMode,
             coachTrainerId = profile.coachTrainerId,
             llmMode = llmMode.wireValue,
-            recentWorkouts = recentWorkouts.map(RecentWorkoutDto::fromDomain)
+            recentWorkouts = recentWorkouts.map(RecentWorkoutDto::fromDomain),
+            sleepHistory = sleepHistory,
+            recentWeights = recentWeights
         )
     }
 }
@@ -97,8 +105,10 @@ internal data class AiTrainingRequestDto(
             weekIndex: Int,
             locale: String?,
             llmMode: AiModelMode,
-            recentWorkouts: List<WorkoutSummary> = emptyList()
-        ) = AiTrainingRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
+            recentWorkouts: List<WorkoutSummary> = emptyList(),
+            sleepHistory: List<SleepEntry> = emptyList(),
+            recentWeights: List<WeightEntry> = emptyList()
+        ) = AiTrainingRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts, sleepHistory, recentWeights), weekIndex, locale)
     }
 }
 
@@ -114,8 +124,10 @@ internal data class AiNutritionRequestDto(
             weekIndex: Int,
             locale: String?,
             llmMode: AiModelMode,
-            recentWorkouts: List<WorkoutSummary> = emptyList()
-        ) = AiNutritionRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
+            recentWorkouts: List<WorkoutSummary> = emptyList(),
+            sleepHistory: List<SleepEntry> = emptyList(),
+            recentWeights: List<WeightEntry> = emptyList()
+        ) = AiNutritionRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts, sleepHistory, recentWeights), weekIndex, locale)
     }
 }
 
@@ -129,8 +141,10 @@ internal data class AiAdviceRequestDto(
             profile: Profile,
             locale: String?,
             llmMode: AiModelMode,
-            recentWorkouts: List<WorkoutSummary> = emptyList()
-        ) = AiAdviceRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), locale)
+            recentWorkouts: List<WorkoutSummary> = emptyList(),
+            sleepHistory: List<SleepEntry> = emptyList(),
+            recentWeights: List<WeightEntry> = emptyList()
+        ) = AiAdviceRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts, sleepHistory, recentWeights), locale)
     }
 }
 
@@ -299,8 +313,10 @@ internal data class AiBootstrapRequestDto(
             weekIndex: Int,
             locale: String?,
             llmMode: AiModelMode,
-            recentWorkouts: List<WorkoutSummary> = emptyList()
-        ) = AiBootstrapRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts), weekIndex, locale)
+            recentWorkouts: List<WorkoutSummary> = emptyList(),
+            sleepHistory: List<SleepEntry> = emptyList(),
+            recentWeights: List<WeightEntry> = emptyList()
+        ) = AiBootstrapRequestDto(AiProfileDto.fromDomain(profile, llmMode, recentWorkouts, sleepHistory, recentWeights), weekIndex, locale)
     }
 }
 

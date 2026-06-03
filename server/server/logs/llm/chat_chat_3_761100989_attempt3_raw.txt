@@ -1,0 +1,6 @@
+```json
+{"reply": "Привет! Я понял, тебе нужно адаптировать план под домашние тренировки, так как посещение зала сейчас невозможно. Мы перестроим тренировки, используя твой текущий инвентарь (штанга и гантели).  Я обновлю тренировочный план, чтобы он соответствовал твоим новым условиям. План питания и рекомендации по сну пока останутся прежними, если ты не хочешь их изменить.",
+ "trainingPlan": {"weekIndex": 1, "workouts": [{ "id": "workout_1", "date": "2024-02-26", "sets": [{ "exerciseId": "squat_barbell", "reps": 8, "weightKg": 30.0, "rpe": 7.0 }, { "exerciseId": "bench_press_dumbbells", "reps": 10, "weightKg": 12.5, "rpe": 6.5 }, { "exerciseId": "dumbbell_row", "reps": 12, "weightKg": 10.0, "rpe": 6.0 }] }, { "id": "workout_2", "date": "2024-02-28", "sets": [{ "exerciseId": "deadlift_barbell", "reps": 5, "weightKg": 40.0, "rpe": 8.0 }, { "exerciseId": "overhead_press_dumbbells", "reps": 8, "weightKg": 8.0, "rpe": 7.0 }, { "exerciseId": "dumbbell_lunges", "reps": 10, "weightKg": 7.5, "rpe": 6.5 }] }]},
+ "nutritionPlan": null,
+ "sleepAdvice": null}
+```

@@ -16,7 +16,9 @@ class NetworkChatRepository(
     private val api: ApiClient,
     private val cache: AiResponseCache,
     private val aiModelPrefs: AiModelPreferences,
-    private val progressStore: WorkoutProgressStore
+    private val progressStore: WorkoutProgressStore,
+    private val sleepStore: SleepStore,
+    private val weightStore: WeightStore,
 ) : ChatRepository {
     override suspend fun send(
         profile: Profile,
@@ -28,7 +30,9 @@ class NetworkChatRepository(
             profile = ChatProfileDto.from(
                 profile,
                 aiModelPrefs.getAiModelMode(),
-                progressStore.recentSummaries()
+                progressStore.recentSummaries(),
+                sleepStore.recentEntries(),
+                weightStore.recentEntries()
             ),
             messages = history.map { ChatMsgDto(it.role, it.content) } + ChatMsgDto("user", userMessage),
             locale = locale
@@ -77,11 +81,15 @@ internal data class ChatProfileDto(
     val coachTrainerId: String = "mia",
     val llmMode: String? = null,
     val recentWorkouts: List<com.vtempe.shared.data.network.dto.RecentWorkoutDto> = emptyList(),
+    val sleepHistory: List<com.vtempe.shared.domain.model.SleepEntry> = emptyList(),
+    val recentWeights: List<com.vtempe.shared.domain.model.WeightEntry> = emptyList(),
 ) {
     companion object { fun from(
             p: Profile,
             llmMode: AiModelMode,
-            recentWorkouts: List<com.vtempe.shared.domain.model.WorkoutSummary> = emptyList()
+            recentWorkouts: List<com.vtempe.shared.domain.model.WorkoutSummary> = emptyList(),
+            sleepHistory: List<com.vtempe.shared.domain.model.SleepEntry> = emptyList(),
+            recentWeights: List<com.vtempe.shared.domain.model.WeightEntry> = emptyList()
         ) = ChatProfileDto(
             age = p.age,
             sex = p.sex.name,
@@ -99,7 +107,9 @@ internal data class ChatProfileDto(
             trainingMode = p.trainingMode,
             coachTrainerId = p.coachTrainerId,
             llmMode = llmMode.wireValue,
-            recentWorkouts = recentWorkouts.map(com.vtempe.shared.data.network.dto.RecentWorkoutDto::fromDomain)
+            recentWorkouts = recentWorkouts.map(com.vtempe.shared.data.network.dto.RecentWorkoutDto::fromDomain),
+            sleepHistory = sleepHistory,
+            recentWeights = recentWeights
         )
     }
 }
