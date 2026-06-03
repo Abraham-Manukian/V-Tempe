@@ -133,8 +133,10 @@ class ChatService(
             appendLine()
             appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
             appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes or new plans; otherwise return null for unchanged sections.")
+            appendLine("CRITICAL: The \"reply\" field MUST always be a non-empty string. It is your conversational message to the user.")
+            appendLine("NEVER return an empty string for reply. Even if you only execute actions, still write a short explanation in reply.")
             appendLine("Return STRICT JSON matching this schema (no comments or extra text):")
-            appendLine("{\"reply\": String,")
+            appendLine("{\"reply\": String,  // REQUIRED — never empty, write your response here")
             appendLine(" \"actions\": [{\"type\": String, \"trainingMode\": String?, \"weekIndex\": Int?, \"notes\": String?, \"workoutId\": String?, \"targetExerciseId\": String?, \"replacementExerciseId\": String?}],")
             appendLine(" \"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{ \"id\": String, \"date\": String(YYYY-MM-DD), \"sets\": [{ \"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double? }] }] } | null,")
             appendLine(" \"nutritionPlan\": {\"weekIndex\": Int, \"mealsByDay\": { DayLabel: [{ \"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": { \"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int } }] }, \"shoppingList\": [String]} | null,")
@@ -266,15 +268,21 @@ private fun normalizeChatResponse(
     locale: Locale,
     profile: AiProfile,
     trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver
-): AiChatResponse = response.copy(
-    reply = sanitizeText(response.reply),
+): AiChatResponse {
+    val normalizedReply = sanitizeText(response.reply).ifBlank {
+        // LLM returned empty reply — use fallback so the user sees a real message
+        fallbackChatMessage(locale)
+    }
+    return response.copy(
+        reply = normalizedReply,
     actions = response.actions
         .mapNotNull { normalizeChatAction(it, profile) }
         .distinctBy { "${it.type}|${it.trainingMode.orEmpty()}|${it.weekIndex ?: -1}|${it.workoutId.orEmpty()}|${it.targetExerciseId.orEmpty()}|${it.replacementExerciseId.orEmpty()}" },
-    trainingPlan = response.trainingPlan?.let { normalizeTrainingPlan(it, profile, trainingPlanResolver) },
-    nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
-    sleepAdvice = response.sleepAdvice?.let(::normalizeAdvice)
-)
+        trainingPlan = response.trainingPlan?.let { normalizeTrainingPlan(it, profile, trainingPlanResolver) },
+        nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
+        sleepAdvice = response.sleepAdvice?.let(::normalizeAdvice)
+    )
+}
 
 private fun validateChatActions(actions: List<AiChatAction>): List<String> {
     if (actions.isEmpty()) return emptyList()
