@@ -108,23 +108,23 @@ Barbell box squat sitting back onto low box. LEFT: standing with barbell on back
 ```
 
 ```
-hack_squat
-Hack squat machine exercise. LEFT: in machine at top, legs extended, shoulders under pads. RIGHT: deep squat in machine, thighs below parallel, controlled descent. Key form: full depth, feet on platform shoulder-width.
+hack_squat  →  coach_mia_hack_squat.jpg
+Hack squat MACHINE exercise. LEFT: in machine at top, legs extended, shoulders under pads. RIGHT: deep squat in machine, thighs below parallel, controlled descent. Key form: full depth, feet on platform shoulder-width.
 ```
 
 ```
-leg_extension
+barbell_hack_squat  →  coach_mia_barbell_hack_squat.jpg
+Barbell hack squat with barbell BEHIND the legs on the floor. LEFT: barbell on floor behind heels, athlete reaching back to grip it with overhand grip, hinge position. RIGHT: standing fully upright, barbell at hip level lifted from behind. Key form: keep bar dragging close to legs all the way up, neutral back.
+```
+
+```
+leg_extension  →  coach_mia_leg_extension.jpg
 Seated leg extension machine. LEFT: seated, knees bent at 90°, ankles behind the padded lever. RIGHT: legs fully extended and locked out, quadriceps fully contracted. Key form: controlled extension, squeeze quads at top.
 ```
 
 ```
-jump_squat
+jump_squat  →  coach_mia_jump_squat.jpg
 Explosive jump squat, bodyweight. LEFT: in athletic squat position, arms back, about to jump. RIGHT: at peak of jump — fully airborne, arms overhead, full body extension. Key form: land softly, immediately into next rep.
-```
-
-```
-hack_squat
-Barbell hack squat (barbell behind legs). LEFT: barbell on floor behind heels, reaching back to grip it, hinge position. RIGHT: standing fully upright, barbell at hip level, lifted from behind legs. Key form: keep bar close to legs, neutral back.
 ```
 
 ---

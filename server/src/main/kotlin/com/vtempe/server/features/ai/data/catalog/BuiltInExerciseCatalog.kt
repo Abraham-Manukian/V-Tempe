@@ -96,9 +96,19 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
         ),
         ExerciseCatalogItem(
             id = "hack_squat",
+            aliases = setOf("machine_hack_squat"),
             primaryPattern = MovementPattern.KNEE_DOMINANT,
             supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
             priority = 40
+        ),
+        ExerciseCatalogItem(
+            id = "barbell_hack_squat",
+            aliases = setOf("hack_lift", "behind_leg_squat"),
+            primaryPattern = MovementPattern.KNEE_DOMINANT,
+            secondaryPatterns = setOf(MovementPattern.HINGE),
+            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            requiredEquipment = setOf("barbell"),
+            priority = 45
         ),
 
         // ── HINGE — hip hinge / posterior chain ─────────────────────────────
