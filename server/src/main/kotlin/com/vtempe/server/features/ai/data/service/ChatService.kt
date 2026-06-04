@@ -105,6 +105,7 @@ class ChatService(
         val profileJson = json.encodeToString(AiProfile.serializer(), req.profile)
         val profileSummary = buildChatProfileSummary(req.profile)
         val restrictionsSummary = nutritionRestrictionsPrompt(req.profile)
+        val injuryPrompt = buildInjuryRestrictionsPrompt(req.profile.injuries)
         val trainingResolverPrompt = buildTrainingResolverPrompt(
             exerciseCatalog = exerciseCatalog,
             trainingPlanResolver = trainingPlanResolver,
@@ -118,6 +119,14 @@ class ChatService(
 
         val history = req.messages.dropLast(1).joinToString("\n") { "${it.role}: ${it.content}" }
 
+        // Serialize current plans so the coach can make targeted edits
+        val currentTrainingPlanJson = req.currentTrainingPlan?.let {
+            runCatching { json.encodeToString(com.vtempe.server.shared.dto.training.AiTrainingResponse.serializer(), it) }.getOrNull()
+        }
+        val currentNutritionPlanJson = req.currentNutritionPlan?.let {
+            runCatching { json.encodeToString(com.vtempe.server.shared.dto.nutrition.AiNutritionResponse.serializer(), it) }.getOrNull()
+        }
+
         return buildString {
             appendLine("You are a professional AI strength coach, nutritionist, and recovery expert guiding the same athlete long-term.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply in that language and measurement system.")
@@ -127,12 +136,32 @@ class ChatService(
             appendLine()
             appendLine("KEY FACTS:")
             append(profileSummary)
+            if (injuryPrompt.isNotBlank()) {
+                appendLine()
+                append(injuryPrompt)
+            }
             appendLine()
             appendLine("NUTRITION RESTRICTIONS (NON-NEGOTIABLE):")
             appendLine(restrictionsSummary)
+            if (currentTrainingPlanJson != null) {
+                appendLine()
+                appendLine("CURRENT TRAINING PLAN (full week — use this when the user asks to modify specific workouts, exercises, sets, reps, or weights):")
+                appendLine(currentTrainingPlanJson)
+            }
+            if (currentNutritionPlanJson != null) {
+                appendLine()
+                appendLine("CURRENT NUTRITION PLAN (full week — use this when the user asks to modify specific meals, days, or ingredients):")
+                appendLine(currentNutritionPlanJson)
+            }
             appendLine()
             appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
-            appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes or new plans; otherwise return null for unchanged sections.")
+            appendLine("GRANULAR EDITING: When the user asks to change one exercise, one meal, one day, or one set of parameters:")
+            appendLine("  - Return the FULL updated plan (trainingPlan or nutritionPlan) with ONLY the requested item changed.")
+            appendLine("  - Do NOT rebuild the entire plan from scratch — copy the current plan JSON and apply the minimal change.")
+            appendLine("  - Example: user says 'replace squats on Monday with leg press' → return the full trainingPlan with only that set changed.")
+            appendLine("  - Example: user says 'I want chicken instead of salmon on Tuesday dinner' → return the full nutritionPlan with only that meal changed.")
+            appendLine("  - Example: user says 'I can only do 3 sets of bench press not 5, and reduce weight to 60kg' → update only those parameters.")
+            appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes; otherwise return null for unchanged sections.")
             appendLine("CRITICAL: The \"reply\" field MUST always be a non-empty string. It is your conversational message to the user.")
             appendLine("NEVER return an empty string for reply. Even if you only execute actions, still write a short explanation in reply.")
             appendLine("Return STRICT JSON matching this schema (no comments or extra text):")

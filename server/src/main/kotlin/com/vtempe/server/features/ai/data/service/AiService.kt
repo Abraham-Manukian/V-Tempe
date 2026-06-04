@@ -372,7 +372,7 @@ class AiService(
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
                 val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
-                validateTrainingPlan(normalized, exerciseCatalog)?.let(::listOf) ?: emptyList()
+                validateTrainingPlan(normalized, exerciseCatalog, profile?.injuries.orEmpty())?.let(::listOf) ?: emptyList()
             },
             extractionMode = ExtractionMode.FirstJsonObject
         )
@@ -600,7 +600,7 @@ class AiService(
         if (training == null) {
             errors += "trainingPlan was null"
         } else {
-            validateTrainingPlan(training, exerciseCatalog)?.let { errors += "trainingPlan: $it" }
+            validateTrainingPlan(training, exerciseCatalog, profile.injuries)?.let { errors += "trainingPlan: $it" }
         }
 
         val nutrition = bundle.nutritionPlan

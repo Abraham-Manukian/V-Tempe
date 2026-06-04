@@ -43,6 +43,11 @@ internal fun buildBundlePrompt(
         appendLine("KEY FACTS ABOUT THE ATHLETE:")
         append(preferencesSummary)
         appendLine()
+        val injuryPrompt = buildInjuryRestrictionsPrompt(request.profile.injuries)
+        if (injuryPrompt.isNotBlank()) {
+            appendLine(injuryPrompt)
+            appendLine()
+        }
         appendLine("NUTRITION RESTRICTIONS (NON-NEGOTIABLE — READ BEFORE GENERATING ANY MEAL):")
         appendLine(restrictionsSummary)
         appendLine()

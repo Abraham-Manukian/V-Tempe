@@ -83,10 +83,23 @@ internal fun normalizeTrainingPlan(
 
 internal fun validateTrainingPlan(
     plan: AiTrainingResponse,
-    exerciseCatalog: ExerciseCatalog = builtInExerciseCatalog
+    exerciseCatalog: ExerciseCatalog = builtInExerciseCatalog,
+    injuries: List<String> = emptyList()
 ): String? {
     if (plan.workouts.isEmpty()) return "workouts array must contain at least one workout"
     if (plan.workouts.any { it.sets.isEmpty() }) return "each workout must include at least one set"
+
+    val forbiddenExercises = InjuryRestrictions.allForbiddenFor(injuries)
+    if (forbiddenExercises.isNotEmpty()) {
+        plan.workouts.forEachIndexed { wi, workout ->
+            workout.sets.forEachIndexed { si, set ->
+                val id = normalizeExerciseToken(set.exerciseId)
+                if (id in forbiddenExercises) {
+                    return "workout[$wi].sets[$si].exerciseId '$id' is contraindicated for the user's injuries"
+                }
+            }
+        }
+    }
 
     val allowedExerciseIds = exerciseCatalog.supportedExerciseIds()
     val workoutIds = mutableSetOf<String>()

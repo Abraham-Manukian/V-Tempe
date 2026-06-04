@@ -2,8 +2,12 @@
 
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.dto.ChatResponse
+import com.vtempe.shared.data.network.dto.NutritionPlanDto
+import com.vtempe.shared.data.network.dto.TrainingPlanDto
 import com.vtempe.shared.domain.model.AiModelMode
+import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ChatRepository
@@ -24,7 +28,9 @@ class NetworkChatRepository(
         profile: Profile,
         history: List<ChatMessage>,
         userMessage: String,
-        locale: String?
+        locale: String?,
+        currentTrainingPlan: TrainingPlan?,
+        currentNutritionPlan: NutritionPlan?
     ): DataResult<CoachResponse> {
         val request = ChatRequest(
             profile = ChatProfileDto.from(
@@ -35,7 +41,9 @@ class NetworkChatRepository(
                 weightStore.recentEntries()
             ),
             messages = history.map { ChatMsgDto(it.role, it.content) } + ChatMsgDto("user", userMessage),
-            locale = locale
+            locale = locale,
+            currentTrainingPlan = currentTrainingPlan?.let { TrainingPlanDto.fromDomain(it) },
+            currentNutritionPlan = currentNutritionPlan?.let { NutritionPlanDto.fromDomain(it) }
         )
         val result = api.postResult<ChatRequest, ChatResponse>("/ai/chat", request)
         return when (result) {
@@ -121,6 +129,8 @@ internal data class ChatMsgDto(val role: String, val content: String)
 internal data class ChatRequest(
     val profile: ChatProfileDto,
     val messages: List<ChatMsgDto>,
-    val locale: String? = null
+    val locale: String? = null,
+    val currentTrainingPlan: TrainingPlanDto? = null,
+    val currentNutritionPlan: NutritionPlanDto? = null
 )
 

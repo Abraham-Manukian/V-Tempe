@@ -116,7 +116,14 @@ data class CoachResponse(
 )
 
 interface ChatRepository {
-    suspend fun send(profile: Profile, history: List<ChatMessage>, userMessage: String, locale: String?): DataResult<CoachResponse>
+    suspend fun send(
+        profile: Profile,
+        history: List<ChatMessage>,
+        userMessage: String,
+        locale: String?,
+        currentTrainingPlan: TrainingPlan? = null,
+        currentNutritionPlan: NutritionPlan? = null
+    ): DataResult<CoachResponse>
 }
 
 /**

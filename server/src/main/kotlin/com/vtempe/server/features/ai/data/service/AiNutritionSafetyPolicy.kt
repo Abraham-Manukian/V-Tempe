@@ -246,24 +246,60 @@ private val tagForbiddenDescription: Map<FoodRestrictionTag, String> = mapOf(
 
 internal fun nutritionRestrictionsPrompt(profile: AiProfile): String {
     val restrictions = buildNutritionRestrictions(profile)
-    if (restrictions.isEmpty) {
-        return "- No explicit allergy restrictions were provided."
-    }
     return buildString {
-        appendLine("!!! ABSOLUTE DIETARY RESTRICTIONS — NEVER VIOLATE UNDER ANY CIRCUMSTANCES !!!")
-        restrictions.tags.forEach { tag ->
-            val desc = tagForbiddenDescription[tag] ?: tag.name
-            appendLine("- STRICTLY FORBIDDEN: $desc")
+        if (restrictions.isEmpty) {
+            appendLine("- No explicit allergy restrictions were provided.")
+        } else {
+            appendLine("!!! ABSOLUTE DIETARY RESTRICTIONS — NEVER VIOLATE UNDER ANY CIRCUMSTANCES !!!")
+            restrictions.tags.forEach { tag ->
+                val desc = tagForbiddenDescription[tag] ?: tag.name
+                appendLine("- STRICTLY FORBIDDEN: $desc")
+            }
+            val custom = restrictions.customTerms.take(10).joinToString(", ")
+            if (custom.isNotBlank()) {
+                appendLine("- ALSO FORBIDDEN (user-specified): $custom")
+            }
+            if (restrictions.allowLactoseFreeAlternatives) {
+                appendLine("- Lactose intolerance: regular milk/cream/yogurt are FORBIDDEN; lactose-free alternatives are allowed.")
+            }
+            appendLine("Every single meal and every ingredient MUST comply. Any meal containing even one forbidden item will be REJECTED. Use only fully compliant alternatives.")
+            appendLine()
         }
-        val custom = restrictions.customTerms.take(10).joinToString(", ")
-        if (custom.isNotBlank()) {
-            appendLine("- ALSO FORBIDDEN (user-specified): $custom")
+
+        // ── Budget food guidance ─────────────────────────────────────────────
+        val budget = profile.budgetLevel ?: 2
+        appendLine("FOOD BUDGET LEVEL: $budget / 3")
+        when (budget) {
+            1 -> {
+                appendLine("BUDGET 1 (LOW — student / tight budget). STRICT RULES:")
+                appendLine("- Allowed proteins: eggs, canned tuna, canned sardines/mackerel, chicken thighs/drumsticks,")
+                appendLine("  ground beef (regular), lentils, chickpeas, kidney beans, cottage cheese, milk, plain yogurt, peanut butter.")
+                appendLine("- Allowed carbs: oats, white/brown rice, potatoes, sweet potatoes, pasta, bread.")
+                appendLine("- Allowed vegetables: frozen mixed vegetables, cabbage, carrots, onion, garlic, tomatoes (canned ok), cucumber.")
+                appendLine("- Allowed fruits: bananas, apples, oranges, frozen berries.")
+                appendLine("- NEVER suggest: salmon, tuna steak, shrimp, crab, lobster, ribeye, sirloin, tenderloin,")
+                appendLine("  Greek yogurt (expensive), protein powder, quinoa, avocado, fresh berries (unless in season),")
+                appendLine("  specialty cheeses (feta, mozzarella, brie), organic produce, pre-cut or packaged convenience foods.")
+                appendLine("- Keep meal ingredients to 4-6 items max. Simple, repeatable meals.")
+            }
+            2 -> {
+                appendLine("BUDGET 2 (MEDIUM). GUIDELINES:")
+                appendLine("- Allowed proteins: chicken breast, ground beef (lean), turkey, eggs, Greek yogurt, cottage cheese,")
+                appendLine("  canned fish, frozen salmon (max 1-2 times per week), canned tuna.")
+                appendLine("- Good variety of seasonal vegetables and fruits.")
+                appendLine("- Carbs: oats, rice, pasta, sweet potatoes, whole grain bread.")
+                appendLine("- Avoid: daily salmon or steak, premium specialty items, exotic superfoods.")
+                appendLine("- Fresh salmon ok 1-2x/week max. No premium cuts of beef more than once/week.")
+            }
+            else -> {
+                appendLine("BUDGET 3 (HIGH). Full variety allowed:")
+                appendLine("- Salmon, steak, shrimp, premium proteins, fresh seasonal produce, specialty items freely.")
+                appendLine("- Optimize for nutrition quality and taste variety.")
+            }
         }
-        if (restrictions.allowLactoseFreeAlternatives) {
-            appendLine("- Lactose intolerance: regular milk/cream/yogurt are FORBIDDEN; lactose-free alternatives are allowed.")
-        }
-        appendLine("Every single meal and every ingredient MUST comply. Any meal containing even one forbidden item will be REJECTED. Use only fully compliant alternatives.")
         appendLine()
+
+        // ── Allergen tagging ────────────────────────────────────────────────
         appendLine("ALLERGEN TAGGING — MANDATORY:")
         appendLine("For EVERY meal object, include an \"allergenTags\" array listing which of the following allergens are present:")
         appendLine("  ${FoodRestrictionTag.entries.joinToString(", ") { it.name }}")

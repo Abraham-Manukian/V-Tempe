@@ -120,7 +120,9 @@ object DI {
                 chatRepository = get(),
                 languagePrefs = get(),
                 materializeCoachActions = get(),
-                coachCache = get()
+                coachCache = get(),
+                trainingRepository = get(),
+                nutritionRepository = get()
             )
         }
     }
