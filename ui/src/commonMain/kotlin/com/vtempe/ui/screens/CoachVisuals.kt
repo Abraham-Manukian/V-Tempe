@@ -38,14 +38,130 @@ object DefaultCoachVisualProvider : CoachVisualProvider {
         fallback: DrawableResource
     ): DrawableResource {
         val normalizedTrainer = normalizeCoachTrainerId(trainerId)
+        // Resolve visual alias so variant exercises share the "parent" exercise photo
         val normalizedExercise = exerciseId.lowercase().replace('-', '_')
+        val lookupId = exerciseVisualAlias[normalizedExercise] ?: normalizedExercise
         return when (normalizedTrainer) {
-            CoachTrainerIds.ARTUR -> arturExerciseIllustrations[normalizedExercise]
-            CoachTrainerIds.VTEMPE -> vtempeExerciseIllustrations[normalizedExercise]
-            else -> miaExerciseIllustrations[normalizedExercise]
+            CoachTrainerIds.ARTUR -> arturExerciseIllustrations[lookupId]
+            CoachTrainerIds.VTEMPE -> vtempeExerciseIllustrations[lookupId]
+            else -> miaExerciseIllustrations[lookupId]
         } ?: fallback
     }
 }
+
+/**
+ * Maps exercise IDs that don't have their own photo to the most visually similar
+ * exercise that does. This avoids generating hundreds of redundant coach photos —
+ * e.g. goblet_squat looks like a squat, chin_up looks like a pullup.
+ *
+ * Exercises not listed here fall through to the SVG illustration fallback.
+ */
+private val exerciseVisualAlias: Map<String, String> = mapOf(
+    // ── Squat / knee-dominant family ─────────────────────────────────────────
+    "goblet_squat"          to "squat",
+    "front_squat"           to "squat",
+    "sumo_squat"            to "squat",
+    "box_squat"             to "squat",
+    "wall_sit"              to "squat",
+    "jump_squat"            to "squat",
+    "hack_squat"            to "leg_press",
+    "leg_extension"         to "leg_press",
+    "leg_curl"              to "leg_press",
+    // ── Single-leg / lunge family ─────────────────────────────────────────────
+    "reverse_lunge"         to "lunge",
+    "lateral_lunge"         to "lunge",
+    "bulgarian_split_squat" to "lunge",
+    "step_up"               to "lunge",
+    "pistol_squat"          to "lunge",
+    "skater_lunge"          to "lunge",
+    // ── Deadlift / hinge family ───────────────────────────────────────────────
+    "romanian_deadlift"     to "deadlift",
+    "sumo_deadlift"         to "deadlift",
+    "single_leg_deadlift"   to "deadlift",
+    "good_morning"          to "deadlift",
+    "nordic_curl"           to "deadlift",
+    "glute_bridge"          to "hip_thrust",
+    "kettlebell_swing"      to "hip_thrust",
+    // ── Horizontal push / chest family ───────────────────────────────────────
+    "incline_bench"         to "bench",
+    "dumbbell_fly"          to "bench",
+    "cable_fly"             to "bench",
+    "close_grip_bench"      to "bench",
+    "chest_press_machine"   to "bench",
+    "diamond_pushup"        to "pushup",
+    "wide_pushup"           to "pushup",
+    "decline_pushup"        to "pushup",
+    "incline_pushup"        to "pushup",
+    "pike_pushup"           to "pushup",
+    // ── Horizontal pull / row family ──────────────────────────────────────────
+    "dumbbell_row"          to "row",
+    "cable_row"             to "row",
+    "t_bar_row"             to "row",
+    "band_row"              to "row",
+    "chest_supported_row"   to "row",
+    "face_pull"             to "row",
+    "inverted_row"          to "row",
+    "rowing_machine"        to "row",
+    "battle_rope"           to "row",
+    // ── Vertical pull / pullup bar family ────────────────────────────────────
+    "chin_up"               to "pullup",
+    "wide_pullup"           to "pullup",
+    "assisted_pullup"       to "pullup",
+    "muscle_up"             to "pullup",
+    "lat_pulldown"          to "pullup",
+    "band_pulldown"         to "pullup",
+    "hanging_leg_raise"     to "pullup",
+    "toes_to_bar"           to "pullup",
+    "l_sit"                 to "pullup",
+    // ── Vertical push / shoulder family ──────────────────────────────────────
+    "dumbbell_shoulder_press" to "ohp",
+    "arnold_press"          to "ohp",
+    "lateral_raise"         to "ohp",
+    "front_raise"           to "ohp",
+    "handstand_pushup"      to "ohp",
+    "upright_row"           to "ohp",
+    "military_press_machine" to "ohp",
+    // ── Biceps family ─────────────────────────────────────────────────────────
+    "hammer_curl"           to "curl",
+    "incline_curl"          to "curl",
+    "concentration_curl"    to "curl",
+    "cable_curl"            to "curl",
+    "reverse_curl"          to "curl",
+    // ── Triceps family ───────────────────────────────────────────────────────
+    "skull_crusher"         to "tricep_extension",
+    "tricep_pushdown"       to "tricep_extension",
+    "tricep_kickback"       to "tricep_extension",
+    "overhead_tricep_extension" to "tricep_extension",
+    // ── Core family ───────────────────────────────────────────────────────────
+    "side_plank"            to "plank",
+    "crunch"                to "plank",
+    "bicycle_crunch"        to "plank",
+    "leg_raise"             to "plank",
+    "mountain_climber"      to "plank",
+    "russian_twist"         to "plank",
+    "dead_bug"              to "plank",
+    "hollow_body"           to "plank",
+    "v_up"                  to "plank",
+    "ab_wheel"              to "plank",
+    "cable_crunch"          to "plank",
+    // ── Cardio family ─────────────────────────────────────────────────────────
+    "sprint"                to "run",
+    "burpee"                to "run",
+    "jumping_jack"          to "run",
+    "high_knees"            to "run",
+    "jump_rope"             to "run",
+    "box_jump"              to "run",
+    "stair_climb"           to "run",
+    "skater_jump"           to "run",
+    "swim"                  to "run",
+    "elliptical"            to "bike",
+    // ── Mobility / recovery family ────────────────────────────────────────────
+    "stretching"            to "yoga",
+    "foam_rolling"          to "yoga",
+    "hip_flexor_stretch"    to "yoga",
+    "world_greatest_stretch" to "yoga",
+    "cat_cow"               to "yoga"
+)
 
 fun normalizeCoachTrainerId(raw: String?): String = CoachTrainerIds.normalize(raw)
 
