@@ -67,6 +67,15 @@ internal fun buildBundlePrompt(
         appendLine()
         val workoutDates = computeWorkoutDatesForWeek(request.profile.weeklySchedule, today)
         appendLine("TRAINING RULES:")
+        val expLevel = request.profile.experienceLevel
+        val maxDifficulty = (expLevel + 1).coerceAtMost(5)
+        appendLine("- User experience level: $expLevel / 5. ONLY use exercises with difficulty ≤ $maxDifficulty.")
+        appendLine("  Level 1 = beginner: stick to wall sits, pushups, goblet squats, lat pulldowns, cable rows.")
+        appendLine("  Level 2 = novice: add squats, deadlifts, dumbbell rows, pulldowns, lunges.")
+        appendLine("  Level 3 = intermediate: barbell lifts, pullups, dips, romanian deadlifts.")
+        appendLine("  Level 4 = advanced: bulgarian split squats, single-leg deadlifts, wide pullups, nordic curls.")
+        appendLine("  Level 5 = elite: pistol squats, muscle-ups, handstand pushups, L-sits, toes-to-bar.")
+        appendLine("  NEVER assign pistol squats, muscle-ups, handstand pushups, or L-sits to level 1-3 users.")
         if (workoutDates.isNotEmpty()) {
             appendLine("- MANDATORY workout dates (do NOT deviate — use these exact ISO dates, one workout per date):")
             appendLine("  ${workoutDates.joinToString(", ")}")

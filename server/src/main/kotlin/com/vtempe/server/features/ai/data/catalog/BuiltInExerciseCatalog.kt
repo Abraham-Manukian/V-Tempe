@@ -6,853 +6,569 @@ import com.vtempe.server.features.ai.domain.model.TrainingMode
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 
 /**
- * Master exercise catalog — 90+ exercises covering:
- *  • GYM (barbell, machines, cables, dumbbells)
- *  • HOME (bodyweight + dumbbells / bands / kettlebell)
- *  • OUTDOOR / PULLUP BAR (турник, park)
- *  • CARDIO for fat loss / conditioning
- *  • Mobility & recovery
+ * Master exercise catalog — 107 exercises.
  *
- * requiredEquipment is only set for HOME/OUTDOOR exercises that NEED the gear;
- * GYM mode bypasses the equipment check so machines etc. are always available.
+ * difficulty: 1 = absolute beginner  2 = novice  3 = intermediate
+ *             4 = advanced            5 = elite / requires years of practice
  *
- * Priority: lower = preferred candidate when the resolver picks for a pattern.
- *  10 = primary compound   20 = strong alternative
- *  30 = good variation     40 = accessory / advanced
- *  50 = isolation / machine
+ * Matched against AiProfile.experienceLevel (1–5) in the resolver so that
+ * beginners receive wall-sits and goblet-squats, not pistol-squats and muscle-ups.
+ *
+ * priority: lower = preferred when resolver picks for a pattern.
+ *   10 primary compound  20 strong alt  30 variation  40 accessory  50 machine/isolation
  */
 class BuiltInExerciseCatalog : ExerciseCatalog {
 
     private val items = listOf(
 
-        // ── KNEE DOMINANT — squat / quad ────────────────────────────────────
-        ExerciseCatalogItem(
-            id = "squat",
-            aliases = setOf("back_squat", "barbell_squat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "rack"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "goblet_squat",
-            aliases = setOf("goblet"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "kettlebell"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "front_squat",
-            aliases = setOf("frontsquat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "leg_press",
-            aliases = setOf("legpress"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "sumo_squat",
-            aliases = setOf("plie_squat", "wide_squat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            secondaryPatterns = setOf(MovementPattern.HINGE),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "wall_sit",
-            aliases = setOf("wall_squat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "box_squat",
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "rack"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "leg_extension",
-            aliases = setOf("quad_extension"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 50
-        ),
-        ExerciseCatalogItem(
-            id = "jump_squat",
-            aliases = setOf("squat_jump"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            secondaryPatterns = setOf(MovementPattern.CONDITIONING),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "hack_squat",
-            aliases = setOf("machine_hack_squat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "barbell_hack_squat",
-            aliases = setOf("hack_lift", "behind_leg_squat"),
-            primaryPattern = MovementPattern.KNEE_DOMINANT,
-            secondaryPatterns = setOf(MovementPattern.HINGE),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 45
-        ),
+        // ── KNEE DOMINANT ──────────────────────────────────────────────────────
+        ExerciseCatalogItem("squat", setOf("back_squat","barbell_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell","rack"), priority=10, difficulty=3),
 
-        // ── HINGE — hip hinge / posterior chain ─────────────────────────────
-        ExerciseCatalogItem(
-            id = "deadlift",
-            aliases = setOf("conventional_deadlift"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "romanian_deadlift",
-            aliases = setOf("rdl", "stiff_leg_deadlift"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "hip_thrust",
-            aliases = setOf("hipthrust", "hip_thrusts", "barbell_hip_thrust"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "glute_bridge",
-            aliases = setOf("bridge"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "kettlebell_swing",
-            aliases = setOf("kb_swing", "swing"),
-            primaryPattern = MovementPattern.HINGE,
-            secondaryPatterns = setOf(MovementPattern.CONDITIONING),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("kettlebell", "dumbbells"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "single_leg_deadlift",
-            aliases = setOf("single_leg_rdl", "sl_deadlift"),
-            primaryPattern = MovementPattern.HINGE,
-            secondaryPatterns = setOf(MovementPattern.SINGLE_LEG),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "sumo_deadlift",
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "good_morning",
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "nordic_curl",
-            aliases = setOf("nordic_hamstring"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "leg_curl",
-            aliases = setOf("hamstring_curl"),
-            primaryPattern = MovementPattern.HINGE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 50
-        ),
+        ExerciseCatalogItem("goblet_squat", setOf("goblet"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","kettlebell"), priority=15, difficulty=2),
 
-        // ── SINGLE LEG — unilateral lower body ──────────────────────────────
-        ExerciseCatalogItem(
-            id = "lunge",
-            aliases = setOf("walking_lunge", "forward_lunge"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            secondaryPatterns = setOf(MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "reverse_lunge",
-            aliases = setOf("step_back_lunge"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "bulgarian_split_squat",
-            aliases = setOf("split_squat", "rear_elevated_split_squat", "ress"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            secondaryPatterns = setOf(MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "step_up",
-            aliases = setOf("box_step_up"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            secondaryPatterns = setOf(MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "lateral_lunge",
-            aliases = setOf("side_lunge"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "pistol_squat",
-            aliases = setOf("single_leg_squat"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "skater_lunge",
-            aliases = setOf("skater_squat", "curtsy_lunge"),
-            primaryPattern = MovementPattern.SINGLE_LEG,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 40
-        ),
+        ExerciseCatalogItem("front_squat", setOf("frontsquat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=20, difficulty=4),
 
-        // ── HORIZONTAL PUSH — chest / triceps ───────────────────────────────
-        ExerciseCatalogItem(
-            id = "bench",
-            aliases = setOf("bench_press", "flat_bench"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("bench", "barbell", "dumbbells"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "incline_bench",
-            aliases = setOf("incline_press"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("bench", "barbell", "dumbbells"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "pushup",
-            aliases = setOf("push_up", "push_ups"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "dip",
-            aliases = setOf("parallel_bar_dip", "chest_dip"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            secondaryPatterns = setOf(MovementPattern.ARM_EXTENSION),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("bench", "trx", "pullup_bar"),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "diamond_pushup",
-            aliases = setOf("close_grip_pushup", "tricep_pushup"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            secondaryPatterns = setOf(MovementPattern.ARM_EXTENSION),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "wide_pushup",
-            aliases = setOf("wide_grip_pushup"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "decline_pushup",
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "incline_pushup",
-            aliases = setOf("elevated_pushup"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "dumbbell_fly",
-            aliases = setOf("chest_fly", "db_fly"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "bench"),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "cable_fly",
-            aliases = setOf("cable_chest_fly"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 45
-        ),
-        ExerciseCatalogItem(
-            id = "pike_pushup",
-            aliases = setOf("pike_push_up"),
-            primaryPattern = MovementPattern.HORIZONTAL_PUSH,
-            secondaryPatterns = setOf(MovementPattern.VERTICAL_PUSH),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 35
-        ),
+        ExerciseCatalogItem("leg_press", setOf("legpress"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=25, difficulty=1),
 
-        // ── HORIZONTAL PULL — back / rear deltoids ──────────────────────────
-        ExerciseCatalogItem(
-            id = "row",
-            aliases = setOf("bent_over_row", "barbell_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands", "trx"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "dumbbell_row",
-            aliases = setOf("db_row", "one_arm_row", "single_arm_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "inverted_row",
-            aliases = setOf("bodyweight_row", "australian_pullup"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar", "trx"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "cable_row",
-            aliases = setOf("seated_cable_row", "low_cable_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "band_row",
-            aliases = setOf("resistance_band_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("bands"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "face_pull",
-            aliases = setOf("cable_face_pull"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("bands"),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "chest_supported_row",
-            aliases = setOf("incline_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("bench", "dumbbells"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "t_bar_row",
-            aliases = setOf("tbar_row"),
-            primaryPattern = MovementPattern.HORIZONTAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell"),
-            priority = 30
-        ),
+        ExerciseCatalogItem("sumo_squat", setOf("plie_squat","wide_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(MovementPattern.HINGE),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=2),
 
-        // ── VERTICAL PUSH — shoulders / overhead ────────────────────────────
-        ExerciseCatalogItem(
-            id = "ohp",
-            aliases = setOf("overhead_press", "military_press", "standing_press"),
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands", "kettlebell"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "dumbbell_shoulder_press",
-            aliases = setOf("db_shoulder_press", "seated_dumbbell_press"),
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "arnold_press",
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells"),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "lateral_raise",
-            aliases = setOf("side_raise", "lateral_delt_raise"),
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "bands", "kettlebell"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "front_raise",
-            aliases = setOf("anterior_raise"),
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "bands"),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "handstand_pushup",
-            aliases = setOf("hspu", "wall_handstand_pushup"),
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "upright_row",
-            primaryPattern = MovementPattern.VERTICAL_PUSH,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands"),
-            priority = 40
-        ),
+        ExerciseCatalogItem("wall_sit", setOf("wall_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=1),
 
-        // ── VERTICAL PULL — lats / upper back ───────────────────────────────
-        ExerciseCatalogItem(
-            id = "pullup",
-            aliases = setOf("pull_up", "pullups", "overhand_pullup"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar", "trx"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "chin_up",
-            aliases = setOf("chinup", "supinated_pullup", "underhand_pullup"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            secondaryPatterns = setOf(MovementPattern.ARM_FLEXION),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "wide_pullup",
-            aliases = setOf("wide_grip_pullup"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "lat_pulldown",
-            aliases = setOf("cable_pulldown", "pulldown"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "band_pulldown",
-            aliases = setOf("resistance_band_pulldown"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("bands"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "muscle_up",
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "assisted_pullup",
-            aliases = setOf("band_assisted_pullup"),
-            primaryPattern = MovementPattern.VERTICAL_PULL,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("bands"),
-            priority = 30
-        ),
+        ExerciseCatalogItem("box_squat", emptySet(),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell","rack"), priority=30, difficulty=3),
 
-        // ── CORE — abs / trunk stability ────────────────────────────────────
-        ExerciseCatalogItem(
-            id = "plank",
-            aliases = setOf("plank_hold"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "side_plank",
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "crunch",
-            aliases = setOf("ab_crunch"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "bicycle_crunch",
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "leg_raise",
-            aliases = setOf("lying_leg_raise"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "hanging_leg_raise",
-            aliases = setOf("hanging_knee_raise"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "toes_to_bar",
-            aliases = setOf("toes2bar", "ttb"),
-            primaryPattern = MovementPattern.CORE,
-            secondaryPatterns = setOf(MovementPattern.VERTICAL_PULL),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "mountain_climber",
-            aliases = setOf("mountain_climbers"),
-            primaryPattern = MovementPattern.CORE,
-            secondaryPatterns = setOf(MovementPattern.CONDITIONING),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "russian_twist",
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "dead_bug",
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "hollow_body",
-            aliases = setOf("hollow_hold"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "v_up",
-            aliases = setOf("vup", "jackknife"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "cable_crunch",
-            aliases = setOf("kneeling_cable_crunch"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 40
-        ),
-        ExerciseCatalogItem(
-            id = "ab_wheel",
-            aliases = setOf("rollout"),
-            primaryPattern = MovementPattern.CORE,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "l_sit",
-            primaryPattern = MovementPattern.CORE,
-            secondaryPatterns = setOf(MovementPattern.ARM_EXTENSION),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            requiredEquipment = setOf("pullup_bar"),
-            priority = 40
-        ),
+        ExerciseCatalogItem("leg_extension", setOf("quad_extension"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=50, difficulty=1),
 
-        // ── ARM FLEXION — biceps ─────────────────────────────────────────────
-        ExerciseCatalogItem(
-            id = "curl",
-            aliases = setOf("bicep_curl", "biceps_curl", "barbell_curl"),
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands", "kettlebell"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "hammer_curl",
-            aliases = setOf("neutral_curl"),
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "kettlebell"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "incline_curl",
-            aliases = setOf("incline_dumbbell_curl"),
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("bench", "dumbbells"),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "concentration_curl",
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "cable_curl",
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "reverse_curl",
-            primaryPattern = MovementPattern.ARM_FLEXION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands"),
-            priority = 40
-        ),
+        ExerciseCatalogItem("jump_squat", setOf("squat_jump"),
+            MovementPattern.KNEE_DOMINANT, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=2),
 
-        // ── ARM EXTENSION — triceps ──────────────────────────────────────────
-        ExerciseCatalogItem(
-            id = "tricep_extension",
-            aliases = setOf("triceps_extension", "overhead_tricep_extension"),
-            primaryPattern = MovementPattern.ARM_EXTENSION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bands", "kettlebell"),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "skull_crusher",
-            aliases = setOf("lying_tricep_extension", "ez_bar_skull_crusher"),
-            primaryPattern = MovementPattern.ARM_EXTENSION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "dumbbells", "bench"),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "tricep_pushdown",
-            aliases = setOf("cable_pushdown", "tricep_cable_pushdown"),
-            primaryPattern = MovementPattern.ARM_EXTENSION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "close_grip_bench",
-            aliases = setOf("close_grip_press"),
-            primaryPattern = MovementPattern.ARM_EXTENSION,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("barbell", "bench"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "tricep_kickback",
-            aliases = setOf("kickback"),
-            primaryPattern = MovementPattern.ARM_EXTENSION,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("dumbbells", "bands"),
-            priority = 35
-        ),
+        ExerciseCatalogItem("hack_squat", setOf("machine_hack_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=1),
 
-        // ── CONDITIONING — cardio / fat loss ────────────────────────────────
-        ExerciseCatalogItem(
-            id = "run",
-            aliases = setOf("running", "jogging"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.OUTDOOR, TrainingMode.HOME, TrainingMode.MIXED),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "sprint",
-            aliases = setOf("sprinting", "interval_sprint"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "bike",
-            aliases = setOf("cycling", "stationary_bike"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("cardio"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "burpee",
-            aliases = setOf("burpees"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "jumping_jack",
-            aliases = setOf("jumping_jacks"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "high_knees",
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "jump_rope",
-            aliases = setOf("rope_jumping", "skipping"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "box_jump",
-            aliases = setOf("box_jumps"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "rowing_machine",
-            aliases = setOf("ergometer", "row_machine"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
-            requiredEquipment = setOf("cardio"),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "elliptical",
-            aliases = setOf("cross_trainer"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            requiredEquipment = setOf("cardio"),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "stair_climb",
-            aliases = setOf("stairmaster", "step_mill"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.KNEE_DOMINANT),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 30
-        ),
-        ExerciseCatalogItem(
-            id = "battle_rope",
-            aliases = setOf("battle_ropes"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "skater_jump",
-            aliases = setOf("lateral_skater", "speed_skater"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            secondaryPatterns = setOf(MovementPattern.SINGLE_LEG),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 35
-        ),
-        ExerciseCatalogItem(
-            id = "swim",
-            aliases = setOf("swimming"),
-            primaryPattern = MovementPattern.CONDITIONING,
-            supportedModes = setOf(TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 40
-        ),
+        ExerciseCatalogItem("barbell_hack_squat", setOf("hack_lift","behind_leg_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(MovementPattern.HINGE),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=45, difficulty=3),
 
-        // ── MOBILITY — flexibility / recovery ───────────────────────────────
-        ExerciseCatalogItem(
-            id = "yoga",
-            primaryPattern = MovementPattern.MOBILITY,
-            secondaryPatterns = setOf(MovementPattern.CORE),
-            supportedModes = setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 10
-        ),
-        ExerciseCatalogItem(
-            id = "stretching",
-            aliases = setOf("static_stretch", "flexibility"),
-            primaryPattern = MovementPattern.MOBILITY,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 15
-        ),
-        ExerciseCatalogItem(
-            id = "foam_rolling",
-            aliases = setOf("foam_roll", "myofascial_release"),
-            primaryPattern = MovementPattern.MOBILITY,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 20
-        ),
-        ExerciseCatalogItem(
-            id = "hip_flexor_stretch",
-            aliases = setOf("couch_stretch", "kneeling_hip_flexor"),
-            primaryPattern = MovementPattern.MOBILITY,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "world_greatest_stretch",
-            aliases = setOf("world_greatest"),
-            primaryPattern = MovementPattern.MOBILITY,
-            secondaryPatterns = setOf(MovementPattern.CORE),
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
-            priority = 25
-        ),
-        ExerciseCatalogItem(
-            id = "cat_cow",
-            primaryPattern = MovementPattern.MOBILITY,
-            supportedModes = setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority = 30
-        )
+        // ── HINGE ──────────────────────────────────────────────────────────────
+        ExerciseCatalogItem("deadlift", setOf("conventional_deadlift"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=10, difficulty=3),
+
+        ExerciseCatalogItem("romanian_deadlift", setOf("rdl","stiff_leg_deadlift"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells"), priority=15, difficulty=3),
+
+        ExerciseCatalogItem("hip_thrust", setOf("hipthrust","hip_thrusts","barbell_hip_thrust"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            priority=20, difficulty=2),
+
+        ExerciseCatalogItem("glute_bridge", setOf("bridge"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=1),
+
+        ExerciseCatalogItem("kettlebell_swing", setOf("kb_swing","swing"),
+            MovementPattern.HINGE, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell","dumbbells"), priority=20, difficulty=3),
+
+        ExerciseCatalogItem("single_leg_deadlift", setOf("single_leg_rdl","sl_deadlift"),
+            MovementPattern.HINGE, setOf(MovementPattern.SINGLE_LEG),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=4),
+
+        ExerciseCatalogItem("sumo_deadlift", emptySet(),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=30, difficulty=3),
+
+        ExerciseCatalogItem("good_morning", emptySet(),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=40, difficulty=3),
+
+        ExerciseCatalogItem("nordic_curl", setOf("nordic_hamstring"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=4),
+
+        ExerciseCatalogItem("leg_curl", setOf("hamstring_curl"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=50, difficulty=1),
+
+        // ── SINGLE LEG ─────────────────────────────────────────────────────────
+        ExerciseCatalogItem("lunge", setOf("walking_lunge","forward_lunge"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=10, difficulty=2),
+
+        ExerciseCatalogItem("reverse_lunge", setOf("step_back_lunge"),
+            MovementPattern.SINGLE_LEG, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=15, difficulty=2),
+
+        ExerciseCatalogItem("bulgarian_split_squat",
+            setOf("split_squat","rear_elevated_split_squat","ress"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=15, difficulty=4),
+
+        ExerciseCatalogItem("step_up", setOf("box_step_up"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=2),
+
+        ExerciseCatalogItem("lateral_lunge", setOf("side_lunge"),
+            MovementPattern.SINGLE_LEG, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=2),
+
+        ExerciseCatalogItem("pistol_squat", setOf("single_leg_squat"),
+            MovementPattern.SINGLE_LEG, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=5),
+
+        ExerciseCatalogItem("skater_lunge", setOf("skater_squat","curtsy_lunge"),
+            MovementPattern.SINGLE_LEG, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=40, difficulty=3),
+
+        // ── HORIZONTAL PUSH ────────────────────────────────────────────────────
+        ExerciseCatalogItem("bench", setOf("bench_press","flat_bench"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench","barbell","dumbbells"), priority=10, difficulty=2),
+
+        ExerciseCatalogItem("incline_bench", setOf("incline_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench","barbell","dumbbells"), priority=20, difficulty=2),
+
+        ExerciseCatalogItem("pushup", setOf("push_up","push_ups"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("dip", setOf("parallel_bar_dip","chest_dip"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.ARM_EXTENSION),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("bench","trx","pullup_bar"), priority=25, difficulty=3),
+
+        ExerciseCatalogItem("diamond_pushup", setOf("close_grip_pushup","tricep_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.ARM_EXTENSION),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=2),
+
+        ExerciseCatalogItem("wide_pushup", setOf("wide_grip_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("decline_pushup", emptySet(),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=2),
+
+        ExerciseCatalogItem("incline_pushup", setOf("elevated_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=1),
+
+        ExerciseCatalogItem("dumbbell_fly", setOf("chest_fly","db_fly"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","bench"), priority=40, difficulty=2),
+
+        ExerciseCatalogItem("cable_fly", setOf("cable_chest_fly"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=45, difficulty=2),
+
+        ExerciseCatalogItem("pike_pushup", setOf("pike_push_up"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.VERTICAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=2),
+
+        ExerciseCatalogItem("close_grip_bench", setOf("close_grip_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.ARM_EXTENSION),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell","bench"), priority=30, difficulty=3),
+
+        // ── HORIZONTAL PULL ────────────────────────────────────────────────────
+        ExerciseCatalogItem("row", setOf("bent_over_row","barbell_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands","trx"), priority=10, difficulty=3),
+
+        ExerciseCatalogItem("dumbbell_row", setOf("db_row","one_arm_row","single_arm_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=15, difficulty=2),
+
+        ExerciseCatalogItem("inverted_row", setOf("bodyweight_row","australian_pullup"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar","trx"), priority=20, difficulty=2),
+
+        ExerciseCatalogItem("cable_row", setOf("seated_cable_row","low_cable_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("band_row", setOf("resistance_band_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("bands"), priority=30, difficulty=1),
+
+        ExerciseCatalogItem("face_pull", setOf("cable_face_pull"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("bands"), priority=35, difficulty=2),
+
+        ExerciseCatalogItem("chest_supported_row", setOf("incline_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench","dumbbells"), priority=30, difficulty=2),
+
+        ExerciseCatalogItem("t_bar_row", setOf("tbar_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=30, difficulty=3),
+
+        ExerciseCatalogItem("rowing_machine", setOf("ergometer","row_machine"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.HORIZONTAL_PULL),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("cardio"), priority=20, difficulty=2),
+
+        ExerciseCatalogItem("battle_rope", setOf("battle_ropes"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.HORIZONTAL_PULL),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=2),
+
+        // ── VERTICAL PUSH ──────────────────────────────────────────────────────
+        ExerciseCatalogItem("ohp", setOf("overhead_press","military_press","standing_press"),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands","kettlebell"), priority=10, difficulty=3),
+
+        ExerciseCatalogItem("dumbbell_shoulder_press",
+            setOf("db_shoulder_press","seated_dumbbell_press"),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=15, difficulty=2),
+
+        ExerciseCatalogItem("arnold_press", emptySet(),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=25, difficulty=3),
+
+        ExerciseCatalogItem("lateral_raise", setOf("side_raise","lateral_delt_raise"),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","bands","kettlebell"), priority=30, difficulty=1),
+
+        ExerciseCatalogItem("front_raise", setOf("anterior_raise"),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","bands"), priority=40, difficulty=1),
+
+        ExerciseCatalogItem("handstand_pushup", setOf("hspu","wall_handstand_pushup"),
+            MovementPattern.VERTICAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=5),
+
+        ExerciseCatalogItem("upright_row", emptySet(),
+            MovementPattern.VERTICAL_PUSH, setOf(MovementPattern.HORIZONTAL_PULL),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands"), priority=40, difficulty=2),
+
+        // ── VERTICAL PULL ──────────────────────────────────────────────────────
+        ExerciseCatalogItem("pullup", setOf("pull_up","pullups","overhand_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar","trx"), priority=10, difficulty=3),
+
+        ExerciseCatalogItem("chin_up", setOf("chinup","supinated_pullup","underhand_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(MovementPattern.ARM_FLEXION),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=15, difficulty=3),
+
+        ExerciseCatalogItem("wide_pullup", setOf("wide_grip_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=20, difficulty=4),
+
+        ExerciseCatalogItem("lat_pulldown", setOf("cable_pulldown","pulldown"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("band_pulldown", setOf("resistance_band_pulldown"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bands"), priority=30, difficulty=1),
+
+        ExerciseCatalogItem("assisted_pullup", setOf("band_assisted_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("bands"), priority=30, difficulty=2),
+
+        ExerciseCatalogItem("muscle_up", emptySet(),
+            MovementPattern.VERTICAL_PULL, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=35, difficulty=5),
+
+        // ── CORE ───────────────────────────────────────────────────────────────
+        ExerciseCatalogItem("plank", setOf("plank_hold"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=10, difficulty=1),
+
+        ExerciseCatalogItem("side_plank", emptySet(),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=2),
+
+        ExerciseCatalogItem("crunch", setOf("ab_crunch"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("bicycle_crunch", emptySet(),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=1),
+
+        ExerciseCatalogItem("leg_raise", setOf("lying_leg_raise"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=2),
+
+        ExerciseCatalogItem("hanging_leg_raise", setOf("hanging_knee_raise"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=20, difficulty=3),
+
+        ExerciseCatalogItem("toes_to_bar", setOf("toes2bar","ttb"),
+            MovementPattern.CORE, setOf(MovementPattern.VERTICAL_PULL),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=25, difficulty=4),
+
+        ExerciseCatalogItem("mountain_climber", setOf("mountain_climbers"),
+            MovementPattern.CORE, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=2),
+
+        ExerciseCatalogItem("russian_twist", emptySet(),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("dead_bug", emptySet(),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=25, difficulty=2),
+
+        ExerciseCatalogItem("hollow_body", setOf("hollow_hold"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=3),
+
+        ExerciseCatalogItem("v_up", setOf("vup","jackknife"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=2),
+
+        ExerciseCatalogItem("cable_crunch", setOf("kneeling_cable_crunch"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=2),
+
+        ExerciseCatalogItem("ab_wheel", setOf("rollout"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=3),
+
+        ExerciseCatalogItem("l_sit", emptySet(),
+            MovementPattern.CORE, setOf(MovementPattern.ARM_EXTENSION),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=40, difficulty=5),
+
+        // ── ARM FLEXION / BICEPS ───────────────────────────────────────────────
+        ExerciseCatalogItem("curl", setOf("bicep_curl","biceps_curl","barbell_curl"),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands","kettlebell"), priority=10, difficulty=1),
+
+        ExerciseCatalogItem("hammer_curl", setOf("neutral_curl"),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","kettlebell"), priority=15, difficulty=1),
+
+        ExerciseCatalogItem("incline_curl", setOf("incline_dumbbell_curl"),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench","dumbbells"), priority=25, difficulty=2),
+
+        ExerciseCatalogItem("concentration_curl", emptySet(),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=30, difficulty=1),
+
+        ExerciseCatalogItem("cable_curl", emptySet(),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("reverse_curl", emptySet(),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands"), priority=40, difficulty=2),
+
+        // ── ARM EXTENSION / TRICEPS ────────────────────────────────────────────
+        ExerciseCatalogItem("tricep_extension",
+            setOf("triceps_extension","overhead_tricep_extension"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bands","kettlebell"), priority=10, difficulty=1),
+
+        ExerciseCatalogItem("skull_crusher",
+            setOf("lying_tricep_extension","ez_bar_skull_crusher"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell","dumbbells","bench"), priority=15, difficulty=2),
+
+        ExerciseCatalogItem("tricep_pushdown",
+            setOf("cable_pushdown","tricep_cable_pushdown"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("tricep_kickback", setOf("kickback"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells","bands"), priority=35, difficulty=1),
+
+        // ── CONDITIONING / CARDIO ──────────────────────────────────────────────
+        ExerciseCatalogItem("run", setOf("running","jogging"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.OUTDOOR, TrainingMode.HOME, TrainingMode.MIXED),
+            priority=10, difficulty=1),
+
+        ExerciseCatalogItem("sprint", setOf("sprinting","interval_sprint"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=15, difficulty=2),
+
+        ExerciseCatalogItem("bike", setOf("cycling","stationary_bike"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("cardio"), priority=20, difficulty=1),
+
+        ExerciseCatalogItem("burpee", setOf("burpees"),
+            MovementPattern.CONDITIONING,
+            setOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=15, difficulty=2),
+
+        ExerciseCatalogItem("jumping_jack", setOf("jumping_jacks"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("high_knees", emptySet(),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=1),
+
+        ExerciseCatalogItem("jump_rope", setOf("rope_jumping","skipping"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=20, difficulty=2),
+
+        ExerciseCatalogItem("box_jump", setOf("box_jumps"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=3),
+
+        ExerciseCatalogItem("elliptical", setOf("cross_trainer"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("cardio"), priority=30, difficulty=1),
+
+        ExerciseCatalogItem("stair_climb", setOf("stairmaster","step_mill"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("skater_jump", setOf("lateral_skater","speed_skater"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.SINGLE_LEG),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=2),
+
+        ExerciseCatalogItem("swim", setOf("swimming"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=40, difficulty=3),
+
+        // ── MOBILITY ───────────────────────────────────────────────────────────
+        ExerciseCatalogItem("stretching", setOf("static_stretch","flexibility"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=15, difficulty=1),
+
+        ExerciseCatalogItem("foam_rolling", setOf("foam_roll","myofascial_release"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("hip_flexor_stretch",
+            setOf("couch_stretch","kneeling_hip_flexor"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=1),
+
+        ExerciseCatalogItem("world_greatest_stretch", setOf("world_greatest"),
+            MovementPattern.MOBILITY, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=25, difficulty=2),
+
+        ExerciseCatalogItem("cat_cow", emptySet(),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=1)
     )
 
     private val canonicalIndex = items.associateBy { it.id }
@@ -861,7 +577,6 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
         .toMap()
 
     override fun all(): List<ExerciseCatalogItem> = items
-
     override fun supportedExerciseIds(): Set<String> = canonicalIndex.keys
 
     override fun findByIdOrAlias(rawToken: String): ExerciseCatalogItem? {
@@ -884,15 +599,11 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
             supportsMode(item, mode) && matchesEquipment(item, mode, equipment)
         }
         if (byModeAndEquipment.isNotEmpty()) return byModeAndEquipment.sortedBy { it.priority }
-
         if (mode == TrainingMode.HOME) return emptyList()
-
         val relaxedEquipment = scoped.filter { item -> supportsMode(item, mode) }
         if (relaxedEquipment.isNotEmpty()) return relaxedEquipment.sortedBy { it.priority }
-
         val relaxedMode = scoped.filter { item -> matchesEquipment(item, mode, equipment) }
         if (relaxedMode.isNotEmpty()) return relaxedMode.sortedBy { it.priority }
-
         return scoped.sortedBy { it.priority }
     }
 
@@ -913,10 +624,5 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
     }
 
     private fun normalizeCatalogToken(rawToken: String): String =
-        rawToken
-            .trim()
-            .lowercase()
-            .replace(' ', '_')
-            .replace('-', '_')
-            .trim('_')
+        rawToken.trim().lowercase().replace(' ', '_').replace('-', '_').trim('_')
 }

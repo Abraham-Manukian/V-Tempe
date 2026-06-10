@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 8
+const val ONBOARDING_TOTAL_STEPS = 10
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
@@ -32,6 +32,10 @@ data class OnboardingState(
     val experienceLevel: Int = 3,
     val dietaryPreferences: String = "",
     val allergies: String = "",
+    /** Comma-separated injuries / health notes entered by user on step 7. */
+    val injuries: String = "",
+    /** 1 = budget / student, 2 = medium, 3 = premium. Selected on step 8. */
+    val budgetLevel: Int = 2,
     val trainingMode: String = TRAINING_MODE_GYM,
     val coachTrainerId: String = CoachTrainerIds.DEFAULT,
     val selectedEquipment: Set<String> = emptySet(),
@@ -123,6 +127,10 @@ class OnboardingPresenterDelegate(
                     experienceLevel = s.experienceLevel,
                     dietaryPreferences = s.dietaryPreferences.split(",").map { it.trim() }.filter { it.isNotEmpty() },
                     allergies = s.allergies.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                    constraints = com.vtempe.shared.domain.model.Constraints(
+                        injuries = s.injuries.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    ),
+                    budgetLevel = s.budgetLevel,
                     weeklySchedule = s.days,
                     trainingMode = s.trainingMode,
                     coachTrainerId = s.coachTrainerId,

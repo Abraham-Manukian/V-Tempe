@@ -274,6 +274,19 @@ fun OnboardingScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+                            val expLabel = when (state.experienceLevel) {
+                                1 -> stringResource(Res.string.experience_level_1)
+                                2 -> stringResource(Res.string.experience_level_2)
+                                3 -> stringResource(Res.string.experience_level_3)
+                                4 -> stringResource(Res.string.experience_level_4)
+                                else -> stringResource(Res.string.experience_level_5)
+                            }
+                            Text(
+                                expLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AiPalette.Primary
+                            )
                             Slider(
                                 value = state.experienceLevel.toFloat(),
                                 onValueChange = { lvl -> presenter.update { it.copy(experienceLevel = lvl.toInt().coerceIn(1, 5)) } },
@@ -284,6 +297,11 @@ fun OnboardingScreen(
                                     activeTrackColor = AiPalette.Primary,
                                     inactiveTrackColor = AiPalette.Primary.copy(alpha = 0.2f)
                                 )
+                            )
+                            Text(
+                                stringResource(Res.string.experience_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
 
@@ -442,6 +460,105 @@ fun OnboardingScreen(
                                 shape = MaterialTheme.shapes.medium,
                                 colors = inputColors
                             )
+                        }
+
+                        7 -> {
+                            StepTitle(stringResource(Res.string.label_injuries))
+                            Text(
+                                text = stringResource(Res.string.injuries_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+                            // Quick-pick common injuries
+                            val commonInjuries = listOf(
+                                stringResource(Res.string.injury_knee),
+                                stringResource(Res.string.injury_back),
+                                stringResource(Res.string.injury_shoulder),
+                                stringResource(Res.string.injury_wrist),
+                                stringResource(Res.string.injury_elbow),
+                                stringResource(Res.string.injury_hip),
+                                stringResource(Res.string.injury_ankle),
+                                stringResource(Res.string.injury_neck)
+                            )
+                            val selectedInjuries = state.injuries.split(",")
+                                .map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                commonInjuries.forEach { injury ->
+                                    val selected = injury in selectedInjuries
+                                    ModernToggleChip(
+                                        label = injury,
+                                        selected = selected,
+                                        onClick = {
+                                            presenter.update { st ->
+                                                val cur = st.injuries.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+                                                if (selected) cur.remove(injury) else cur.add(injury)
+                                                st.copy(injuries = cur.joinToString(", "))
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            OutlinedTextField(
+                                value = state.injuries,
+                                onValueChange = { presenter.update { st -> st.copy(injuries = it) } },
+                                label = { Text(stringResource(Res.string.label_injuries_manual)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = inputColors
+                            )
+                        }
+
+                        8 -> {
+                            StepTitle(stringResource(Res.string.label_budget))
+                            Text(
+                                text = stringResource(Res.string.budget_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                            )
+                            val budgetOptions = listOf(
+                                1 to stringResource(Res.string.budget_low),
+                                2 to stringResource(Res.string.budget_medium),
+                                3 to stringResource(Res.string.budget_high)
+                            )
+                            val budgetDescriptions = mapOf(
+                                1 to stringResource(Res.string.budget_low_desc),
+                                2 to stringResource(Res.string.budget_medium_desc),
+                                3 to stringResource(Res.string.budget_high_desc)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                budgetOptions.forEach { (level, label) ->
+                                    val selected = state.budgetLevel == level
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(budgetLevel = level) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                            else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                budgetDescriptions[level] ?: "",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         else -> {

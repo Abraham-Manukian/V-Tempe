@@ -41,6 +41,7 @@ internal fun normalizeTrainingPlan(
                     val canonical = trainingPlanResolver.resolveExerciseId(
                         rawToken = set.exerciseId,
                         trainingModeRaw = profile?.trainingMode,
+                        userExperienceLevel = profile?.experienceLevel ?: 3,
                         equipment = profile?.equipment.orEmpty(),
                         usedExerciseIds = usedExerciseIds,
                         rotationSeed = (index * 31) + setIndex
@@ -63,6 +64,7 @@ internal fun normalizeTrainingPlan(
                 val fallbackExerciseId = trainingPlanResolver.resolveExerciseId(
                     rawToken = "pattern:knee_dominant",
                     trainingModeRaw = profile?.trainingMode,
+                    userExperienceLevel = profile?.experienceLevel ?: 3,
                     equipment = profile?.equipment.orEmpty(),
                     rotationSeed = index
                 ) ?: "lunge"

@@ -37,7 +37,8 @@ class DefaultTrainingPlanResolver(
         trainingModeRaw: String?,
         equipment: List<String>,
         usedExerciseIds: Set<String>,
-        rotationSeed: Int
+        rotationSeed: Int,
+        userExperienceLevel: Int
     ): String? {
         val token = normalizeExerciseToken(rawToken)
         if (token.isBlank()) return null
@@ -48,8 +49,11 @@ class DefaultTrainingPlanResolver(
         exerciseCatalog.findByIdOrAlias(token)?.let { explicit ->
             val compatibleCandidates = exerciseCatalog.candidatesFor(explicit.primaryPattern, mode, normalizedEquipment)
             val concreteCompatible = compatibleCandidates.any { it.id == explicit.id }
+            // Never return an exercise that is far too hard for the user, even if explicitly requested by LLM
+            val tooHard = explicit.difficulty > (userExperienceLevel + 1).coerceAtMost(5)
             return if (
                 concreteCompatible &&
+                !tooHard &&
                 explicit.id !in usedExerciseIds &&
                 !shouldPreferResolverCandidateOverExplicit(
                     explicit = explicit,
@@ -60,12 +64,12 @@ class DefaultTrainingPlanResolver(
             ) {
                 explicit.id
             } else {
-                selectCandidate(explicit.primaryPattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed)
+                selectCandidate(explicit.primaryPattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel)
             }
         }
 
         val pattern = MovementPattern.fromToken(token) ?: return null
-        return selectCandidate(pattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed)
+        return selectCandidate(pattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel)
     }
 
     private fun selectCandidate(
@@ -73,7 +77,8 @@ class DefaultTrainingPlanResolver(
         mode: TrainingMode,
         normalizedEquipment: Set<String>,
         usedExerciseIds: Set<String>,
-        rotationSeed: Int
+        rotationSeed: Int,
+        userExperienceLevel: Int = 3
     ): String? {
         val candidates = exerciseCatalog.candidatesFor(pattern, mode, normalizedEquipment)
         if (candidates.isEmpty()) return null
@@ -81,7 +86,7 @@ class DefaultTrainingPlanResolver(
         val freshCandidates = candidates.filterNot { usedExerciseIds.contains(it.id) }
         val pool = freshCandidates.ifEmpty { candidates }
         val ranked = pool
-            .map { candidate -> candidateScore(candidate, pattern, mode, pool) to candidate }
+            .map { candidate -> candidateScore(candidate, pattern, mode, pool, userExperienceLevel) to candidate }
             .sortedBy { it.first }
 
         val bestScore = ranked.first().first
@@ -94,10 +99,22 @@ class DefaultTrainingPlanResolver(
         candidate: com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem,
         pattern: MovementPattern,
         mode: TrainingMode,
-        pool: List<com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem>
+        pool: List<com.vtempe.server.features.ai.domain.model.ExerciseCatalogItem>,
+        userExperienceLevel: Int = 3
     ): Int {
         var score = candidate.priority
 
+        // ── Difficulty gate ────────────────────────────────────────────────────
+        // Strongly penalise exercises that are too advanced for the user's level.
+        // experienceLevel 1 → only difficulty 1-2; level 3 → up to 4; level 5 → anything.
+        val maxDifficulty = userExperienceLevel + 1
+        when {
+            candidate.difficulty > maxDifficulty + 1 -> score += 500  // near-impossible, almost never picked
+            candidate.difficulty > maxDifficulty      -> score += 150  // too hard, strong penalty
+            candidate.difficulty > userExperienceLevel -> score += 30   // slightly challenging — small penalty
+        }
+
+        // ── Equipment preference in GYM ───────────────────────────────────────
         val shouldPreferEquipmentBacked =
             (mode == TrainingMode.GYM || mode == TrainingMode.MIXED) &&
                 pattern in setOf(

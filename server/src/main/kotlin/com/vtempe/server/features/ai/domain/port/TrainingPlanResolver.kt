@@ -10,6 +10,7 @@ interface TrainingPlanResolver {
         trainingModeRaw: String?,
         equipment: List<String>,
         usedExerciseIds: Set<String> = emptySet(),
-        rotationSeed: Int = 0
+        rotationSeed: Int = 0,
+        userExperienceLevel: Int = 3
     ): String?
 }
