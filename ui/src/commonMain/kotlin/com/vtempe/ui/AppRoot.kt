@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -182,6 +183,7 @@ private fun AppNavigationHost(
             onPromptConsumed = onPromptConsumed
         )
         is Destination.ShoppingList -> ShoppingListScreen(onBack = { onNavigate(Destination.Nutrition) })
+        is Destination.ExerciseLibrary -> ExerciseLibraryScreen()
     }
 }
 
@@ -255,6 +257,7 @@ private fun TopBar(
         is Destination.EditProfile   -> stringResource(Res.string.edit_profile_title)
         is Destination.ShoppingList  -> stringResource(Res.string.nutrition_tab_shopping)
         is Destination.NutritionDetail -> stringResource(Res.string.nutrition_detail_title)
+        is Destination.ExerciseLibrary -> stringResource(Res.string.exlib_title)
         else                         -> stringResource(Res.string.app_name)
     }
 
@@ -284,6 +287,9 @@ private fun TopBar(
             }
 
             Row {
+                if (current is Destination.Workout) {
+                    TopBarIcon(Icons.AutoMirrored.Filled.ListAlt, onClick = { onNavigate(Destination.ExerciseLibrary) })
+                }
                 if (current.isBottomNav) {
                     TopBarIcon(Icons.Default.Star, onClick = { onNavigate(Destination.Paywall) })
                 }

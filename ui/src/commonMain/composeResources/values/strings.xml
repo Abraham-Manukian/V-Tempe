@@ -107,6 +107,17 @@
     <string name="label_allergies">Allergies</string>
     <string name="placeholder_allergies">e.g. peanuts, lactose</string>
     <string name="label_weekdays">Training days</string>
+    <string name="exlib_title">Exercise library</string>
+    <string name="exlib_all">All</string>
+    <string name="exlib_gym">Gym</string>
+    <string name="exlib_home">Home</string>
+    <string name="exlib_outdoor">Outdoor</string>
+    <string name="exlib_count">%1$d exercises</string>
+    <string name="exlib_diff_1">Beginner</string>
+    <string name="exlib_diff_2">Easy</string>
+    <string name="exlib_diff_3">Medium</string>
+    <string name="exlib_diff_4">Hard</string>
+    <string name="exlib_diff_5">Elite</string>
     <string name="label_language">App language</string>
     <string name="language_en">English</string>
     <string name="language_ru">Russian</string>

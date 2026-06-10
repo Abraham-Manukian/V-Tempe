@@ -13,6 +13,7 @@ sealed class Destination {
     object EditProfile : Destination()
     object Chat : Destination()
     object ShoppingList : Destination()
+    object ExerciseLibrary : Destination()
     data class NutritionDetail(val day: String, val index: Int) : Destination()
 }
 

@@ -107,6 +107,17 @@
     <string name="label_allergies">Аллергии</string>
     <string name="placeholder_allergies">например, арахис, лактоза</string>
     <string name="label_weekdays">Дни тренировок</string>
+    <string name="exlib_title">Библиотека упражнений</string>
+    <string name="exlib_all">Все</string>
+    <string name="exlib_gym">Зал</string>
+    <string name="exlib_home">Дом</string>
+    <string name="exlib_outdoor">Улица</string>
+    <string name="exlib_count">Упражнений: %1$d</string>
+    <string name="exlib_diff_1">Новичок</string>
+    <string name="exlib_diff_2">Легко</string>
+    <string name="exlib_diff_3">Средне</string>
+    <string name="exlib_diff_4">Сложно</string>
+    <string name="exlib_diff_5">Эксперт</string>
     <string name="label_language">Язык приложения</string>
     <string name="language_en">Английский</string>
     <string name="language_ru">Русский</string>
