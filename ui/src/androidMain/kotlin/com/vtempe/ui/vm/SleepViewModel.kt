@@ -3,7 +3,7 @@ package com.vtempe.ui.vm
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.data.repo.SleepStore
-import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.repository.AiTrainerRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.ui.presenter.SleepPresenter
 import com.vtempe.ui.presenter.SleepPresenterDelegate
@@ -11,13 +11,13 @@ import com.vtempe.ui.presenter.SleepState
 import kotlinx.coroutines.flow.StateFlow
 
 class SleepViewModel(
-    adviceRepository: AdviceRepository,
+    aiTrainerRepository: AiTrainerRepository,
     profileRepository: ProfileRepository,
     sleepStore: SleepStore,
 ) : ViewModel(), SleepPresenter {
 
     private val delegate = SleepPresenterDelegate(
-        adviceRepository = adviceRepository,
+        aiTrainerRepository = aiTrainerRepository,
         profileRepository = profileRepository,
         sleepStore = sleepStore,
         scope = viewModelScope

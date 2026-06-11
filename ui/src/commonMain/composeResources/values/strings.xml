@@ -253,6 +253,11 @@
     <string name="sleep_log_duration">%1$d h %2$d min</string>
     <string name="sleep_log_save">Save</string>
     <string name="sleep_log_saved">✓ Saved</string>
+    <string name="sleep_ruler_0">0h</string>
+    <string name="sleep_ruler_mid">6h</string>
+    <string name="sleep_ruler_max">12h+</string>
+    <string name="sleep_tips_empty">Tap \"Sync\" to get personalized sleep tips from your coach.</string>
+    <string name="workout_browse_exercises">Browse exercises</string>
 
     <!-- Progress -->
     <string name="progress_title">Statistics</string>

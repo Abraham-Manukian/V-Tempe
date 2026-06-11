@@ -2,17 +2,15 @@ package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.SleepStore
-import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.repository.AiTrainerRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -28,7 +26,7 @@ data class SleepState(
     /** Hours slept per day for Mon..Sun of the current week (0 if not logged). */
     val weeklyHours: List<Int> = emptyList(),
     val syncing: Boolean = false,
-    val disclaimer: String? = "Not medical advice",
+    val disclaimer: String? = null,
     /** Minutes logged by the user for tonight's sleep */
     val loggedMinutes: Int = 0,
     val logSaved: Boolean = false,
@@ -41,7 +39,7 @@ interface SleepPresenter {
 }
 
 class SleepPresenterDelegate(
-    private val adviceRepository: AdviceRepository,
+    private val aiTrainerRepository: AiTrainerRepository,
     private val profileRepository: ProfileRepository,
     private val sleepStore: SleepStore,
     private val scope: CoroutineScope,
@@ -51,15 +49,7 @@ class SleepPresenterDelegate(
     override val state: StateFlow<SleepState> = _state.asStateFlow()
 
     init {
-        // Load persisted sleep data immediately
         refreshFromStore()
-
-        adviceRepository.observeAdvice("sleep")
-            .onEach { advice ->
-                _state.update { it.copy(tips = advice.messages, disclaimer = advice.disclaimer) }
-            }
-            .catch { Napier.e("SleepPresenter observe error", it) }
-            .launchIn(scope)
     }
 
     override fun sync() {
@@ -68,8 +58,10 @@ class SleepPresenterDelegate(
             val profile = runCatching { profileRepository.getProfile() }.getOrNull()
             if (profile != null) {
                 runCatching {
-                    val advice = adviceRepository.getAdvice(profile, mapOf("topic" to "sleep"))
-                    adviceRepository.saveAdvice("sleep", advice)
+                    val result = aiTrainerRepository.getSleepAdvice(profile)
+                    if (result is DataResult.Success) {
+                        _state.update { it.copy(tips = result.data.messages, disclaimer = result.data.disclaimer) }
+                    }
                 }.onFailure { Napier.e("Sleep sync failed", it) }
             }
             _state.update { it.copy(syncing = false) }

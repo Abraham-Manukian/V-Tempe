@@ -254,6 +254,11 @@
     <string name="sleep_log_duration">%1$d ч %2$d мин</string>
     <string name="sleep_log_save">Сохранить</string>
     <string name="sleep_log_saved">✓ Сохранено</string>
+    <string name="sleep_ruler_0">0ч</string>
+    <string name="sleep_ruler_mid">6ч</string>
+    <string name="sleep_ruler_max">12ч+</string>
+    <string name="sleep_tips_empty">Нажмите «Синхронизировать», чтобы получить персональные советы по сну от тренера.</string>
+    <string name="workout_browse_exercises">Библиотека упражнений</string>
 
     <!-- Progress -->
     <string name="progress_title">Статистика</string>

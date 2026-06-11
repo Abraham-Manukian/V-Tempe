@@ -63,7 +63,7 @@ enum class MovementPattern(
     MOBILITY(
         id = "mobility",
         token = "pattern:mobility",
-        promptDescription = "mobility, yoga, or recovery work"
+        promptDescription = "mobility or recovery work"
     );
 
     companion object {
@@ -87,8 +87,7 @@ enum class MovementPattern(
             "biceps" to ARM_FLEXION,
             "triceps" to ARM_EXTENSION,
             "cardio" to CONDITIONING,
-            "recovery" to MOBILITY,
-            "yoga" to MOBILITY
+            "recovery" to MOBILITY
         )
 
         fun fromToken(raw: String): MovementPattern? {

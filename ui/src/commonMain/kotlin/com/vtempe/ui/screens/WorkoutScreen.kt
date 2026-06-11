@@ -23,6 +23,7 @@ import com.vtempe.ui.LocalTopBarHeight
 @Composable
 fun WorkoutScreen(
     onAskCoach: (String) -> Unit = {},
+    onNavigateToLibrary: () -> Unit = {},
     onEnterActiveWorkout: () -> Unit = {},
     onExitActiveWorkout: () -> Unit = {},
     presenter: WorkoutPresenter = rememberWorkoutPresenter()
@@ -51,7 +52,8 @@ fun WorkoutScreen(
                 onOpenWorkout = {
                     presenter.select(it)
                     detailWorkoutId = it
-                }
+                },
+                onNavigateToLibrary = onNavigateToLibrary
             )
         } else {
             val progress = state.progress[detailWorkout.id] ?: WorkoutProgress(workoutId = detailWorkout.id)

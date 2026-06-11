@@ -39,16 +39,7 @@ class StubAdviceRepository : AdviceRepository {
     override suspend fun hasAdvice(topic: String): Boolean =
         true  // Stub always has default advice — prevents bootstrap on every launch
 
-    private fun defaultAdvice(topic: String): Advice = when (topic) {
-        "sleep" -> Advice(
-            messages = listOf(
-                "Sleep 7-9 hours when possible.",
-                "Keep a consistent bedtime routine.",
-                "Limit caffeine six hours before bed."
-            )
-        )
-        else -> Advice(messages = listOf("Stay hydrated", "Warm up properly"))
-    }
+    private fun defaultAdvice(topic: String): Advice = Advice(messages = emptyList())
 }
 
 /**

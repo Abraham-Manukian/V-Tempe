@@ -612,45 +612,6 @@ object ExerciseLibrary {
                 ),
                 defaultRestSeconds = 0
             )
-        ),
-        ExerciseDefinition(
-            id = "yoga",
-            aliases = setOf("stretching", "flexibility"),
-            name = LocalizedText("Yoga", "Йога"),
-            muscleGroups = listOf("flexibility", "core"),
-            difficulty = 1,
-            visualFamily = ExerciseVisualFamily.CORE,
-            calibrationKind = ExerciseCalibrationKind.DURATION_SECONDS,
-            calibrationHint = LocalizedText(
-                "Never push into pain — work to the edge of comfortable tension.",
-                "Никогда не доводи до боли — работай на границе комфортного натяжения."
-            ),
-            imagePrompt = "",
-            technique = ExerciseTechnique(
-                summary = LocalizedText(
-                    "Yoga develops flexibility, balance, and mindful body awareness.",
-                    "Йога развивает гибкость, баланс и осознанность тела."
-                ),
-                focusEn = listOf("Flexibility", "Balance", "Recovery"),
-                focusRu = listOf("Гибкость", "Равновесие", "Восстановление"),
-                keyCue = LocalizedText(
-                    "Breathe into each stretch; hold for at least 3 full breaths.",
-                    "Дыши в каждую растяжку; держи не менее 3 полных вдохов-выдохов."
-                ),
-                stepsEn = listOf(
-                    "Begin with a gentle warm-up flow.",
-                    "Move through your sequence, breathing steadily.",
-                    "Hold each position for 3–5 breaths.",
-                    "End with a 2-minute savasana."
-                ),
-                stepsRu = listOf(
-                    "Начни с мягкой разминочной последовательности.",
-                    "Проходи через последовательность, ровно дыша.",
-                    "Задерживайся в каждой позиции на 3–5 вдохов.",
-                    "Заверши 2-минутной шавасаной."
-                ),
-                defaultRestSeconds = 0
-            )
         )
     )
 

@@ -149,7 +149,7 @@ class MaterializeCoachActions(
         replacementExerciseId: String,
         currentWeightKg: Double?
     ): Double? = when (replacementExerciseId.lowercase()) {
-        "pushup", "pullup", "dip", "plank", "run", "yoga" -> null
+        "pushup", "pullup", "dip", "plank", "run" -> null
         else -> currentWeightKg
     }
 }

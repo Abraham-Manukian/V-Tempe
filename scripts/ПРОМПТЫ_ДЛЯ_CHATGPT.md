@@ -81,7 +81,7 @@ EXERCISE:
 
 **squat** → `coach_mia_squat.jpg` *(уже есть — пропустить)*
 **deadlift** → *(уже есть — пропустить)*
-
+**Миа** → *все упражнения сгенерированы
 ```
 goblet_squat
 Barbell squat holding a kettlebell with both hands at chest height. LEFT: standing tall, kettlebell at chest, feet shoulder-width. RIGHT: deep squat position, thighs parallel to floor, kettlebell held at chest, knees tracking over toes. Key form: upright torso, knees out, full depth.
@@ -206,7 +206,6 @@ Lateral skater lunge bounds. LEFT: balanced on left foot, right leg crossed behi
 ```
 
 ---
-
 ### 💪 ГРУДЬ / ГОРИЗОНТАЛЬНЫЙ ЖИМ
 
 ```
@@ -255,7 +254,6 @@ Close-grip bench press with hands shoulder-width apart. LEFT: lying on bench, ba
 ```
 
 ---
-
 ### 🏋️ СПИНА / ГОРИЗОНТАЛЬНАЯ ТЯГА
 
 ```
@@ -435,7 +433,6 @@ Dumbbell tricep kickback. LEFT: hinged forward, upper arm parallel to floor, elb
 ```
 
 ---
-
 ### 🧘 КОР
 
 ```
@@ -548,6 +545,7 @@ Freestyle swimming stroke. LEFT: extended arm reaching forward in water at catch
 ```
 
 ---
+
 
 ### 🧘 МОБИЛЬНОСТЬ И ВОССТАНОВЛЕНИЕ
 

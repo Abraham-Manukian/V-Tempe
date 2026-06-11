@@ -23,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -154,26 +155,37 @@ fun SleepScreen(
                     Text(stringResource(Res.string.sleep_sync_health))
                 }
             }
-            items(state.tips.size) { idx ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(tween(250)) + slideInVertically(
-                        initialOffsetY = { it / 8 },
-                        animationSpec = tween(250)
+            if (state.tips.isEmpty()) {
+                item {
+                    Text(
+                        stringResource(Res.string.sleep_tips_empty),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor.copy(alpha = 0.55f)
                     )
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = sleepTipColors(),
-                        elevation = sleepCardElevation(),
-                        shape = MaterialTheme.shapes.large
-                    ) {
-                        Text(
-                            state.tips[idx],
-                            modifier = Modifier.padding(20.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = contentColor
+                }
+            } else {
+                items(state.tips.size) { idx ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(250)) + slideInVertically(
+                            initialOffsetY = { it / 8 },
+                            animationSpec = tween(250)
                         )
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = sleepTipColors(),
+                            elevation = sleepCardElevation(),
+                            shape = MaterialTheme.shapes.large
+                        ) {
+                            Text(
+                                state.tips[idx],
+                                modifier = Modifier.padding(20.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = contentColor
+                            )
+                        }
                     }
                 }
             }
@@ -188,7 +200,8 @@ private fun SleepLogCard(
     onSave: (hours: Int, minutes: Int) -> Unit,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
-    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).coerceIn(0f, 16f)) }
+    // Each slider step = 30 min; range 0..24 = 0h..12h
+    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).coerceIn(0f, 24f)) }
     val totalMinutes = (sliderValue * 30).toInt()
     val hours = totalMinutes / 60
     val mins = totalMinutes % 60
@@ -215,18 +228,23 @@ private fun SleepLogCard(
             Slider(
                 value = sliderValue,
                 onValueChange = { sliderValue = it },
-                valueRange = 0f..16f,
-                steps = 15,
-                modifier = Modifier.fillMaxWidth()
+                valueRange = 0f..24f,
+                steps = 23,
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = AiPalette.DeepAccent,
+                    activeTrackColor = AiPalette.DeepAccent,
+                    inactiveTrackColor = AiPalette.DeepAccent.copy(alpha = 0.25f)
+                )
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("0ч", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
-                Text("8ч", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
-                Text("12ч+", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+                Text(stringResource(Res.string.sleep_ruler_0), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+                Text(stringResource(Res.string.sleep_ruler_mid), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
+                Text(stringResource(Res.string.sleep_ruler_max), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
             }
             Button(
                 onClick = { onSave(hours, mins) },

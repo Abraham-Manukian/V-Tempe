@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -34,12 +33,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -62,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.ChatMessage
+import com.vtempe.ui.util.MarkdownText
+import com.vtempe.ui.util.parseSimpleMarkdown
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -270,7 +269,7 @@ private fun MessageBubble(msg: ChatMessage, coachTrainerId: String) {
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f))
                 ) {
-                    Text(
+                    MarkdownText(
                         text = msg.content,
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyMedium.copy(
@@ -362,21 +361,20 @@ private fun ComposerBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Bottom
         ) {
             OutlinedTextField(
                 value = input,
                 onValueChange = onInputChanged,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp),
+                modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
                         text = stringResource(Res.string.chat_hint),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 },
-                singleLine = true,
+                singleLine = false,
+                maxLines = 5,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
@@ -390,26 +388,9 @@ private fun ComposerBar(
 
             Spacer(Modifier.size(8.dp))
 
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    tint = AiPalette.DeepAccent
-                )
-            }
-
-            Spacer(Modifier.size(8.dp))
-
             Box(
                 modifier = Modifier
+                    .padding(bottom = 4.dp)
                     .alpha(if (canSend) 1f else 0.45f)
                     .background(
                         brush = Brush.horizontalGradient(

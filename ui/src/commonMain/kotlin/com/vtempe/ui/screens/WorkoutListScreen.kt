@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -52,7 +54,8 @@ internal fun WorkoutListContent(
     state: WorkoutState,
     topBarHeight: Dp,
     bottomBarHeight: Dp,
-    onOpenWorkout: (String) -> Unit
+    onOpenWorkout: (String) -> Unit,
+    onNavigateToLibrary: () -> Unit = {},
 ) {
     Scaffold(containerColor = Color.Transparent) { _ ->
         LazyColumn(
@@ -65,6 +68,10 @@ internal fun WorkoutListContent(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Exercise library shortcut
+            item {
+                ExerciseLibraryBanner(onClick = onNavigateToLibrary)
+            }
             if (state.workouts.isEmpty()) {
                 item { WorkoutEmptyState() }
             } else {
@@ -82,6 +89,44 @@ internal fun WorkoutListContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseLibraryBanner(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = workoutCardColors(),
+        elevation = workoutCardElevation(),
+        border = BorderStroke(1.dp, AiPalette.DeepAccent.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                contentDescription = null,
+                tint = AiPalette.DeepAccent,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                stringResource(Res.string.workout_browse_exercises),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AiPalette.DeepAccent,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = AiPalette.DeepAccent.copy(alpha = 0.5f),
+                modifier = Modifier.size(14.dp)
+            )
         }
     }
 }
