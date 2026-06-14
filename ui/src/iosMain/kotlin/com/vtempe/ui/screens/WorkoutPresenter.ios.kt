@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
-import com.vtempe.shared.domain.model.AiModelMode
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -20,6 +20,7 @@ private class IosWorkoutPresenter(
     logWorkoutSet: LogWorkoutSet,
     ensureCoachData: EnsureCoachData,
     profileRepository: ProfileRepository,
+    coachCache: CoachCacheRepository,
 ) : WorkoutPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -28,6 +29,7 @@ private class IosWorkoutPresenter(
         logWorkoutSet = logWorkoutSet,
         ensureCoachData = ensureCoachData,
         profileRepository = profileRepository,
+        coachCache = coachCache,
         scope = scope
     )
     override val state get() = delegate.state
@@ -49,7 +51,8 @@ actual fun rememberWorkoutPresenter(): WorkoutPresenter {
             trainingRepository = koin.get(),
             logWorkoutSet = koin.get(),
             ensureCoachData = koin.get(),
-            profileRepository = koin.get()
+            profileRepository = koin.get(),
+            coachCache = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

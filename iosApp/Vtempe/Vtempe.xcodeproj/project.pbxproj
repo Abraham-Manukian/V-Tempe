@@ -51,9 +51,22 @@
 		40D2A1AA2F0A000100ABCD01 /* compose-resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "compose-resources"; path = "../../app-ios/build/compose-resources"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		40851AD32FDEDDAE005305B6 /* Exceptions for "Vtempe" folder in "Vtempe" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4011279B2EE7611D00FDCDE6 /* Vtempe */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4011279E2EE7611D00FDCDE6 /* Vtempe */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				40851AD32FDEDDAE005305B6 /* Exceptions for "Vtempe" folder in "Vtempe" target */,
+			);
 			path = Vtempe;
 			sourceTree = "<group>";
 		};
@@ -448,6 +461,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Vtempe/Info.plist;
+				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "http://localhost:8081";
+				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "http://localhost:8081";
+				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -456,10 +474,6 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "http://localhost:8081";
-				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "http://localhost:8081";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
@@ -494,6 +508,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Vtempe/Info.plist;
+				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "https://api.example.com";
+				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "https://api.example.com";
+				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -502,10 +521,6 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "https://api.example.com";
-				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "https://api.example.com";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;

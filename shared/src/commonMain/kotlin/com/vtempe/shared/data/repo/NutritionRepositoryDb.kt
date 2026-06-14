@@ -33,7 +33,7 @@ class NutritionRepositoryDb(
      * Only plans for this week update the observable flow — background
      * prefetch for future weeks writes to DB silently without touching the UI.
      */
-    @Volatile private var activeWeekIndex: Int = -1
+    private var activeWeekIndex: Int = -1
 
     override suspend fun generatePlan(profile: Profile, weekIndex: Int): NutritionPlan {
         // NetworkAiTrainerRepository already handles cache fallback internally.
@@ -66,7 +66,7 @@ class NutritionRepositoryDb(
     /** Pure DB check — does NOT touch planFlow (safe to call during background prefetch). */
     override suspend fun hasPlan(weekIndex: Int): Boolean {
         if (planFlow.value?.weekIndex == weekIndex) return true
-        return withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) != null }
+        return withContext(Dispatchers.Default) { loadPlanFromDb(weekIndex) != null }
     }
 
     /**
@@ -76,7 +76,7 @@ class NutritionRepositoryDb(
      */
     override suspend fun setActiveWeek(weekIndex: Int): Boolean {
         activeWeekIndex = weekIndex
-        val plan = withContext(Dispatchers.IO) { loadPlanFromDb(weekIndex) }
+        val plan = withContext(Dispatchers.Default) { loadPlanFromDb(weekIndex) }
         planFlow.value = plan
         return plan != null
     }
@@ -91,7 +91,7 @@ class NutritionRepositoryDb(
     }
 
     override suspend fun deleteWeeksFrom(weekIndex: Int) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             db.nutritionQueries.deleteMealsFromWeek(weekIndex.toLong())
         }
         // If the current active week was nuked, clear the flow too
@@ -99,7 +99,7 @@ class NutritionRepositoryDb(
     }
 
     private suspend fun persistPlan(plan: NutritionPlan) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             // Note: only DB writes here — flow update is below, outside IO context
             db.nutritionQueries.deleteMealsForWeek(plan.weekIndex.toLong())
             plan.mealsByDay.forEach { (day, meals) ->

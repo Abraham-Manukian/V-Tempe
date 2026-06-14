@@ -356,7 +356,10 @@ private fun WeightCheckinCard(
     onSave: (Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val initialText = lastWeightKg?.let { "%.1f".format(it) } ?: ""
+    val initialText = lastWeightKg?.let { kg ->
+        val rounded = (kg * 10).toLong()
+        "${rounded / 10}.${rounded % 10}"
+    } ?: ""
     var input by remember { mutableStateOf(initialText) }
     val parsed = input.replace(",", ".").toDoubleOrNull()
 

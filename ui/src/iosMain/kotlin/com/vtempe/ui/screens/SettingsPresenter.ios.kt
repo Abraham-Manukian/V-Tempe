@@ -7,6 +7,7 @@ import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.ResetCoachData
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsPresenterDelegate
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 private class IosSettingsPresenter(
     profileRepository: ProfileRepository,
     preferencesRepository: PreferencesRepository,
-    ensureCoachData: EnsureCoachData
+    ensureCoachData: EnsureCoachData,
+    resetCoachData: ResetCoachData,
 ) : SettingsPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -25,6 +27,7 @@ private class IosSettingsPresenter(
         profileRepository = profileRepository,
         preferencesRepository = preferencesRepository,
         ensureCoachData = ensureCoachData,
+        resetCoachData = resetCoachData,
         scope = scope
     )
     override val state get() = delegate.state
@@ -44,7 +47,8 @@ actual fun rememberSettingsPresenter(): SettingsPresenter {
         IosSettingsPresenter(
             profileRepository = koin.get(),
             preferencesRepository = koin.get(),
-            ensureCoachData = koin.get()
+            ensureCoachData = koin.get(),
+            resetCoachData = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

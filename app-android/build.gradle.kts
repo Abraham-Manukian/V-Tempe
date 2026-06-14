@@ -23,11 +23,13 @@ android {
     compileSdk = 36
 
     signingConfigs {
-        create("release") {
-            storeFile = file(keystorePath)
-            storePassword = keystorePass
-            keyAlias = releaseKeyAlias
-            keyPassword = releaseKeyPass
+        if (keystorePath.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePass
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPass
+            }
         }
     }
 
@@ -50,7 +52,9 @@ android {
         release {
             isMinifyEnabled = true   // R8/ProGuard obfuscates the token
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            if (keystorePath.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

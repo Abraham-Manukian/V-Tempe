@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.ui.presenter.ProgressPresenter
@@ -13,10 +14,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.LocalDate
 
-private class IosProgressPresenter(trainingRepository: TrainingRepository, nutritionRepository: NutritionRepository) : ProgressPresenter {
+private class IosProgressPresenter(
+    trainingRepository: TrainingRepository,
+    nutritionRepository: NutritionRepository,
+    coachCache: CoachCacheRepository,
+) : ProgressPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
-    private val delegate = ProgressPresenterDelegate(trainingRepository = trainingRepository, nutritionRepository = nutritionRepository, scope = scope)
+    private val delegate = ProgressPresenterDelegate(
+        trainingRepository = trainingRepository,
+        nutritionRepository = nutritionRepository,
+        coachCache = coachCache,
+        scope = scope
+    )
     override val state get() = delegate.state
     override fun selectDate(date: LocalDate) = delegate.selectDate(date)
     override fun clearDate() = delegate.clearDate()
@@ -29,7 +39,11 @@ private class IosProgressPresenter(trainingRepository: TrainingRepository, nutri
 actual fun rememberProgressPresenter(): ProgressPresenter {
     val presenter = remember {
         val koin = requireNotNull(KoinProvider.koin) { "Koin is not started" }
-        IosProgressPresenter(trainingRepository = koin.get(), nutritionRepository = koin.get())
+        IosProgressPresenter(
+            trainingRepository = koin.get(),
+            nutritionRepository = koin.get(),
+            coachCache = koin.get()
+        )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }
     return presenter
