@@ -25,3 +25,6 @@ local.properties
 server/.env.local
 
 vtempe-release.jks
+
+# iOS secrets — add API_BASE_URL and APP_TOKEN manually via Xcode Info tab
+iosApp/Vtempe/Vtempe/Info.plist
