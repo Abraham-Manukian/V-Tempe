@@ -76,6 +76,9 @@ import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+// Fixed dark text — card/chip backgrounds are always light regardless of system dark theme
+private val onCard = Color(0xFF1A1A1A)
+
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit = {},
@@ -120,9 +123,9 @@ fun OnboardingScreen(
         unfocusedBorderColor = AiPalette.Outline.copy(alpha = 0.25f),
         cursorColor = AiPalette.Primary,
         focusedLabelColor = AiPalette.Primary,
-        unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedLabelColor = onCard.copy(alpha = 0.6f),
+        focusedTextColor = onCard,
+        unfocusedTextColor = onCard,
         focusedContainerColor = Color.White,
         unfocusedContainerColor = AiPalette.SurfaceLight.copy(alpha = 0.4f)
     )
@@ -231,7 +234,7 @@ fun OnboardingScreen(
                             Text(
                                 stringResource(Res.string.label_sex),
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = onCard
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Sex.entries.forEach { option ->
@@ -272,7 +275,7 @@ fun OnboardingScreen(
                             Text(
                                 stringResource(Res.string.label_experience).kmpFormat(state.experienceLevel),
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = onCard
                             )
                             val expLabel = when (state.experienceLevel) {
                                 1 -> stringResource(Res.string.experience_level_1)
@@ -301,7 +304,7 @@ fun OnboardingScreen(
                             Text(
                                 stringResource(Res.string.experience_hint),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                color = onCard.copy(alpha = 0.6f)
                             )
                         }
 
@@ -310,7 +313,7 @@ fun OnboardingScreen(
                             Text(
                                 text = stringResource(Res.string.coach_trainer_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                                color = onCard.copy(alpha = 0.72f)
                             )
 
                             val initialPage = coachTrainerOptions
@@ -344,6 +347,7 @@ fun OnboardingScreen(
                                         painter = painterResource(photo),
                                         contentDescription = coachName,
                                         contentScale = ContentScale.Crop,
+                                        alignment = Alignment.TopCenter,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                     // Dark gradient overlay at the bottom
@@ -402,7 +406,7 @@ fun OnboardingScreen(
                             Text(
                                 text = stringResource(Res.string.training_mode_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                                color = onCard.copy(alpha = 0.72f)
                             )
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -467,7 +471,7 @@ fun OnboardingScreen(
                             Text(
                                 text = stringResource(Res.string.injuries_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                                color = onCard.copy(alpha = 0.72f)
                             )
                             // Quick-pick common injuries
                             val commonInjuries = listOf(
@@ -516,7 +520,7 @@ fun OnboardingScreen(
                             Text(
                                 text = stringResource(Res.string.budget_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                                color = onCard.copy(alpha = 0.72f)
                             )
                             val budgetOptions = listOf(
                                 1 to stringResource(Res.string.budget_low),
@@ -548,12 +552,12 @@ fun OnboardingScreen(
                                                 label,
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (selected) AiPalette.Primary else MaterialTheme.colorScheme.onSurface
+                                                color = if (selected) AiPalette.Primary else onCard
                                             )
                                             Text(
                                                 budgetDescriptions[level] ?: "",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                                color = onCard.copy(alpha = 0.7f)
                                             )
                                         }
                                     }
@@ -644,7 +648,7 @@ private fun StepTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = onCard,
         modifier = Modifier.padding(bottom = 8.dp)
     )
 }
@@ -680,7 +684,7 @@ private fun ModernChip(
             selectedContainerColor = AiPalette.Primary,
             selectedLabelColor = AiPalette.OnGradient,
             containerColor = AiPalette.SurfaceLight,
-            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            labelColor = onCard.copy(alpha = 0.8f)
         ),
         border = null,
         shape = MaterialTheme.shapes.medium
@@ -717,13 +721,13 @@ fun CoachChoiceCard(
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = coachName,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = onCard,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = stringResource(Res.string.coach_trainer_avatar_hint),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                color = onCard.copy(alpha = 0.68f),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -733,7 +737,7 @@ fun CoachChoiceCard(
 @Composable
 private fun ModernToggleChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val background = if (selected) AiPalette.Primary else AiPalette.SurfaceLight
-    val textColor = if (selected) AiPalette.OnGradient else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    val textColor = if (selected) AiPalette.OnGradient else onCard.copy(alpha = 0.8f)
     
     Box(
         modifier = Modifier

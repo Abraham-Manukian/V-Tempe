@@ -13,10 +13,23 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 val appToken: String = localProps.getProperty("APP_TOKEN", "")
+val keystorePath: String = localProps.getProperty("KEYSTORE_PATH", "")
+val keystorePass: String = localProps.getProperty("KEYSTORE_PASS", "")
+val releaseKeyAlias: String = localProps.getProperty("KEY_ALIAS", "")
+val releaseKeyPass: String = localProps.getProperty("KEY_PASS", "")
 
 android {
     namespace = "com.vtempe"
     compileSdk = 36
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystorePath)
+            storePassword = keystorePass
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPass
+        }
+    }
 
     defaultConfig {
         applicationId = "com.vtempe"
@@ -37,6 +50,7 @@ android {
         release {
             isMinifyEnabled = true   // R8/ProGuard obfuscates the token
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

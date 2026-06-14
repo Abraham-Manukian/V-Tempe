@@ -11,7 +11,7 @@ import com.vtempe.core.designsystem.theme.aiLightColorScheme
 
 @Composable
 fun VTempeTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

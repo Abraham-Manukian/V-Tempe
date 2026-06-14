@@ -106,13 +106,6 @@ fun EditProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(Modifier.height(topBarHeight + 16.dp))
-            
-            Text(
-                stringResource(Res.string.edit_profile_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),

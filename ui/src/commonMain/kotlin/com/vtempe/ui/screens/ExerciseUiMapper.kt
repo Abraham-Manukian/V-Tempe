@@ -53,7 +53,9 @@ internal fun exerciseGuide(
     val technique = definition.technique
     val fallbackIllustration = illustrationFor(definition.visualFamily)
     return ExerciseGuideData(
-        illustration = coachExerciseIllustration(coachTrainerId, definition.id, fallbackIllustration),
+        // Use original exerciseId (not definition.id) so exercises not in ExerciseLibrary
+        // still resolve the correct coach photo (e.g. "band_pulldown", "lateral_raise")
+        illustration = coachExerciseIllustration(coachTrainerId, exerciseId, fallbackIllustration),
         icon = iconFor(definition.visualFamily, definition.id),
         description = technique.summary.resolve(localeTag),
         focus = technique.focus(localeTag),

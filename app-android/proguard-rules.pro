@@ -23,3 +23,9 @@
 
 # Keep BuildConfig
 -keep class com.vtempe.BuildConfig { *; }
+
+# Ktor / SLF4J missing classes (not available on Android)
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+-dontwarn org.slf4j.impl.StaticMDCBinder

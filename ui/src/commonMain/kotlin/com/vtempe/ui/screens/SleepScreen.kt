@@ -3,6 +3,7 @@
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.SleepPresenter
+import kotlin.math.roundToInt
 import com.vtempe.ui.presenter.SleepState
 
 import androidx.compose.animation.AnimatedVisibility
@@ -201,8 +202,8 @@ private fun SleepLogCard(
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
     // Each slider step = 30 min; range 0..24 = 0h..12h
-    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).coerceIn(0f, 24f)) }
-    val totalMinutes = (sliderValue * 30).toInt()
+    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).roundToInt().toFloat().coerceIn(0f, 24f)) }
+    val totalMinutes = (sliderValue * 30).roundToInt()
     val hours = totalMinutes / 60
     val mins = totalMinutes % 60
 
