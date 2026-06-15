@@ -201,7 +201,9 @@ private fun ExerciseRow(
                     text = exercise.name(localeTag),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     exercise.modes.sortedBy { it.ordinal }.forEach { mode ->

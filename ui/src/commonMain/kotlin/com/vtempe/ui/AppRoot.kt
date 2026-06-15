@@ -1,5 +1,6 @@
 package com.vtempe.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -57,6 +58,11 @@ fun AppRoot() {
 
         fun navigateBack() {
             if (backStack.size > 1) backStack.removeLast()
+        }
+
+        // Handle system back button — prevents app exit when back stack has history
+        BackHandler(enabled = backStack.size > 1) {
+            navigateBack()
         }
 
         var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
@@ -267,11 +273,14 @@ private fun TopBar(
             .height(52.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // Centered title (absolute)
+        // Centered title (absolute) — padding keeps it away from 48dp icons on each side
         Text(
             text = currentTitle,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 56.dp)
         )
 
         // Left/right icons on top of the title layer

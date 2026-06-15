@@ -245,7 +245,7 @@ private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(Res.string.home_workout_today_title),
                         style = MaterialTheme.typography.titleLarge,
@@ -289,7 +289,7 @@ private fun NutritionSummaryCard(onNavigate: (Destination) -> Unit) {
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary
                 )
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(Res.string.home_nutrition_title),
                         style = MaterialTheme.typography.titleLarge,
