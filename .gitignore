@@ -28,3 +28,9 @@ vtempe-release.jks
 
 # iOS secrets — add API_BASE_URL and APP_TOKEN manually via Xcode Info tab
 iosApp/Vtempe/Vtempe/Info.plist
+
+# AI-generated source images (not used by app, only composeResources/ is used)
+images/
+
+# Project documents
+AI_Fitness_KMM_TZ.pdf
