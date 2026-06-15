@@ -34,3 +34,18 @@ images/
 
 # Project documents
 AI_Fitness_KMM_TZ.pdf
+
+# IDE and build caches
+.kotlin/
+.idea/caches/
+.idea/workspace.xml
+
+# Claude Code worktrees and temp files
+.claude/worktrees/
+livs-hpmont/
+V-Tempe/
+
+# Logs and temp files
+*.log
+temp.txt
+T3.txt
