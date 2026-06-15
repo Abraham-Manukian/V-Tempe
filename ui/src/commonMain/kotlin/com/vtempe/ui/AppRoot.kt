@@ -1,6 +1,5 @@
 package com.vtempe.ui
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -61,7 +60,7 @@ fun AppRoot() {
         }
 
         // Handle system back button — prevents app exit when back stack has history
-        BackHandler(enabled = backStack.size > 1) {
+        BackHandlerCompat(enabled = backStack.size > 1) {
             navigateBack()
         }
 

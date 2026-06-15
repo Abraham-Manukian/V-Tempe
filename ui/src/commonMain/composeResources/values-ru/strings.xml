@@ -168,8 +168,8 @@
     <string name="workout_exercise_bike">Велотренажёр</string>
     <string name="workout_reps_label">Повторения</string>
     <string name="workout_weight_label">Вес</string>
-    <string name="workout_rpe_label">Усилие</string>
-    <string name="workout_rpe_scale">1–10</string>
+    <string name="workout_rpe_label">Усилие (RPE)</string>
+    <string name="workout_rpe_scale">насколько тяжело 1–10</string>
     <string name="workout_add_button">Добавить</string>
     <string name="workout_rest_timer_title">Таймер отдыха</string>
     <string name="workout_rest_start">Старт</string>
