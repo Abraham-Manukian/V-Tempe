@@ -41,6 +41,7 @@ data class HomeState(
 
 interface HomePresenter {
     val state: StateFlow<HomeState>
+    fun refresh()
     fun logWeight(kg: Double)
     fun dismissWeightCheckin()
 }
@@ -89,6 +90,13 @@ class HomePresenterDelegate(
         scope.launch {
             runCatching { ensureCoachData() }
                 .onFailure { Napier.w("EnsureCoachData failed on Home", it) }
+        }
+    }
+
+    override fun refresh() {
+        scope.launch {
+            runCatching { ensureCoachData() }
+                .onFailure { Napier.w("EnsureCoachData failed on Home refresh", it) }
         }
     }
 

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -40,6 +41,7 @@ data class WorkoutState(
 
 interface WorkoutPresenter {
     val state: StateFlow<WorkoutState>
+    fun refresh()
     fun select(workoutId: String)
     fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?)
     fun updatePerformedSet(
@@ -67,15 +69,21 @@ class WorkoutPresenterDelegate(
     private val _state = MutableStateFlow(WorkoutState())
     override val state: StateFlow<WorkoutState> = _state.asStateFlow()
 
-    init {
-        val weekIndex = CoachSchedule.currentWeekIndex(coachCache.planEpochDateMs())
+    // Mutable so refresh() can switch to the new week without recreating the presenter.
+    private val weekIndexFlow = MutableStateFlow(
+        CoachSchedule.currentWeekIndex(coachCache.planEpochDateMs())
+    )
 
-        // Show only the current week's planned workouts — background prefetch for future
-        // weeks must not leak next-week plans into the active workout screen.
-        combine(
-            trainingRepository.observeWorkoutsByWeek(weekIndex),
-            trainingRepository.observeWorkoutProgress()
-        ) { workouts, progress -> workouts to progress }
+    init {
+        // flatMapLatest re-subscribes automatically whenever weekIndexFlow emits a new value,
+        // so navigating to this screen on a new week shows the correct workouts.
+        weekIndexFlow
+            .flatMapLatest { weekIndex ->
+                combine(
+                    trainingRepository.observeWorkoutsByWeek(weekIndex),
+                    trainingRepository.observeWorkoutProgress()
+                ) { workouts, progress -> workouts to progress }
+            }
             .onEach { (workouts, progress) ->
                 _state.update { it.copy(workouts = workouts, progress = progress) }
             }
@@ -89,6 +97,15 @@ class WorkoutPresenterDelegate(
             }
             runCatching { ensureCoachData() }
                 .onFailure { Napier.w("EnsureCoachData failed on Workout", it) }
+        }
+    }
+
+    override fun refresh() {
+        val newWeek = CoachSchedule.currentWeekIndex(coachCache.planEpochDateMs())
+        weekIndexFlow.value = newWeek
+        scope.launch {
+            runCatching { ensureCoachData() }
+                .onFailure { Napier.w("EnsureCoachData failed on Workout refresh", it) }
         }
     }
 

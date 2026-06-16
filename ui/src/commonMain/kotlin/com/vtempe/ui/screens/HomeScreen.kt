@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +53,11 @@ fun HomeScreen(
 ) {
     val uiState by presenter.state.collectAsState()
     val homePresenter = presenter // keep a stable ref for lambdas
-    
+
+    LaunchedEffect(Unit) {
+        presenter.refresh()
+    }
+
     // Получаем динамическую высоту баров
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current

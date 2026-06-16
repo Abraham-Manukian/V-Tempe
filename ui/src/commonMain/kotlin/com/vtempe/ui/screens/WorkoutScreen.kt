@@ -35,6 +35,10 @@ fun WorkoutScreen(
     var detailWorkoutId by remember { mutableStateOf<String?>(null) }
     val detailWorkout = state.workouts.firstOrNull { it.id == detailWorkoutId }
 
+    LaunchedEffect(Unit) {
+        presenter.refresh()
+    }
+
     LaunchedEffect(detailWorkoutId) {
         if (detailWorkoutId != null) onEnterActiveWorkout() else onExitActiveWorkout()
     }
