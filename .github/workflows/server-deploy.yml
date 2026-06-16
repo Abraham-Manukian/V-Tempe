@@ -30,4 +30,5 @@ jobs:
           gcloud builds submit \
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --config=cloudbuild.yaml \
+            --substitutions=COMMIT_SHA=${{ github.sha }} \
             .
