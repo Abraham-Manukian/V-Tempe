@@ -14,6 +14,7 @@ import com.vtempe.ui.presenter.TRAINING_MODE_GYM
 import com.vtempe.ui.presenter.TRAINING_MODE_HOME
 import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
 import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
+import com.vtempe.shared.domain.model.LifestyleActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -556,6 +557,58 @@ fun OnboardingScreen(
                                             )
                                             Text(
                                                 budgetDescriptions[level] ?: "",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = onCard.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        9 -> {
+                            StepTitle(stringResource(Res.string.label_lifestyle))
+                            Text(
+                                text = stringResource(Res.string.lifestyle_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = onCard.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val lifestyleOptions = listOf(
+                                LifestyleActivity.SEDENTARY to
+                                    (stringResource(Res.string.lifestyle_sedentary) to stringResource(Res.string.lifestyle_sedentary_desc)),
+                                LifestyleActivity.LIGHT to
+                                    (stringResource(Res.string.lifestyle_light) to stringResource(Res.string.lifestyle_light_desc)),
+                                LifestyleActivity.ACTIVE to
+                                    (stringResource(Res.string.lifestyle_active) to stringResource(Res.string.lifestyle_active_desc)),
+                                LifestyleActivity.VERY_ACTIVE to
+                                    (stringResource(Res.string.lifestyle_very_active) to stringResource(Res.string.lifestyle_very_active_desc))
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                lifestyleOptions.forEach { (activity, labels) ->
+                                    val (label, desc) = labels
+                                    val selected = state.lifestyleActivity == activity
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(lifestyleActivity = activity) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                            else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else onCard
+                                            )
+                                            Text(
+                                                desc,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = onCard.copy(alpha = 0.7f)
                                             )

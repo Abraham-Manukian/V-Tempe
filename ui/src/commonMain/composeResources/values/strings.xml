@@ -107,6 +107,16 @@
     <string name="label_allergies">Allergies</string>
     <string name="placeholder_allergies">e.g. peanuts, lactose</string>
     <string name="label_weekdays">Training days</string>
+    <string name="label_lifestyle">Daily activity (outside workouts)</string>
+    <string name="lifestyle_hint">This helps us calculate your calorie needs more accurately.</string>
+    <string name="lifestyle_sedentary">Desk job / mostly sitting</string>
+    <string name="lifestyle_sedentary_desc">Office work, studying, driving — little movement during the day</string>
+    <string name="lifestyle_light">Light activity</string>
+    <string name="lifestyle_light_desc">Some walking, light tasks, 5–8k steps/day</string>
+    <string name="lifestyle_active">Active job / on feet all day</string>
+    <string name="lifestyle_active_desc">Teacher, waiter, nurse, salesperson — lots of movement</string>
+    <string name="lifestyle_very_active">Heavy physical work</string>
+    <string name="lifestyle_very_active_desc">Construction, loading, farming — hard physical labor</string>
     <string name="exlib_title">Exercise library</string>
     <string name="exlib_all">All</string>
     <string name="exlib_gym">Gym</string>
@@ -380,6 +390,10 @@
     <string name="chat_error_unavailable">Coach is temporarily unavailable. Please try again in a moment.</string>
     <string name="chat_empty_title">What can I help with?</string>
     <string name="chat_empty_body">Tell me your goal, condition, and available equipment. I will adapt your plan.</string>
+    <string name="chat_change_training">Workout updated</string>
+    <string name="chat_change_nutrition">Nutrition updated</string>
+    <string name="chat_change_sleep">Sleep advice updated</string>
+    <string name="chat_change_tap">Tap to view</string>
 </resources>
 
 

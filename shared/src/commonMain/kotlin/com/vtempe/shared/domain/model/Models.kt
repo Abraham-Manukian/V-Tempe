@@ -7,6 +7,14 @@ import kotlinx.serialization.Serializable
 enum class Goal { LOSE_FAT, GAIN_MUSCLE, MAINTAIN }
 @Serializable
 enum class Sex { MALE, FEMALE, OTHER }
+/** Daily lifestyle activity OUTSIDE of structured workouts. */
+@Serializable
+enum class LifestyleActivity {
+    SEDENTARY,      // desk job, mostly sitting
+    LIGHT,          // some walking, light movement
+    ACTIVE,         // on feet all day, waiter/teacher/nurse
+    VERY_ACTIVE     // heavy physical labor, construction
+}
 enum class AiModelMode(val wireValue: String) {
     PAID("paid"),
     FREE("free");
@@ -54,6 +62,7 @@ data class Profile(
     val dietaryPreferences: List<String> = emptyList(),
     val allergies: List<String> = emptyList(),
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
+    val lifestyleActivity: LifestyleActivity = LifestyleActivity.SEDENTARY,
     val budgetLevel: Int = 2, // 1 low .. 3 high
     val trainingMode: String = "AUTO",
     val coachTrainerId: String = CoachTrainerIds.DEFAULT

@@ -127,10 +127,19 @@ class ChatService(
             runCatching { json.encodeToString(com.vtempe.server.shared.dto.nutrition.AiNutritionResponse.serializer(), it) }.getOrNull()
         }
 
+        val todayIso = java.time.LocalDate.now().toString()
+        val todayDow = java.time.LocalDate.now().dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+
         return buildString {
             appendLine("You are a professional AI strength coach, nutritionist, and recovery expert guiding the same athlete long-term.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply in that language and measurement system.")
-            appendLine()
+            appendLine("TODAY'S DATE: $todayIso ($todayDow). Use this as the reference for 'today', 'tonight', 'this morning', 'tomorrow', etc.")
+            appendLine("DAY TARGETING RULE: ONLY modify the meal or workout for the day the user explicitly refers to.")
+            appendLine("  - 'today' → modify $todayIso only.")
+            appendLine("  - 'tomorrow' → modify the next date only.")
+            appendLine("  - 'Monday' or 'Понедельник' → find and modify the workout/meals on the Monday in the current plan.")
+            appendLine("  - If the user says 'I don't want X today' — change ONLY today's meals, not any other day.")
+            appendLine("  - NEVER change a different day from the one the user mentioned.")
             appendLine("PROFILE CONTEXT (JSON):")
             appendLine(profileJson)
             appendLine()

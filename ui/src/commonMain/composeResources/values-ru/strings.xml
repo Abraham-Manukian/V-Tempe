@@ -107,6 +107,16 @@
     <string name="label_allergies">Аллергии</string>
     <string name="placeholder_allergies">например, арахис, лактоза</string>
     <string name="label_weekdays">Дни тренировок</string>
+    <string name="label_lifestyle">Активность вне тренировок</string>
+    <string name="lifestyle_hint">Это помогает точнее рассчитать твою суточную норму калорий.</string>
+    <string name="lifestyle_sedentary">Сидячая работа</string>
+    <string name="lifestyle_sedentary_desc">Офис, учёба, за рулём — мало двигаюсь в течение дня</string>
+    <string name="lifestyle_light">Немного хожу</string>
+    <string name="lifestyle_light_desc">Умеренная ходьба, лёгкие задачи, ~5–8 тыс. шагов в день</string>
+    <string name="lifestyle_active">Активная работа / весь день на ногах</string>
+    <string name="lifestyle_active_desc">Учитель, официант, медсестра, продавец — много движения</string>
+    <string name="lifestyle_very_active">Тяжёлый физический труд</string>
+    <string name="lifestyle_very_active_desc">Стройка, погрузка, сельское хозяйство — физически тяжёлая работа</string>
     <string name="exlib_title">Библиотека упражнений</string>
     <string name="exlib_all">Все</string>
     <string name="exlib_gym">Зал</string>
@@ -375,4 +385,8 @@
     <string name="chat_error_unavailable">Тренер временно недоступен. Попробуйте еще раз чуть позже.</string>
     <string name="chat_empty_title">С чего начнем?</string>
     <string name="chat_empty_body">Напиши цель, самочувствие и доступное оборудование. Я подстрою программу под тебя.</string>
+    <string name="chat_change_training">Тренировка обновлена</string>
+    <string name="chat_change_nutrition">Питание обновлено</string>
+    <string name="chat_change_sleep">Советы по сну обновлены</string>
+    <string name="chat_change_tap">Нажмите, чтобы посмотреть</string>
 </resources>

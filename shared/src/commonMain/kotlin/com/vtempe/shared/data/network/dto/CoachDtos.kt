@@ -60,7 +60,8 @@ internal data class AiProfileDto(
     val llmMode: String? = null,
     val recentWorkouts: List<RecentWorkoutDto> = emptyList(),
     val sleepHistory: List<SleepEntry> = emptyList(),
-    val recentWeights: List<WeightEntry> = emptyList()
+    val recentWeights: List<WeightEntry> = emptyList(),
+    val lifestyleActivity: String = "SEDENTARY"
 ) {
     companion object {
         fun fromDomain(
@@ -88,7 +89,8 @@ internal data class AiProfileDto(
             llmMode = llmMode.wireValue,
             recentWorkouts = recentWorkouts.map(RecentWorkoutDto::fromDomain),
             sleepHistory = sleepHistory,
-            recentWeights = recentWeights
+            recentWeights = recentWeights,
+            lifestyleActivity = profile.lifestyleActivity.name
         )
     }
 }
