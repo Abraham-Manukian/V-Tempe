@@ -12,6 +12,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import io.github.aakira.napier.Napier
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.todayIn
 
 class GenerateTrainingPlan(
     private val profileRepository: ProfileRepository,
@@ -86,9 +91,12 @@ class BootstrapCoachData(
         val now = Clock.System.now().toEpochMilliseconds()
 
         // Set epoch only once — it defines week 0 forever.
-        // All subsequent weekIndex values are derived from this date.
+        // Snap to Monday of the current week so week boundaries always align with calendar weeks.
         if (coachCache.planEpochDateMs() == null) {
-            coachCache.setPlanEpochDate(now)
+            val tz = TimeZone.currentSystemDefault()
+            val today = Clock.System.todayIn(tz)
+            val monday = today.minus(DatePeriod(days = today.dayOfWeek.ordinal))
+            coachCache.setPlanEpochDate(monday.atStartOfDayIn(tz).toEpochMilliseconds())
         }
 
         coachCache.markBundleFresh(
