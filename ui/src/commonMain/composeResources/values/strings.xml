@@ -166,6 +166,7 @@
     <string name="workout_exercise_bike">Bike</string>
     <string name="workout_reps_label">Reps</string>
     <string name="workout_weight_label">Weight</string>
+    <string name="workout_weight_extra_label">Extra weight</string>
     <string name="workout_rpe_label">Effort (RPE)</string>
     <string name="workout_rpe_scale">how hard 1–10</string>
     <string name="workout_add_button">Add</string>

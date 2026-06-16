@@ -54,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.shared.domain.exercise.ExerciseCalibrationKind
+import com.vtempe.shared.domain.exercise.ExerciseLibrary
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.ui.Res
@@ -77,6 +79,9 @@ internal fun SetDetailSheet(
 ) {
     val guide = exerciseGuide(plannedSet.exerciseId, coachTrainerId)
     val exerciseName = exerciseLabel(plannedSet.exerciseId)
+    val calibrationKind = ExerciseLibrary.findByIdOrAlias(plannedSet.exerciseId)?.calibrationKind
+        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
+    val isBodyweight = calibrationKind == ExerciseCalibrationKind.BODYWEIGHT_REPS
     val askCoachPrompt = stringResource(Res.string.workout_ask_coach_prompt).kmpFormat(exerciseName)
     val completed = performed?.completed == true
 
@@ -238,7 +243,10 @@ internal fun SetDetailSheet(
                 )
                 StepperControl(
                     modifier = Modifier.weight(1.4f),
-                    label = stringResource(Res.string.workout_weight_label),
+                    label = stringResource(
+                        if (isBodyweight) Res.string.workout_weight_extra_label
+                        else Res.string.workout_weight_label
+                    ),
                     value = weight?.toEditableDecimal() ?: "—",
                     onDecrement = {
                         weight = ((weight ?: 0.0) - 2.5).let { if (it <= 0.0) null else it }
