@@ -83,8 +83,56 @@ internal fun buildBundlePrompt(
         } else {
             appendLine("- Use ISO dates (YYYY-MM-DD). Plan for week index ${request.weekIndex} starting from $todayIso.")
         }
-        appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit (use null for bodyweight).")
-        appendLine("- Provide balanced push/pull/legs/core coverage. 4-6 exercises per workout, vary rep ranges 4-12, include RPE 6.5-9.0.")
+        appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit.")
+        appendLine()
+        val trainingDayCount = if (workoutDates.isNotEmpty()) workoutDates.size else request.profile.weeklySchedule.count { it.value }
+        appendLine("TRAINING SPLIT RULES (MANDATORY — follow strictly based on $trainingDayCount training days/week):")
+        when {
+            trainingDayCount <= 2 -> {
+                appendLine("  FULL BODY x2 — alternate A and B each session:")
+                appendLine("  Session A: 1 knee-dominant (squat/lunge) + 1 horizontal push (bench/pushup) + 1 vertical pull (pullup/lat_pulldown) + 1 core")
+                appendLine("  Session B: 1 hip-dominant (deadlift/rdl/hip_thrust) + 1 horizontal pull (row) + 1 vertical push (ohp/push_press) + 1 core")
+                appendLine("  NEVER put both squat AND deadlift in the same session.")
+            }
+            trainingDayCount == 3 -> {
+                appendLine("  FULL BODY x3 — rotate A → B → A pattern:")
+                appendLine("  Session A: squat pattern + horizontal push + vertical pull + core (4 exercises)")
+                appendLine("  Session B: hip-hinge pattern + horizontal pull + vertical push + single-leg (4 exercises)")
+                appendLine("  Session C: repeat A with slightly different exercises or add one accessory")
+                appendLine("  NEVER repeat the same exercise across two consecutive sessions.")
+                appendLine("  NEVER mix squats + deadlifts + pullups all in one session — that is too much CNS demand.")
+            }
+            trainingDayCount == 4 -> {
+                appendLine("  UPPER / LOWER split — strict:")
+                appendLine("  Upper A: horizontal push (bench) + vertical pull (pullup/row) + bicep isolation")
+                appendLine("  Lower A: knee dominant (squat/lunge) + hip dominant (deadlift/rdl) + core")
+                appendLine("  Upper B: vertical push (ohp) + horizontal pull (cable_row/db_row) + tricep isolation")
+                appendLine("  Lower B: unilateral leg work (split_squat/step_up) + posterior chain + core")
+            }
+            else -> {
+                appendLine("  PUSH / PULL / LEGS split:")
+                appendLine("  Push: bench/ohp + chest/shoulder/tricep work (no back or bicep)")
+                appendLine("  Pull: row/pullup + back/bicep work (no chest or tricep)")
+                appendLine("  Legs: squat + deadlift/rdl + glutes + core (no upper body)")
+                appendLine("  NEVER put pullups on a Push day. NEVER put bench on a Pull day.")
+            }
+        }
+        appendLine()
+        appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
+        appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, mountain_climber, burpee,")
+        appendLine("  lunge without equipment, bodyweight_squat, nordic_curl, muscle_up): set weightKg = null ALWAYS.")
+        appendLine("  NEVER assign a non-null weightKg to these exercises unless user is level 4-5 AND has a weight belt.")
+        appendLine("- Barbell exercises (squat, bench, deadlift, rdl, ohp, row): assign realistic starting weights.")
+        appendLine("  Beginner male ~60kg squat, ~50kg bench, ~70kg deadlift. Scale ±20% per experience level.")
+        appendLine("  Beginner female ~30kg squat, ~25kg bench, ~40kg deadlift.")
+        appendLine("- Dumbbell exercises: use per-dumbbell weight (e.g. 15.0 for 15kg dumbbells).")
+        appendLine("- NEVER assign the same weightKg to a barbell squat AND a pullup in the same plan.")
+        appendLine()
+        appendLine("EXERCISE SELECTION RULES:")
+        appendLine("- 4-5 exercises per workout maximum (not 6 unless explicitly more training days require it).")
+        appendLine("- Vary rep ranges: strength work 4-6 reps, hypertrophy 8-12, endurance 12-20.")
+        appendLine("- RPE range: heavy sets RPE 7-8, backoff sets RPE 6-7. NEVER RPE 10 in a plan.")
+        appendLine("- All exercise names and workout names MUST be in $languageDisplay.")
         appendLine(trainingResolverPrompt)
         appendLine("- Every workout.id must be unique inside trainingPlan. Never repeat workout IDs.")
         appendLine("- Limit workouts to at most 5 in the plan and sets to at most 6 per workout to keep the JSON concise.")
@@ -98,7 +146,8 @@ internal fun buildBundlePrompt(
         appendLine("- Cover every day Mon..Sun. Pick meal frequency: lose weight → 3-4 meals/day, maintain → 3-5, gain → 4-6.")
         appendLine("- Distribute the daily totals proportionally across meals and keep integers.")
         appendLine("- The sum of meals for any day must stay within +/-5% of the goal-adjusted daily calories and macros you calculated.")
-        appendLine("- Ingredients must be plain text strings (no numbering or markdown). Keep meal names varied, localized, and practical.")
+        appendLine("- ALL meal names and ingredient names MUST be written in $languageDisplay. Never use English names when the user language is not English.")
+        appendLine("- Ingredients must be plain text strings (no numbering or markdown). Keep meal names varied and practical.")
         appendLine("- Never include ingredients that violate allergies/intolerances or restricted foods listed above.")
         appendLine("- Each meal MUST include integer macros {proteinGrams, fatGrams, carbsGrams, kcal}. No field may be null or omitted.")
         appendLine("- Example meal object (use restriction-compliant ingredients for the actual athlete): {\"name\":\"Power Oats\",\"ingredients\":[\"rolled oats\",\"water\",\"berries\"],\"kcal\":360,\"macros\":{\"proteinGrams\":10,\"fatGrams\":6,\"carbsGrams\":64,\"kcal\":358}}")
@@ -196,8 +245,14 @@ internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
         else                                                         -> tdee
     }.coerceAtLeast(bmr).toInt()
 
-    // Macros
-    val proteinG = (w * 2.0).toInt().coerceAtLeast((w * 1.6).toInt())    // 2 g/kg
+    // Macros — evidence-based ranges (Morton 2018, ISSN 2017)
+    // Protein: 1.6 g/kg for maintenance/fat loss, 1.8 g/kg for muscle gain, never exceed 2.2 g/kg
+    val proteinMultiplier = when {
+        goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE") -> 1.8
+        goalUpper.contains("LOSE") || goalUpper.contains("FAT")    -> 1.6
+        else                                                        -> 1.7
+    }
+    val proteinG = (w * proteinMultiplier).toInt().coerceIn((w * 1.4).toInt(), (w * 2.2).toInt())
     val fatG     = (w * 0.9).toInt().coerceAtLeast(40)                    // ~0.9 g/kg, min 40g
     val carbsKcal = (targetKcal - proteinG * 4 - fatG * 9).coerceAtLeast(0)
     val carbsG   = carbsKcal / 4

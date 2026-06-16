@@ -13,6 +13,18 @@ import java.time.temporal.TemporalAdjusters
 private const val MaxWorkoutsPerPlan = 5
 private const val MaxSetsPerWorkout = 6
 
+// Exercises where external weight should always be null (no barbell/dumbbell added)
+// Advanced users with a weight belt are the exception, but we keep weight null by default.
+private val bodweightOnlyExerciseIds = setOf(
+    "pullup", "chin_up", "wide_pullup", "assisted_pullup", "muscle_up",
+    "pushup", "diamond_pushup", "wide_pushup", "decline_pushup", "incline_pushup", "pike_pushup",
+    "dip", "inverted_row", "handstand_pushup",
+    "plank", "side_plank", "mountain_climber", "burpee", "jumping_jack", "jump_squat",
+    "toes_to_bar", "hanging_knee_raise", "hanging_leg_raise", "l_sit",
+    "wall_sit", "lunge", "reverse_lunge", "walking_lunge", "split_squat",
+    "sumo_squat", "glute_bridge", "nordic_curl", "step_up"
+)
+
 internal fun normalizeTrainingPlan(
     plan: AiTrainingResponse,
     profile: AiProfile? = null,
@@ -48,7 +60,8 @@ internal fun normalizeTrainingPlan(
                     ) ?: return@mapIndexedNotNull null
                     usedExerciseIds += canonical
                     val reps = set.reps.coerceAtLeast(1)
-                    val weight = set.weightKg?.takeIf { it >= 0.0 }
+                    val weight = if (canonical in bodweightOnlyExerciseIds) null
+                                 else set.weightKg?.takeIf { it >= 0.0 }
                     val rpe = set.rpe?.takeIf { it > 0.0 }
                     AiSet(
                         exerciseId = canonical,
