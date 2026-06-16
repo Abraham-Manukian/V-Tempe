@@ -1,8 +1,10 @@
 package com.vtempe.shared.domain.util
 
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 
@@ -29,8 +31,11 @@ object CoachSchedule {
         epochDateMs ?: return 0
         val epoch = Instant.fromEpochMilliseconds(epochDateMs)
             .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        // Snap epoch to Monday of its week so week boundaries always align with calendar weeks.
+        // DayOfWeek.ordinal: Monday=0 … Sunday=6
+        val epochMonday = epoch.minus(DatePeriod(days = epoch.dayOfWeek.ordinal))
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        val elapsed = today.toEpochDays() - epoch.toEpochDays()
+        val elapsed = today.toEpochDays() - epochMonday.toEpochDays()
         return maxOf(0, elapsed.toInt() / 7)
     }
 
@@ -42,8 +47,9 @@ object CoachSchedule {
         epochDateMs ?: return 7
         val epoch = Instant.fromEpochMilliseconds(epochDateMs)
             .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val epochMonday = epoch.minus(DatePeriod(days = epoch.dayOfWeek.ordinal))
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        val elapsed = today.toEpochDays() - epoch.toEpochDays()
+        val elapsed = today.toEpochDays() - epochMonday.toEpochDays()
         val dayInWeek = elapsed.toInt() % 7
         return 7 - dayInWeek   // always 1..7
     }
