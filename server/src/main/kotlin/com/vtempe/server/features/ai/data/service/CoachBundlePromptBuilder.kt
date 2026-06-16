@@ -83,8 +83,66 @@ internal fun buildBundlePrompt(
         } else {
             appendLine("- Use ISO dates (YYYY-MM-DD). Plan for week index ${request.weekIndex} starting from $todayIso.")
         }
-        appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit (use null for bodyweight).")
-        appendLine("- Provide balanced push/pull/legs/core coverage. 4-6 exercises per workout, vary rep ranges 4-12, include RPE 6.5-9.0.")
+        appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit.")
+        appendLine()
+        val progressionBlock = buildProgressionBlock(request.profile)
+        if (progressionBlock.isNotBlank()) {
+            appendLine(progressionBlock)
+            appendLine()
+        }
+        val sleepNote = buildSleepVolumeNote(request.profile)
+        if (sleepNote.isNotBlank()) {
+            appendLine(sleepNote)
+            appendLine()
+        }
+        val trainingDayCount = if (workoutDates.isNotEmpty()) workoutDates.size else request.profile.weeklySchedule.count { it.value }
+        appendLine("TRAINING SPLIT RULES (MANDATORY — follow strictly based on $trainingDayCount training days/week):")
+        when {
+            trainingDayCount <= 2 -> {
+                appendLine("  FULL BODY x2 — alternate A and B each session:")
+                appendLine("  Session A: 1 knee-dominant (squat/lunge) + 1 horizontal push (bench/pushup) + 1 vertical pull (pullup/lat_pulldown) + 1 core")
+                appendLine("  Session B: 1 hip-dominant (deadlift/rdl/hip_thrust) + 1 horizontal pull (row) + 1 vertical push (ohp/push_press) + 1 core")
+                appendLine("  NEVER put both squat AND deadlift in the same session.")
+            }
+            trainingDayCount == 3 -> {
+                appendLine("  FULL BODY x3 — rotate A → B → A pattern:")
+                appendLine("  Session A: squat pattern + horizontal push + vertical pull + core (4 exercises)")
+                appendLine("  Session B: hip-hinge pattern + horizontal pull + vertical push + single-leg (4 exercises)")
+                appendLine("  Session C: repeat A with slightly different exercises or add one accessory")
+                appendLine("  NEVER repeat the same exercise across two consecutive sessions.")
+                appendLine("  NEVER mix squats + deadlifts + pullups all in one session — that is too much CNS demand.")
+            }
+            trainingDayCount == 4 -> {
+                appendLine("  UPPER / LOWER split — strict:")
+                appendLine("  Upper A: horizontal push (bench) + vertical pull (pullup/row) + bicep isolation")
+                appendLine("  Lower A: knee dominant (squat/lunge) + hip dominant (deadlift/rdl) + core")
+                appendLine("  Upper B: vertical push (ohp) + horizontal pull (cable_row/db_row) + tricep isolation")
+                appendLine("  Lower B: unilateral leg work (split_squat/step_up) + posterior chain + core")
+            }
+            else -> {
+                appendLine("  PUSH / PULL / LEGS split:")
+                appendLine("  Push: bench/ohp + chest/shoulder/tricep work (no back or bicep)")
+                appendLine("  Pull: row/pullup + back/bicep work (no chest or tricep)")
+                appendLine("  Legs: squat + deadlift/rdl + glutes + core (no upper body)")
+                appendLine("  NEVER put pullups on a Push day. NEVER put bench on a Pull day.")
+            }
+        }
+        appendLine()
+        appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
+        appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, mountain_climber, burpee,")
+        appendLine("  lunge without equipment, bodyweight_squat, nordic_curl, muscle_up): set weightKg = null ALWAYS.")
+        appendLine("  NEVER assign a non-null weightKg to these exercises unless user is level 4-5 AND has a weight belt.")
+        appendLine("- Barbell exercises (squat, bench, deadlift, rdl, ohp, row): assign realistic starting weights.")
+        appendLine("  Beginner male ~60kg squat, ~50kg bench, ~70kg deadlift. Scale ±20% per experience level.")
+        appendLine("  Beginner female ~30kg squat, ~25kg bench, ~40kg deadlift.")
+        appendLine("- Dumbbell exercises: use per-dumbbell weight (e.g. 15.0 for 15kg dumbbells).")
+        appendLine("- NEVER assign the same weightKg to a barbell squat AND a pullup in the same plan.")
+        appendLine()
+        appendLine("EXERCISE SELECTION RULES:")
+        appendLine("- 4-5 exercises per workout maximum (not 6 unless explicitly more training days require it).")
+        appendLine("- Vary rep ranges: strength work 4-6 reps, hypertrophy 8-12, endurance 12-20.")
+        appendLine("- RPE range: heavy sets RPE 7-8, backoff sets RPE 6-7. NEVER RPE 10 in a plan.")
+        appendLine("- All exercise names and workout names MUST be in $languageDisplay.")
         appendLine(trainingResolverPrompt)
         appendLine("- Every workout.id must be unique inside trainingPlan. Never repeat workout IDs.")
         appendLine("- Limit workouts to at most 5 in the plan and sets to at most 6 per workout to keep the JSON concise.")
@@ -95,10 +153,17 @@ internal fun buildBundlePrompt(
         appendLine("  Daily calories: ${targets.kcal} kcal")
         appendLine("  Protein: ${targets.proteinG} g/day  |  Fat: ${targets.fatG} g/day  |  Carbs: ${targets.carbsG} g/day")
         appendLine("  The sum of all meals for every day MUST be within ±5% of these targets.")
+        appendLine("- ${buildBudgetNutritionGuidance(request.profile.budgetLevel ?: 2)}")
+        val dietaryRules = buildDietaryStyleRules(request.profile.dietaryPreferences)
+        if (dietaryRules.isNotBlank()) {
+            appendLine("- DIETARY STYLE (MANDATORY — override default macro ratios where applicable):")
+            dietaryRules.lines().filter { it.isNotBlank() }.forEach { appendLine("  $it") }
+        }
         appendLine("- Cover every day Mon..Sun. Pick meal frequency: lose weight → 3-4 meals/day, maintain → 3-5, gain → 4-6.")
         appendLine("- Distribute the daily totals proportionally across meals and keep integers.")
         appendLine("- The sum of meals for any day must stay within +/-5% of the goal-adjusted daily calories and macros you calculated.")
-        appendLine("- Ingredients must be plain text strings (no numbering or markdown). Keep meal names varied, localized, and practical.")
+        appendLine("- ALL meal names and ingredient names MUST be written in $languageDisplay. Never use English names when the user language is not English.")
+        appendLine("- Ingredients must be plain text strings (no numbering or markdown). Keep meal names varied and practical.")
         appendLine("- Never include ingredients that violate allergies/intolerances or restricted foods listed above.")
         appendLine("- Each meal MUST include integer macros {proteinGrams, fatGrams, carbsGrams, kcal}. No field may be null or omitted.")
         appendLine("- Example meal object (use restriction-compliant ingredients for the actual athlete): {\"name\":\"Power Oats\",\"ingredients\":[\"rolled oats\",\"water\",\"berries\"],\"kcal\":360,\"macros\":{\"proteinGrams\":10,\"fatGrams\":6,\"carbsGrams\":64,\"kcal\":358}}")
@@ -178,31 +243,127 @@ internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
     // Mifflin-St Jeor BMR
     val bmr = 10.0 * w + 6.25 * h - 5.0 * a + if (isMale) 5.0 else -161.0
 
-    // Activity factor based on training days per week
-    val trainingDays = profile.weeklySchedule.count { it.value }
-    val activityFactor = when {
-        trainingDays == 0 -> 1.2
-        trainingDays <= 2 -> 1.375
-        trainingDays <= 4 -> 1.55
-        else              -> 1.725
+    // Base activity factor from daily lifestyle (job/routine outside workouts)
+    val lifestyleBase = when (profile.lifestyleActivity.uppercase(Locale.US)) {
+        "LIGHT"       -> 1.30
+        "ACTIVE"      -> 1.45
+        "VERY_ACTIVE" -> 1.60
+        else          -> 1.20  // SEDENTARY default
     }
+    // Bonus for structured training sessions
+    val trainingDays = profile.weeklySchedule.count { it.value }
+    val trainingBonus = when {
+        trainingDays == 0  -> 0.00
+        trainingDays <= 2  -> 0.10
+        trainingDays <= 4  -> 0.15
+        else               -> 0.20
+    }
+    val activityFactor = (lifestyleBase + trainingBonus).coerceAtMost(1.90)
     val tdee = bmr * activityFactor
 
     // Goal adjustment
     val goalUpper = profile.goal.uppercase(Locale.US)
-    val targetKcal = when {
-        goalUpper.contains("LOSE") || goalUpper.contains("FAT")    -> tdee * 0.85
-        goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE") -> tdee * 1.10
-        else                                                         -> tdee
-    }.coerceAtLeast(bmr).toInt()
+    val baseCalorieFactor = when {
+        goalUpper.contains("LOSE") || goalUpper.contains("FAT")    -> 0.85
+        goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE") -> 1.10
+        else                                                         -> 1.00
+    }
+    // Adjust deficit/surplus based on actual body-weight trend vs. stated goal
+    val trendCalorieFactor = if (profile.recentWeights.size >= 2) {
+        val delta = profile.recentWeights.first().weightKg - profile.recentWeights.last().weightKg
+        when {
+            (goalUpper.contains("LOSE") || goalUpper.contains("FAT"))    && delta >  0.5  -> baseCalorieFactor - 0.05 // gaining despite cut → bigger deficit
+            (goalUpper.contains("LOSE") || goalUpper.contains("FAT"))    && delta < -1.5  -> baseCalorieFactor + 0.03 // losing fast → ease up to protect muscle
+            (goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE")) && delta < -0.5  -> baseCalorieFactor + 0.05 // losing despite bulk → bigger surplus
+            (goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE")) && delta >  1.5  -> baseCalorieFactor - 0.03 // gaining fast → reduce fat accumulation
+            else -> baseCalorieFactor
+        }
+    } else baseCalorieFactor
+    val targetKcal = (tdee * trendCalorieFactor).coerceAtLeast(bmr).toInt()
 
-    // Macros
-    val proteinG = (w * 2.0).toInt().coerceAtLeast((w * 1.6).toInt())    // 2 g/kg
+    // Macros — evidence-based ranges (Morton 2018, ISSN 2017)
+    // Protein: 1.6 g/kg for maintenance/fat loss, 1.8 g/kg for muscle gain, never exceed 2.2 g/kg
+    val proteinMultiplier = when {
+        goalUpper.contains("GAIN") || goalUpper.contains("MUSCLE") -> 1.8
+        goalUpper.contains("LOSE") || goalUpper.contains("FAT")    -> 1.6
+        else                                                        -> 1.7
+    }
+    val proteinG = (w * proteinMultiplier).toInt().coerceIn((w * 1.4).toInt(), (w * 2.2).toInt())
     val fatG     = (w * 0.9).toInt().coerceAtLeast(40)                    // ~0.9 g/kg, min 40g
     val carbsKcal = (targetKcal - proteinG * 4 - fatG * 9).coerceAtLeast(0)
     val carbsG   = carbsKcal / 4
 
     return NutritionTargets(kcal = targetKcal, proteinG = proteinG, fatG = fatG, carbsG = carbsG)
+}
+
+/**
+ * Generates progressive overload directives based on the athlete's recent workout history.
+ * RPE and completion rate together determine whether to increase, maintain, or reduce load.
+ */
+private fun buildProgressionBlock(profile: AiProfile): String {
+    if (profile.recentWorkouts.isEmpty()) return ""
+    return buildString {
+        appendLine("PROGRESSIVE OVERLOAD DIRECTIVES (based on recent sessions — apply to this week's weights):")
+        profile.recentWorkouts.take(4).forEach { w ->
+            val completion = (w.completionRate * 100).toInt()
+            val rpe = w.averageRpe
+            val directive = when {
+                completion >= 90 && (rpe == null || rpe < 7.0)  -> "INCREASE weight ~5% — athlete is under-stimulated"
+                completion >= 85 && (rpe == null || rpe <= 7.5) -> "INCREASE weight ~2.5% — solid execution with headroom"
+                completion < 70 || (rpe != null && rpe > 8.5)   -> "DECREASE weight 5–10% or drop 1 set — signs of overreach"
+                else                                              -> "MAINTAIN current weights — athlete is in optimal zone"
+            }
+            appendLine("  ${w.date}: ${completion}% done, avg RPE ${rpe?.let { String.format(Locale.US, "%.1f", it) } ?: "n/a"} → $directive")
+        }
+    }
+}
+
+/**
+ * Returns a recovery warning when average sleep is below optimal thresholds.
+ * Poor sleep → reduce training volume and intensity.
+ */
+private fun buildSleepVolumeNote(profile: AiProfile): String {
+    if (profile.sleepHistory.isEmpty()) return ""
+    val avgMinutes = profile.sleepHistory.take(7).map { it.durationMinutes }.average()
+    val avgH = avgMinutes.toInt() / 60
+    val avgM = avgMinutes.toInt() % 60
+    return when {
+        avgMinutes < 360 -> "⚠️ CRITICAL RECOVERY DEFICIT (avg sleep ${avgH}h ${avgM}min < 6h): Reduce total weekly volume by 20%, cap all sets at RPE 7.5, avoid back-to-back heavy sessions. Prioritise deload."
+        avgMinutes < 420 -> "⚠️ SUB-OPTIMAL SLEEP (avg ${avgH}h ${avgM}min < 7h): Cap RPE at 8.0, limit sessions to 45–50 min, add light mobility work on rest days."
+        else -> ""
+    }
+}
+
+/**
+ * Returns ingredient budget guidance appropriate for the user's budget tier (1–3).
+ */
+private fun buildBudgetNutritionGuidance(budgetLevel: Int): String = when (budgetLevel) {
+    1 -> "BUDGET CONSTRAINT (tier 1 — low cost): Use oats, rice, buckwheat, lentils, eggs, canned tuna/sardines, chicken thighs, frozen vegetables, bananas, sunflower seeds. Avoid expensive cuts (salmon, beef steak, avocado)."
+    3 -> "PREMIUM INGREDIENTS ALLOWED (tier 3): Include salmon, lean beef, turkey mince, Greek yogurt, cottage cheese, avocado, berries, quinoa, nuts, seeds. Prioritise variety and micronutrient density."
+    else -> "STANDARD INGREDIENTS (tier 2): Chicken breast, eggs, Greek yogurt, cottage cheese, fresh vegetables, whole grain bread/pasta, seasonal fruit, legumes — practical everyday foods."
+}
+
+/**
+ * Detects dietary lifestyle keywords and returns hard override rules for the LLM.
+ * Empty string if no recognisable lifestyle is found in preferences.
+ */
+private fun buildDietaryStyleRules(preferences: List<String>): String {
+    if (preferences.isEmpty()) return ""
+    val lower = preferences.map { it.lowercase(Locale.US) }
+    val isKeto    = lower.any { it.contains("keto") || it.contains("low carb") || it.contains("low-carb") }
+    val isVegan   = lower.any { it.contains("vegan") }
+    val isVeget   = !isVegan && lower.any { it.contains("vegetar") }
+    val isPaleo   = lower.any { it.contains("paleo") }
+    val isGfree   = lower.any { it.contains("gluten") }
+    val isDfree   = lower.any { it.contains("dairy") || it.contains("lactose") }
+    return buildString {
+        if (isKeto)  appendLine("KETOGENIC: Carbs ≤ 50 g/day. Fat 60–70% of calories. No rice, bread, oats, pasta, sugar, most fruit. Use avocado, fatty fish, eggs, nuts, olive oil, leafy greens, full-fat dairy.")
+        if (isVegan) appendLine("VEGAN: Zero animal products. Use tofu, tempeh, legumes, lentils, soy/oat milk, nutritional yeast, hemp/chia seeds, nuts. Must include B12 and iron-rich sources.")
+        if (isVeget) appendLine("VEGETARIAN: No meat or fish. Eggs and dairy allowed. Main protein sources: legumes, eggs, Greek yogurt, cheese, tofu.")
+        if (isPaleo) appendLine("PALEO: No grains, legumes, dairy, or refined sugar. Use meat, fish, eggs, vegetables, fruit, nuts, sweet potato, coconut products.")
+        if (isGfree) appendLine("GLUTEN-FREE: No wheat, rye, barley, or regular oats. Use rice, buckwheat, quinoa, certified GF oats, potato, corn.")
+        if (isDfree) appendLine("DAIRY-FREE: No milk, yogurt, cheese, butter, or whey. Use plant milks (oat, soy, almond), coconut cream.")
+    }.trim()
 }
 
 private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
@@ -244,6 +405,13 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
         appendLine("- Allergies to avoid: ${profile.allergies.joinToString(", ")}")
     }
     appendLine("- Nutrition budget level (1 low .. 3 high): ${profile.budgetLevel ?: 2}")
+    val lifestyleReadable = when (profile.lifestyleActivity.uppercase(Locale.US)) {
+        "LIGHT"       -> "light activity (~5–8k steps/day, some walking)"
+        "ACTIVE"      -> "active job / on feet all day (teacher, nurse, waiter)"
+        "VERY_ACTIVE" -> "heavy physical labour (construction, farming, manual work)"
+        else          -> "sedentary (desk job, little movement outside training)"
+    }
+    appendLine("- Daily lifestyle outside training: $lifestyleReadable")
     if (profile.recentWorkouts.isNotEmpty()) {
         appendLine("- Recent workout outcomes to use for progression/regression decisions:")
         profile.recentWorkouts.take(5).forEachIndexed { index, workout ->

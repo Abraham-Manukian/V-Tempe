@@ -72,24 +72,33 @@ class ChatPresenterDelegate(
         if (text.isBlank() || current.sendState == ChatSendState.Loading) return
 
         val userMsg = ChatMessage(role = "user", content = text)
-        val history = current.messages + userMsg
-        _state.update { it.copy(messages = history, input = "", sendState = ChatSendState.Loading) }
+        // Include all messages (including plan_change cards) in the displayed list
+        val displayMessages = current.messages + userMsg
+        // Only real conversation turns go to the AI (plan_change cards are UI-only)
+        val aiHistory = current.messages.filter { it.role == "user" || it.role == "assistant" }
+        _state.update { it.copy(messages = displayMessages, input = "", sendState = ChatSendState.Loading) }
         // Persist immediately so the user message survives if the app is killed mid-request
-        chatHistoryStore.save(history)
+        chatHistoryStore.save(aiHistory + userMsg)
 
         scope.launch {
             val result = ask(
-                history = current.messages,
+                history = aiHistory,
                 userMessage = text,
                 localeOverride = localeProvider()
             )
             when (result) {
                 is DataResult.Success -> {
                     val assistantMsg = ChatMessage(role = "assistant", content = result.data.reply)
-                    val updatedMessages = _state.value.messages + assistantMsg
+                    // Add visual change cards for any plan sections the AI updated
+                    val changeCards = buildList {
+                        if (result.data.trainingPlan != null)  add(ChatMessage("plan_change", "training"))
+                        if (result.data.nutritionPlan != null) add(ChatMessage("plan_change", "nutrition"))
+                        if (result.data.sleepAdvice != null)   add(ChatMessage("plan_change", "sleep"))
+                    }
+                    val updatedMessages = _state.value.messages + assistantMsg + changeCards
                     _state.update { it.copy(messages = updatedMessages, sendState = ChatSendState.Success) }
-                    // Persist full conversation including the coach reply
-                    chatHistoryStore.save(updatedMessages)
+                    // Persist only real conversation messages (plan_change cards are UI-only)
+                    chatHistoryStore.save(updatedMessages.filter { it.role == "user" || it.role == "assistant" })
                 }
                 is DataResult.Failure -> {
                     Napier.w("Chat error: ${result.message}", result.throwable)

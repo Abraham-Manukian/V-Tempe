@@ -56,9 +56,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.ChatMessage
+import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.util.MarkdownText
 import com.vtempe.ui.util.parseSimpleMarkdown
 import org.jetbrains.compose.resources.painterResource
@@ -68,6 +70,7 @@ import org.jetbrains.compose.resources.stringResource
 fun ChatScreen(
     initialPrompt: String? = null,
     onPromptConsumed: () -> Unit = {},
+    onNavigate: (Destination) -> Unit = {},
     presenter: ChatPresenter = rememberChatPresenter()
 ) {
     val state by presenter.state.collectAsState()
@@ -127,7 +130,11 @@ fun ChatScreen(
                                 animationSpec = tween(220)
                             )
                         ) {
-                            MessageBubble(msg = msg, coachTrainerId = state.coachTrainerId)
+                            if (msg.role == "plan_change") {
+                                PlanChangeCard(changeType = msg.content, onNavigate = onNavigate)
+                            } else {
+                                MessageBubble(msg = msg, coachTrainerId = state.coachTrainerId)
+                            }
                         }
                     }
 
@@ -425,6 +432,57 @@ private fun ComposerBar(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlanChangeCard(
+    changeType: String,
+    onNavigate: (Destination) -> Unit
+) {
+    val (icon, labelRes, destination) = when (changeType) {
+        "nutrition" -> Triple("🥗", Res.string.chat_change_nutrition, Destination.Nutrition)
+        "sleep"     -> Triple("😴", Res.string.chat_change_sleep,     Destination.Sleep)
+        else        -> Triple("💪", Res.string.chat_change_training,  Destination.Workout)
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clickable { onNavigate(destination) },
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.12f),
+        border = BorderStroke(
+            width = 1.dp,
+            brush = Brush.horizontalGradient(listOf(AiPalette.Primary, AiPalette.DeepAccent))
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = icon, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.size(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(labelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White
+                )
+                Text(
+                    text = stringResource(Res.string.chat_change_tap),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.65f)
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = AiPalette.Primary,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

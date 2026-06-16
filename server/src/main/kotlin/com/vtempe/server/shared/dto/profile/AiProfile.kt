@@ -16,6 +16,8 @@ data class AiProfile(
     val injuries: List<String> = emptyList(),
     val healthNotes: List<String> = emptyList(),
     val weeklySchedule: Map<String, Boolean> = emptyMap(),
+    /** Daily lifestyle outside workouts: SEDENTARY / LIGHT / ACTIVE / VERY_ACTIVE */
+    val lifestyleActivity: String = "SEDENTARY",
     val locale: String? = null,
     val budgetLevel: Int? = 2,
     val trainingMode: String = "AUTO",

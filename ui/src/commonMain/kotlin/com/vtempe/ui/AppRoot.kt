@@ -185,7 +185,8 @@ private fun AppNavigationHost(
         is Destination.EditProfile -> EditProfileScreen(onDone = { onNavigate(Destination.Settings) })
         is Destination.Chat -> ChatScreen(
             initialPrompt = pendingChatPrompt,
-            onPromptConsumed = onPromptConsumed
+            onPromptConsumed = onPromptConsumed,
+            onNavigate = onNavigate
         )
         is Destination.ShoppingList -> ShoppingListScreen(onBack = { onNavigate(Destination.Nutrition) })
         is Destination.ExerciseLibrary -> ExerciseLibraryScreen()

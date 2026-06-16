@@ -2,6 +2,7 @@ package com.vtempe.ui.presenter
 
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
+import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
 import com.vtempe.shared.domain.repository.LanguagePreferences
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 10
+const val ONBOARDING_TOTAL_STEPS = 11
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
@@ -40,6 +41,7 @@ data class OnboardingState(
     val coachTrainerId: String = CoachTrainerIds.DEFAULT,
     val selectedEquipment: Set<String> = emptySet(),
     val customEquipment: String = "",
+    val lifestyleActivity: LifestyleActivity = LifestyleActivity.SEDENTARY,
     val days: Map<String, Boolean> = mapOf(
         "Mon" to true,
         "Tue" to true,
@@ -132,6 +134,7 @@ class OnboardingPresenterDelegate(
                     ),
                     budgetLevel = s.budgetLevel,
                     weeklySchedule = s.days,
+                    lifestyleActivity = s.lifestyleActivity,
                     trainingMode = s.trainingMode,
                     coachTrainerId = s.coachTrainerId,
                     equipment = com.vtempe.shared.domain.model.Equipment(
