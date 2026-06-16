@@ -30,6 +30,7 @@ class WorkoutViewModel(
     )
 
     override val state: StateFlow<WorkoutState> = delegate.state
+    override fun refresh() = delegate.refresh()
 
     override fun select(workoutId: String) = delegate.select(workoutId)
 

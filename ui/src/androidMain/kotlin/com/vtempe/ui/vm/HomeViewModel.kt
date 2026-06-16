@@ -30,6 +30,7 @@ class HomeViewModel(
     )
 
     override val state: StateFlow<HomeState> = delegate.state
+    override fun refresh() = delegate.refresh()
     override fun logWeight(kg: Double) = delegate.logWeight(kg)
     override fun dismissWeightCheckin() = delegate.dismissWeightCheckin()
 }

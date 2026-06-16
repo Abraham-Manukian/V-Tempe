@@ -33,6 +33,7 @@ private class IosWorkoutPresenter(
         scope = scope
     )
     override val state get() = delegate.state
+    override fun refresh() = delegate.refresh()
     override fun select(workoutId: String) = delegate.select(workoutId)
     override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) = delegate.addSet(exerciseId, reps, weight, rpe)
     override fun updatePerformedSet(workoutId: String, setIndex: Int, completed: Boolean, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
