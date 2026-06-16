@@ -15,6 +15,23 @@ enum class LifestyleActivity {
     ACTIVE,         // on feet all day, waiter/teacher/nurse
     VERY_ACTIVE     // heavy physical labor, construction
 }
+
+/**
+ * How the training plan should be structured.
+ * Determines rep ranges, sets, rest periods, and periodization model
+ * based on ACSM/Schoenfeld/Grgic recommendations.
+ */
+@Serializable
+enum class TrainingFocus {
+    /** 3–6 reps, 80–100% 1RM, 3–5 min rest. Neural adaptation + maximal strength. */
+    STRENGTH,
+    /** 8–15 reps, 60–80% 1RM, 60–90s rest. Maximum muscle growth volume. */
+    HYPERTROPHY,
+    /** 10–15 reps, mixed approach, 90s rest. All-round health and fitness. */
+    GENERAL,
+    /** 12–20 reps, circuit style, 30–45s rest. Maximum calorie burn per session. */
+    FAT_LOSS
+}
 enum class AiModelMode(val wireValue: String) {
     PAID("paid"),
     FREE("free");
@@ -65,7 +82,9 @@ data class Profile(
     val lifestyleActivity: LifestyleActivity = LifestyleActivity.SEDENTARY,
     val budgetLevel: Int = 2, // 1 low .. 3 high
     val trainingMode: String = "AUTO",
-    val coachTrainerId: String = CoachTrainerIds.DEFAULT
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT,
+    val trainingFocus: TrainingFocus = TrainingFocus.GENERAL,
+    val sessionDurationMins: Int = 60
 )
 
 @Serializable

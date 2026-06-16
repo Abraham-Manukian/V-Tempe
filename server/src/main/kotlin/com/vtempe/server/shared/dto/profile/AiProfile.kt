@@ -25,7 +25,10 @@ data class AiProfile(
     val llmMode: String? = null,
     val recentWorkouts: List<AiRecentWorkout> = emptyList(),
     val sleepHistory: List<AiSleepEntry> = emptyList(),
-    val recentWeights: List<AiWeightEntry> = emptyList()
+    val recentWeights: List<AiWeightEntry> = emptyList(),
+    /** STRENGTH | HYPERTROPHY | GENERAL | FAT_LOSS */
+    val trainingFocus: String = "GENERAL",
+    val sessionDurationMins: Int = 60
 )
 
 /** One night of logged sleep sent from the client to help the coach adapt recovery advice. */

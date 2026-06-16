@@ -99,6 +99,35 @@
     <string name="training_mode_home">Home</string>
     <string name="training_mode_outdoor">Outdoor</string>
     <string name="training_mode_mixed">Mixed</string>
+
+    <!-- Training focus (new onboarding step) -->
+    <string name="label_training_focus">Training style</string>
+    <string name="training_focus_hint">This determines your rep ranges, rest periods, and session structure — all based on published research (ACSM, Schoenfeld, Grgic).</string>
+    <string name="training_focus_strength">Strength</string>
+    <string name="training_focus_strength_reps">3–6 reps · heavy weight · 3–5 min rest</string>
+    <string name="training_focus_strength_desc">Build maximum strength. Heavy compound lifts with long rest. Best for those who want to lift more weight (powerlifting approach).</string>
+    <string name="training_focus_hypertrophy">Hypertrophy</string>
+    <string name="training_focus_hypertrophy_reps">8–15 reps · moderate weight · 60–90 s rest</string>
+    <string name="training_focus_hypertrophy_desc">Maximum muscle growth. High volume per muscle group (≥10 sets/week per muscle). The science-backed choice for building size.</string>
+    <string name="training_focus_general">General fitness</string>
+    <string name="training_focus_general_reps">10–15 reps · mixed · 90 s rest</string>
+    <string name="training_focus_general_desc">All-round development: strength, endurance, and shape. Best for health, longevity, and those new to structured training.</string>
+    <string name="training_focus_fat_loss">Fat loss</string>
+    <string name="training_focus_fat_loss_reps">12–20 reps · circuits · 30–45 s rest</string>
+    <string name="training_focus_fat_loss_desc">Maximum calorie burn per session. High-rep circuits with minimal rest. Keeps muscle while burning fat — combine with a calorie deficit.</string>
+
+    <!-- Session duration (new onboarding step) -->
+    <string name="label_session_duration">Session length</string>
+    <string name="session_duration_hint">We'll fit the right number of exercises into your available time — quality over quantity.</string>
+    <string name="session_30min">30 min</string>
+    <string name="session_30min_desc">Express — 3 key exercises, no wasted time. Perfect for busy days.</string>
+    <string name="session_45min">45 min</string>
+    <string name="session_45min_desc">Standard — 4–5 exercises. Optimal time-to-results ratio.</string>
+    <string name="session_60min">60 min</string>
+    <string name="session_60min_desc">Full session — 5–6 exercises, complete warm-up and cool-down.</string>
+    <string name="session_90min">90 min</string>
+    <string name="session_90min_desc">Advanced — 6–7 exercises, full periodization, extra accessory work.</string>
+
     <string name="label_equipment_presets">Equipment you usually have</string>
     <string name="label_equipment_manual">Add other equipment (comma, semicolon or newline)</string>
     <string name="placeholder_equipment_manual">e.g. kettlebell, assault bike</string>

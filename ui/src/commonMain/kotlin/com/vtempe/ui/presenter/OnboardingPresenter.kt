@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
+import com.vtempe.shared.domain.model.TrainingFocus
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
@@ -17,11 +18,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 11
+const val ONBOARDING_TOTAL_STEPS = 13
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
 const val TRAINING_MODE_MIXED = "mixed"
+const val TRAINING_FOCUS_STRENGTH = "STRENGTH"
+const val TRAINING_FOCUS_HYPERTROPHY = "HYPERTROPHY"
+const val TRAINING_FOCUS_GENERAL = "GENERAL"
+const val TRAINING_FOCUS_FAT_LOSS = "FAT_LOSS"
 internal const val EQUIPMENT_NOTE_MAX_CHARS = 200
 
 data class OnboardingState(
@@ -38,6 +43,8 @@ data class OnboardingState(
     /** 1 = budget / student, 2 = medium, 3 = premium. Selected on step 8. */
     val budgetLevel: Int = 2,
     val trainingMode: String = TRAINING_MODE_GYM,
+    val trainingFocus: String = TRAINING_FOCUS_HYPERTROPHY,
+    val sessionDurationMins: Int = 60,
     val coachTrainerId: String = CoachTrainerIds.DEFAULT,
     val selectedEquipment: Set<String> = emptySet(),
     val customEquipment: String = "",
@@ -136,6 +143,8 @@ class OnboardingPresenterDelegate(
                     weeklySchedule = s.days,
                     lifestyleActivity = s.lifestyleActivity,
                     trainingMode = s.trainingMode,
+                    trainingFocus = runCatching { TrainingFocus.valueOf(s.trainingFocus) }.getOrDefault(TrainingFocus.GENERAL),
+                    sessionDurationMins = s.sessionDurationMins,
                     coachTrainerId = s.coachTrainerId,
                     equipment = com.vtempe.shared.domain.model.Equipment(
                         items = s.selectedEquipment.toList() +

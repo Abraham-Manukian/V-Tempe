@@ -99,6 +99,35 @@
     <string name="training_mode_home">Дом</string>
     <string name="training_mode_outdoor">Улица</string>
     <string name="training_mode_mixed">Смешанный</string>
+
+    <!-- Training focus (new onboarding step) -->
+    <string name="label_training_focus">Стиль тренировок</string>
+    <string name="training_focus_hint">Определяет диапазон повторений, время отдыха и структуру сессий — всё на основе научных исследований (ACSM, Schoenfeld, Grgic).</string>
+    <string name="training_focus_strength">Сила</string>
+    <string name="training_focus_strength_reps">3–6 повт · тяжёлый вес · отдых 3–5 мин</string>
+    <string name="training_focus_strength_desc">Максимальная сила. Тяжёлые базовые упражнения с долгим отдыхом. Для тех, кто хочет поднимать больше (силовой подход).</string>
+    <string name="training_focus_hypertrophy">Гипертрофия</string>
+    <string name="training_focus_hypertrophy_reps">8–15 повт · средний вес · отдых 60–90 с</string>
+    <string name="training_focus_hypertrophy_desc">Максимальный рост мышц. Высокий объём на группу (≥10 сетов/неделю). Научно обоснованный выбор для набора массы (Schoenfeld 2017).</string>
+    <string name="training_focus_general">Общая физподготовка</string>
+    <string name="training_focus_general_reps">10–15 повт · смешанный подход · отдых 90 с</string>
+    <string name="training_focus_general_desc">Всестороннее развитие: сила, выносливость, форма. Лучший выбор для здоровья и тех, кто только начинает структурированные тренировки.</string>
+    <string name="training_focus_fat_loss">Жиросжигание</string>
+    <string name="training_focus_fat_loss_reps">12–20 повт · круговые · отдых 30–45 с</string>
+    <string name="training_focus_fat_loss_desc">Максимальный расход калорий за тренировку. Многоповторные круги с минимальным отдыхом. Сохраняет мышцы — сочетать с дефицитом калорий.</string>
+
+    <!-- Session duration (new onboarding step) -->
+    <string name="label_session_duration">Длительность тренировки</string>
+    <string name="session_duration_hint">Подберём нужное количество упражнений под твоё время — качество важнее количества.</string>
+    <string name="session_30min">30 минут</string>
+    <string name="session_30min_desc">Экспресс — 3 ключевых упражнения без потери времени. Идеально для занятых дней.</string>
+    <string name="session_45min">45 минут</string>
+    <string name="session_45min_desc">Стандарт — 4–5 упражнений. Оптимальное соотношение времени и результата.</string>
+    <string name="session_60min">60 минут</string>
+    <string name="session_60min_desc">Полноценная тренировка — 5–6 упражнений, разминка и заминка.</string>
+    <string name="session_90min">90 минут</string>
+    <string name="session_90min_desc">Продвинутый — 6–7 упражнений, полная периодизация, дополнительные изолирующие.</string>
+
     <string name="label_equipment_presets">Оборудование, которое у вас есть</string>
     <string name="label_equipment_manual">Добавьте своё оборудование (через запятую или с новой строки)</string>
     <string name="placeholder_equipment_manual">например, гантели, штанга, гребной тренажёр</string>

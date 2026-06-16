@@ -14,6 +14,10 @@ import com.vtempe.ui.presenter.TRAINING_MODE_GYM
 import com.vtempe.ui.presenter.TRAINING_MODE_HOME
 import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
 import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
+import com.vtempe.ui.presenter.TRAINING_FOCUS_STRENGTH
+import com.vtempe.ui.presenter.TRAINING_FOCUS_HYPERTROPHY
+import com.vtempe.ui.presenter.TRAINING_FOCUS_GENERAL
+import com.vtempe.ui.presenter.TRAINING_FOCUS_FAT_LOSS
 import com.vtempe.shared.domain.model.LifestyleActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
@@ -424,6 +428,124 @@ fun OnboardingScreen(
                         }
 
                         5 -> {
+                            StepTitle(stringResource(Res.string.label_training_focus))
+                            Text(
+                                text = stringResource(Res.string.training_focus_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = onCard.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val focusOptions = listOf(
+                                TRAINING_FOCUS_HYPERTROPHY to Triple(
+                                    stringResource(Res.string.training_focus_hypertrophy),
+                                    stringResource(Res.string.training_focus_hypertrophy_reps),
+                                    stringResource(Res.string.training_focus_hypertrophy_desc)
+                                ),
+                                TRAINING_FOCUS_STRENGTH to Triple(
+                                    stringResource(Res.string.training_focus_strength),
+                                    stringResource(Res.string.training_focus_strength_reps),
+                                    stringResource(Res.string.training_focus_strength_desc)
+                                ),
+                                TRAINING_FOCUS_GENERAL to Triple(
+                                    stringResource(Res.string.training_focus_general),
+                                    stringResource(Res.string.training_focus_general_reps),
+                                    stringResource(Res.string.training_focus_general_desc)
+                                ),
+                                TRAINING_FOCUS_FAT_LOSS to Triple(
+                                    stringResource(Res.string.training_focus_fat_loss),
+                                    stringResource(Res.string.training_focus_fat_loss_reps),
+                                    stringResource(Res.string.training_focus_fat_loss_desc)
+                                )
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                focusOptions.forEach { (focus, labels) ->
+                                    val (name, reps, desc) = labels
+                                    val selected = state.trainingFocus == focus
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(trainingFocus = focus) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                        else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                name,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else onCard
+                                            )
+                                            Text(
+                                                reps,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (selected) AiPalette.Primary.copy(alpha = 0.8f) else onCard.copy(alpha = 0.55f)
+                                            )
+                                            Text(
+                                                desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = onCard.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        6 -> {
+                            StepTitle(stringResource(Res.string.label_session_duration))
+                            Text(
+                                text = stringResource(Res.string.session_duration_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = onCard.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val durationOptions = listOf(
+                                30 to (stringResource(Res.string.session_30min) to stringResource(Res.string.session_30min_desc)),
+                                45 to (stringResource(Res.string.session_45min) to stringResource(Res.string.session_45min_desc)),
+                                60 to (stringResource(Res.string.session_60min) to stringResource(Res.string.session_60min_desc)),
+                                90 to (stringResource(Res.string.session_90min) to stringResource(Res.string.session_90min_desc))
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                durationOptions.forEach { (mins, labels) ->
+                                    val (label, desc) = labels
+                                    val selected = state.sessionDurationMins == mins
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(sessionDurationMins = mins) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                        else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else onCard
+                                            )
+                                            Text(
+                                                desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = onCard.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        7 -> {
                             StepTitle(stringResource(Res.string.label_equipment_presets))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -447,7 +569,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        6 -> {
+                        8 -> {
                             StepTitle(stringResource(Res.string.label_dietary_prefs))
                             OutlinedTextField(
                                 value = state.dietaryPreferences,
@@ -467,7 +589,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        7 -> {
+                        9 -> {
                             StepTitle(stringResource(Res.string.label_injuries))
                             Text(
                                 text = stringResource(Res.string.injuries_hint),
@@ -516,7 +638,7 @@ fun OnboardingScreen(
                             )
                         }
 
-                        8 -> {
+                        10 -> {
                             StepTitle(stringResource(Res.string.label_budget))
                             Text(
                                 text = stringResource(Res.string.budget_hint),
@@ -566,7 +688,7 @@ fun OnboardingScreen(
                             }
                         }
 
-                        9 -> {
+                        11 -> {
                             StepTitle(stringResource(Res.string.label_lifestyle))
                             Text(
                                 text = stringResource(Res.string.lifestyle_hint),

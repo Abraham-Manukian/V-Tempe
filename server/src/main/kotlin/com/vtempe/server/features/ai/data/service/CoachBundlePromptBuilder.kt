@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
@@ -95,38 +96,21 @@ internal fun buildBundlePrompt(
             appendLine(sleepNote)
             appendLine()
         }
-        val trainingDayCount = if (workoutDates.isNotEmpty()) workoutDates.size else request.profile.weeklySchedule.count { it.value }
-        appendLine("TRAINING SPLIT RULES (MANDATORY — follow strictly based on $trainingDayCount training days/week):")
-        when {
-            trainingDayCount <= 2 -> {
-                appendLine("  FULL BODY x2 — alternate A and B each session:")
-                appendLine("  Session A: 1 knee-dominant (squat/lunge) + 1 horizontal push (bench/pushup) + 1 vertical pull (pullup/lat_pulldown) + 1 core")
-                appendLine("  Session B: 1 hip-dominant (deadlift/rdl/hip_thrust) + 1 horizontal pull (row) + 1 vertical push (ohp/push_press) + 1 core")
-                appendLine("  NEVER put both squat AND deadlift in the same session.")
-            }
-            trainingDayCount == 3 -> {
-                appendLine("  FULL BODY x3 — rotate A → B → A pattern:")
-                appendLine("  Session A: squat pattern + horizontal push + vertical pull + core (4 exercises)")
-                appendLine("  Session B: hip-hinge pattern + horizontal pull + vertical push + single-leg (4 exercises)")
-                appendLine("  Session C: repeat A with slightly different exercises or add one accessory")
-                appendLine("  NEVER repeat the same exercise across two consecutive sessions.")
-                appendLine("  NEVER mix squats + deadlifts + pullups all in one session — that is too much CNS demand.")
-            }
-            trainingDayCount == 4 -> {
-                appendLine("  UPPER / LOWER split — strict:")
-                appendLine("  Upper A: horizontal push (bench) + vertical pull (pullup/row) + bicep isolation")
-                appendLine("  Lower A: knee dominant (squat/lunge) + hip dominant (deadlift/rdl) + core")
-                appendLine("  Upper B: vertical push (ohp) + horizontal pull (cable_row/db_row) + tricep isolation")
-                appendLine("  Lower B: unilateral leg work (split_squat/step_up) + posterior chain + core")
-            }
-            else -> {
-                appendLine("  PUSH / PULL / LEGS split:")
-                appendLine("  Push: bench/ohp + chest/shoulder/tricep work (no back or bicep)")
-                appendLine("  Pull: row/pullup + back/bicep work (no chest or tricep)")
-                appendLine("  Legs: squat + deadlift/rdl + glutes + core (no upper body)")
-                appendLine("  NEVER put pullups on a Push day. NEVER put bench on a Pull day.")
-            }
-        }
+        val trainingDays = if (workoutDates.isNotEmpty())
+            workoutDates
+        else
+            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                .filter { request.profile.weeklySchedule[it] == true }
+        val trainingDayCount = trainingDays.size
+
+        val skeletons = TrainingSplitPlanner.build(
+            trainingDays        = trainingDays,
+            focusRaw            = request.profile.trainingFocus,
+            experienceLevel     = request.profile.experienceLevel,
+            sessionDurationMins = request.profile.sessionDurationMins,
+            weekIndex           = request.weekIndex
+        )
+        appendLine(TrainingSplitPlanner.renderPromptBlock(skeletons))
         appendLine()
         appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
         appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, mountain_climber, burpee,")
@@ -139,13 +123,11 @@ internal fun buildBundlePrompt(
         appendLine("- NEVER assign the same weightKg to a barbell squat AND a pullup in the same plan.")
         appendLine()
         appendLine("EXERCISE SELECTION RULES:")
-        appendLine("- 4-5 exercises per workout maximum (not 6 unless explicitly more training days require it).")
-        appendLine("- Vary rep ranges: strength work 4-6 reps, hypertrophy 8-12, endurance 12-20.")
-        appendLine("- RPE range: heavy sets RPE 7-8, backoff sets RPE 6-7. NEVER RPE 10 in a plan.")
+        appendLine("- Follow the skeleton above exactly — do NOT add extra exercises or change exercise counts.")
+        appendLine("- Use the rep ranges and RPE values from the skeleton — do NOT override them.")
         appendLine("- All exercise names and workout names MUST be in $languageDisplay.")
         appendLine(trainingResolverPrompt)
         appendLine("- Every workout.id must be unique inside trainingPlan. Never repeat workout IDs.")
-        appendLine("- Limit workouts to at most 5 in the plan and sets to at most 6 per workout to keep the JSON concise.")
         appendLine()
         val targets = computeTargetNutrition(request.profile)
         appendLine("NUTRITION RULES:")
