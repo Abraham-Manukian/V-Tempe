@@ -374,10 +374,13 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
     appendLine("- Training mode preference: ${profile.trainingMode}")
     appendLine("- Selected coach visual/persona id: ${profile.coachTrainerId}")
 
-    val equipment = if (profile.equipment.isNotEmpty()) {
-        profile.equipment.joinToString(", ")
-    } else {
-        "bodyweight only"
+    val equipment = when {
+        profile.equipment.isNotEmpty() -> profile.equipment.joinToString(", ")
+        profile.trainingMode.lowercase(Locale.US) == "gym" ->
+            "full gym: barbell, squat rack, bench press, dumbbells, cables, pullup bar, leg press, cardio machines"
+        profile.trainingMode.lowercase(Locale.US) == "home" ->
+            "home: dumbbells or resistance bands, pullup bar (optional)"
+        else -> "bodyweight only"
     }
     appendLine("- Available equipment: $equipment")
 
