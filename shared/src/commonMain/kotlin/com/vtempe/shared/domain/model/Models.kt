@@ -149,6 +149,7 @@ data class WorkoutSet(
 @Serializable
 data class Workout(
     val id: String,
+    val label: String = "",
     val date: LocalDate,
     val sets: List<WorkoutSet>
 )

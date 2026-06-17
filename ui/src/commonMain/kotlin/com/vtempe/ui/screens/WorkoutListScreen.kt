@@ -217,7 +217,7 @@ internal fun WorkoutOverviewCard(
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout"),
+                        workout.label.ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

@@ -120,7 +120,7 @@ internal fun ActiveWorkoutScreen(
             // ── Fixed header with progress bar ────────────────────
             ActiveWorkoutHeader(
                 onBack = onBack,
-                title = exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout"),
+                title = workout.label.ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
                 date = workout.date.toString(),
                 sessionSeconds = sessionSeconds,
                 completedCount = completedCount,
