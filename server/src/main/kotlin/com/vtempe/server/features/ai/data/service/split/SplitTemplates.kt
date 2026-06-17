@@ -167,28 +167,16 @@ internal object SplitTemplates {
 
     private fun compoundSlots(patterns: List<MovementPattern>, p: SplitParams) =
         patterns.mapIndexed { index, pattern ->
-            val slotType = if (index < p.primarySlotCount) SlotType.PRIMARY else SlotType.SECONDARY
-            if (slotType == SlotType.PRIMARY) {
-                PatternSlot(
-                    pattern       = pattern,
-                    slotType      = SlotType.PRIMARY,
-                    sets          = p.primarySets,
-                    repMin        = p.primaryRepMin,
-                    repMax        = p.primaryRepMax,
-                    rpeTarget     = p.primaryRpe,
-                    restSeconds   = p.primaryRestSeconds
-                )
-            } else {
-                PatternSlot(
-                    pattern       = pattern,
-                    slotType      = SlotType.SECONDARY,
-                    sets          = p.secondarySets,
-                    repMin        = p.secondaryRepMin,
-                    repMax        = p.secondaryRepMax,
-                    rpeTarget     = p.secondaryRpe,
-                    restSeconds   = p.secondaryRestSeconds
-                )
-            }
+            val isPrimary = index < p.primarySlotCount
+            PatternSlot(
+                pattern     = pattern,
+                slotType    = if (isPrimary) SlotType.PRIMARY else SlotType.SECONDARY,
+                sets        = if (isPrimary) p.primarySets else p.secondarySets,
+                repMin      = if (isPrimary) p.primaryRepMin else p.secondaryRepMin,
+                repMax      = if (isPrimary) p.primaryRepMax else p.secondaryRepMax,
+                rpeTarget   = if (isPrimary) p.primaryRpe else p.secondaryRpe,
+                restSeconds = if (isPrimary) p.primaryRestSeconds else p.secondaryRestSeconds
+            )
         }
 
     private fun isolationSlots(patterns: List<MovementPattern>, p: SplitParams) =

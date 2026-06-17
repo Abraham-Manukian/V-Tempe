@@ -26,8 +26,8 @@ internal object SplitParamsFactory {
         val isDeload   = weekIndex > 0 && weekIndex % 7 == 6
         val isBeginner = experienceLevel <= 2
         val exercises  = exercisesFromDuration(sessionDurationMins, isBeginner)
-        val base       = baseParams(goal, focus, experienceLevel, weekIndex)
-        return if (isDeload) deload(base) else base.copy(exercisesPerSession = exercises)
+        val base       = baseParams(goal, focus, experienceLevel, weekIndex).copy(exercisesPerSession = exercises)
+        return if (isDeload) deload(base) else base
     }
 
     fun focusFromRaw(raw: String): Focus =

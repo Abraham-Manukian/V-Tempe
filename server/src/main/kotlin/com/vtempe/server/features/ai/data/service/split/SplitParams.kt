@@ -1,7 +1,5 @@
 package com.vtempe.server.features.ai.data.service.split
 
-import com.vtempe.server.features.ai.domain.model.SlotType
-
 /**
  * Session-level training parameters — three loading tiers per session.
  *
