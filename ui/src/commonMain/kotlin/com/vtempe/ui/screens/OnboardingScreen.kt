@@ -19,6 +19,7 @@ import com.vtempe.ui.presenter.TRAINING_FOCUS_HYPERTROPHY
 import com.vtempe.ui.presenter.TRAINING_FOCUS_GENERAL
 import com.vtempe.ui.presenter.TRAINING_FOCUS_FAT_LOSS
 import com.vtempe.shared.domain.model.LifestyleActivity
+import com.vtempe.shared.domain.model.SplitPreference
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -714,6 +715,54 @@ fun OnboardingScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable { presenter.update { it.copy(lifestyleActivity = activity) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                            else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else onCard
+                                            )
+                                            Text(
+                                                desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = onCard.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        12 -> {
+                            StepTitle(stringResource(Res.string.label_split_preference))
+                            Text(
+                                text = stringResource(Res.string.split_preference_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = onCard.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val splitOptions = listOf(
+                                SplitPreference.AUTO to (stringResource(Res.string.split_auto) to stringResource(Res.string.split_auto_desc)),
+                                SplitPreference.FULL_BODY to (stringResource(Res.string.split_full_body) to stringResource(Res.string.split_full_body_desc)),
+                                SplitPreference.UPPER_LOWER to (stringResource(Res.string.split_upper_lower) to stringResource(Res.string.split_upper_lower_desc)),
+                                SplitPreference.PPL to (stringResource(Res.string.split_ppl) to stringResource(Res.string.split_ppl_desc))
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                splitOptions.forEach { (pref, labels) ->
+                                    val (label, desc) = labels
+                                    val selected = state.splitPreference == pref
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(splitPreference = pref) } },
                                         colors = CardDefaults.cardColors(
                                             containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
                                             else Color.White

@@ -63,7 +63,8 @@ internal data class AiProfileDto(
     val recentWeights: List<WeightEntry> = emptyList(),
     val lifestyleActivity: String = "SEDENTARY",
     val trainingFocus: String = "GENERAL",
-    val sessionDurationMins: Int = 60
+    val sessionDurationMins: Int = 60,
+    val splitPreference: String = "AUTO"
 ) {
     companion object {
         fun fromDomain(
@@ -94,7 +95,8 @@ internal data class AiProfileDto(
             recentWeights = recentWeights,
             lifestyleActivity = profile.lifestyleActivity.name,
             trainingFocus = profile.trainingFocus.name,
-            sessionDurationMins = profile.sessionDurationMins
+            sessionDurationMins = profile.sessionDurationMins,
+            splitPreference = profile.splitPreference.name
         )
     }
 }

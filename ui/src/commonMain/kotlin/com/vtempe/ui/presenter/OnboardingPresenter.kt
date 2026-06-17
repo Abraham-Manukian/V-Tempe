@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
+import com.vtempe.shared.domain.model.SplitPreference
 import com.vtempe.shared.domain.model.TrainingFocus
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 13
+const val ONBOARDING_TOTAL_STEPS = 14
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
@@ -49,6 +50,7 @@ data class OnboardingState(
     val selectedEquipment: Set<String> = emptySet(),
     val customEquipment: String = "",
     val lifestyleActivity: LifestyleActivity = LifestyleActivity.SEDENTARY,
+    val splitPreference: SplitPreference = SplitPreference.AUTO,
     val days: Map<String, Boolean> = mapOf(
         "Mon" to true,
         "Tue" to true,
@@ -145,6 +147,7 @@ class OnboardingPresenterDelegate(
                     trainingMode = s.trainingMode,
                     trainingFocus = runCatching { TrainingFocus.valueOf(s.trainingFocus) }.getOrDefault(TrainingFocus.GENERAL),
                     sessionDurationMins = s.sessionDurationMins,
+                    splitPreference = s.splitPreference,
                     coachTrainerId = s.coachTrainerId,
                     equipment = com.vtempe.shared.domain.model.Equipment(
                         items = s.selectedEquipment.toList() +

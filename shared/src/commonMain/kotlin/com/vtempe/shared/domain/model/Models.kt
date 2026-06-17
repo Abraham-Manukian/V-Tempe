@@ -17,6 +17,22 @@ enum class LifestyleActivity {
 }
 
 /**
+ * User-preferred weekly split structure.
+ * AUTO = the server picks based on training days count.
+ */
+@Serializable
+enum class SplitPreference {
+    /** Server picks optimal split for the given day count. */
+    AUTO,
+    /** Full Body A/B — hit every muscle each session (2–3 days). */
+    FULL_BODY,
+    /** Upper / Lower split — 4 days. */
+    UPPER_LOWER,
+    /** Push / Pull / Legs — 5–6 days. */
+    PPL
+}
+
+/**
  * How the training plan should be structured.
  * Determines rep ranges, sets, rest periods, and periodization model
  * based on ACSM/Schoenfeld/Grgic recommendations.
@@ -84,7 +100,8 @@ data class Profile(
     val trainingMode: String = "AUTO",
     val coachTrainerId: String = CoachTrainerIds.DEFAULT,
     val trainingFocus: TrainingFocus = TrainingFocus.GENERAL,
-    val sessionDurationMins: Int = 60
+    val sessionDurationMins: Int = 60,
+    val splitPreference: SplitPreference = SplitPreference.AUTO
 )
 
 @Serializable

@@ -107,6 +107,7 @@ internal fun buildBundlePrompt(
             trainingDays        = trainingDays,
             focusRaw            = request.profile.trainingFocus,
             goalRaw             = request.profile.goal,
+            splitPreferenceRaw  = request.profile.splitPreference,
             experienceLevel     = request.profile.experienceLevel,
             sessionDurationMins = request.profile.sessionDurationMins,
             weekIndex           = request.weekIndex

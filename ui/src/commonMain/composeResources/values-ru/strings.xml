@@ -146,6 +146,19 @@
     <string name="lifestyle_active_desc">Учитель, официант, медсестра, продавец — много движения</string>
     <string name="lifestyle_very_active">Тяжёлый физический труд</string>
     <string name="lifestyle_very_active_desc">Стройка, погрузка, сельское хозяйство — физически тяжёлая работа</string>
+
+    <!-- Split preference (onboarding step) -->
+    <string name="label_split_preference">Структура тренировочной недели</string>
+    <string name="split_preference_hint">Выберите, как распределять тренировки по неделе. Не уверен — оставь Авто, подберём оптимальный сплит под твоё расписание.</string>
+    <string name="split_auto">Авто</string>
+    <string name="split_auto_desc">Подбираем оптимальный сплит под количество твоих дней. Рекомендуется большинству.</string>
+    <string name="split_full_body">Фулбади</string>
+    <string name="split_full_body_desc">Каждая тренировка — все основные группы мышц. Идеально для 2–3 дней в неделю. Высокая частота, меньший объём за сессию.</string>
+    <string name="split_upper_lower">Верх / Низ</string>
+    <string name="split_upper_lower_desc">Чередование верха и низа тела. Идеально для 4 дней в неделю. Классический научно обоснованный сплит (Schoenfeld 2016).</string>
+    <string name="split_ppl">Жим / Тяга / Ноги</string>
+    <string name="split_ppl_desc">Три разных сессии, чередующихся по неделе. Для 5–6 дней. Высокий объём на группу за тренировку.</string>
+
     <string name="exlib_title">Библиотека упражнений</string>
     <string name="exlib_all">Все</string>
     <string name="exlib_gym">Зал</string>

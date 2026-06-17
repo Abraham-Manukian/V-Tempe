@@ -28,7 +28,9 @@ data class AiProfile(
     val recentWeights: List<AiWeightEntry> = emptyList(),
     /** STRENGTH | HYPERTROPHY | GENERAL | FAT_LOSS */
     val trainingFocus: String = "GENERAL",
-    val sessionDurationMins: Int = 60
+    val sessionDurationMins: Int = 60,
+    /** AUTO | FULL_BODY | UPPER_LOWER | PPL */
+    val splitPreference: String = "AUTO"
 )
 
 /** One night of logged sleep sent from the client to help the coach adapt recovery advice. */
