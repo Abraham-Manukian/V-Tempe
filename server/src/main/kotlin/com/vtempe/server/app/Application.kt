@@ -1,6 +1,5 @@
 ﻿package com.vtempe.server.app
 
-
 import com.vtempe.server.app.di.serverModule
 import com.vtempe.server.config.Env
 import com.vtempe.server.features.ai.api.registerAiRoutes
