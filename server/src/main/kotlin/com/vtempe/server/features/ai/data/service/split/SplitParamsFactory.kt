@@ -41,12 +41,12 @@ internal object SplitParamsFactory {
         else            -> 4
     }
 
-    /** Exercises per session derived from available time, leaving room for warm-up and rest. */
+    /** Exercises per session derived from available time (including warm-up + rest periods). */
     private fun exercisesFromDuration(mins: Int) = when {
-        mins <= 30 -> 3
-        mins <= 45 -> 4
-        mins <= 60 -> 5
-        else       -> 6
+        mins <= 30 -> 4
+        mins <= 45 -> 5
+        mins <= 60 -> 6
+        else       -> 7
     }
 
     // ACSM: 80–100% 1RM, long rest. Williams 2017: undulating waves improve strength.

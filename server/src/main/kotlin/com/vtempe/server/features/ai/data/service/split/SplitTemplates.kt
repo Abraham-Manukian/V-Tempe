@@ -7,53 +7,120 @@ import com.vtempe.server.features.ai.domain.model.WorkoutSkeleton
 /**
  * Science-based split templates.
  * Nunes 2021: compound exercises first → better strength gains.
- * Grgic 2018: ≥2x/week per muscle for strength.
+ * Grgic 2018: ≥2x/week per muscle for hypertrophy.
+ * Schoenfeld 2017: hit each muscle from multiple angles per session.
+ *
+ * Full Body A/B:  each session covers ALL major muscle groups (quads, hamstrings,
+ *                 chest, upper back, lats, shoulders + isolation).
+ * Upper/Lower:    upper hits push+pull in both planes; lower hits knee+hip+single-leg.
+ * PPL:            3 distinct stimuli, rotated 2x per 6-day week.
  */
 internal object SplitTemplates {
 
-    /** 1–2 training days/week. */
+    /** 1–2 training days/week — both sessions must be complete full-body stimulus. */
     fun fullBodyAB(p: SplitParams): List<WorkoutSkeleton> = listOf(
         skeleton(
             "Full Body A", p,
-            compounds  = listOf(MovementPattern.KNEE_DOMINANT, MovementPattern.HORIZONTAL_PUSH, MovementPattern.VERTICAL_PULL),
-            isolations = listOf(MovementPattern.CORE)
+            compounds = listOf(
+                MovementPattern.KNEE_DOMINANT,   // squat variation — quads primary
+                MovementPattern.HORIZONTAL_PUSH, // bench / DB press — chest + triceps
+                MovementPattern.VERTICAL_PULL,   // pull-up / pulldown — lats
+                MovementPattern.HINGE,           // RDL / leg curl — hamstrings + glutes
+                MovementPattern.VERTICAL_PUSH,   // OHP variation — shoulders
+            ),
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.CORE)
         ),
         skeleton(
             "Full Body B", p,
-            compounds  = listOf(MovementPattern.HINGE, MovementPattern.HORIZONTAL_PULL, MovementPattern.VERTICAL_PUSH),
-            isolations = listOf(MovementPattern.CORE)
+            compounds = listOf(
+                MovementPattern.HINGE,           // deadlift variation — hamstrings primary
+                MovementPattern.HORIZONTAL_PULL, // barbell/cable row — upper back + rhomboids
+                MovementPattern.KNEE_DOMINANT,   // front squat / leg press — quads
+                MovementPattern.HORIZONTAL_PUSH, // incline press / dips — chest
+                MovementPattern.VERTICAL_PULL,   // chin-up / lat pulldown — lats
+            ),
+            isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
         )
     )
 
-    /** 3 training days/week — A→B→A rotation (each muscle hit 2x). */
+    /** 3 training days/week — A→B→A rotation each muscle hit ≥2x. */
     fun fullBodyABA(p: SplitParams): List<WorkoutSkeleton> {
-        val a = skeleton(
-            "Full Body A", p,
-            compounds  = listOf(MovementPattern.KNEE_DOMINANT, MovementPattern.HORIZONTAL_PUSH, MovementPattern.VERTICAL_PULL),
-            isolations = listOf(MovementPattern.CORE)
-        )
-        val b = skeleton(
-            "Full Body B", p,
-            compounds  = listOf(MovementPattern.HINGE, MovementPattern.HORIZONTAL_PULL, MovementPattern.VERTICAL_PUSH),
-            isolations = listOf(MovementPattern.SINGLE_LEG)
-        )
-        return listOf(a, b, a)
+        val sessions = fullBodyAB(p)
+        return listOf(sessions[0], sessions[1], sessions[0])
     }
 
-    /** 4 training days/week. */
+    /** 4 training days/week — upper hits push+pull; lower hits knee+hip+accessory. */
     fun upperLower(p: SplitParams): List<WorkoutSkeleton> = listOf(
-        skeleton("Upper A", p, listOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.VERTICAL_PULL), listOf(MovementPattern.ARM_FLEXION)),
-        skeleton("Lower A", p, listOf(MovementPattern.KNEE_DOMINANT, MovementPattern.HINGE), listOf(MovementPattern.CORE)),
-        skeleton("Upper B", p, listOf(MovementPattern.VERTICAL_PUSH, MovementPattern.HORIZONTAL_PULL), listOf(MovementPattern.ARM_EXTENSION)),
-        skeleton("Lower B", p, listOf(MovementPattern.SINGLE_LEG, MovementPattern.HINGE), listOf(MovementPattern.CORE))
+        skeleton(
+            "Upper A", p,
+            compounds = listOf(
+                MovementPattern.HORIZONTAL_PUSH, // bench press
+                MovementPattern.VERTICAL_PULL,   // pull-up / pulldown
+                MovementPattern.HORIZONTAL_PULL, // cable/barbell row — upper back
+                MovementPattern.VERTICAL_PUSH,   // OHP — shoulders
+            ),
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION)
+        ),
+        skeleton(
+            "Lower A", p,
+            compounds = listOf(
+                MovementPattern.KNEE_DOMINANT,   // squat
+                MovementPattern.HINGE,           // RDL
+                MovementPattern.SINGLE_LEG,      // lunge / split squat
+            ),
+            isolations = listOf(MovementPattern.CORE, MovementPattern.CONDITIONING)
+        ),
+        skeleton(
+            "Upper B", p,
+            compounds = listOf(
+                MovementPattern.VERTICAL_PUSH,   // OHP
+                MovementPattern.HORIZONTAL_PULL, // row
+                MovementPattern.HORIZONTAL_PUSH, // incline DB press
+                MovementPattern.VERTICAL_PULL,   // chin-up
+            ),
+            isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.ARM_FLEXION)
+        ),
+        skeleton(
+            "Lower B", p,
+            compounds = listOf(
+                MovementPattern.HINGE,           // deadlift
+                MovementPattern.SINGLE_LEG,      // Bulgarian split squat
+                MovementPattern.KNEE_DOMINANT,   // leg press / hack squat
+            ),
+            isolations = listOf(MovementPattern.CORE, MovementPattern.MOBILITY)
+        )
     )
 
-    /** 5–6 training days/week — Push/Pull/Legs repeated as needed. */
+    /** 5–6 training days/week — Push/Pull/Legs repeated. */
     fun ppl(p: SplitParams, dayCount: Int): List<WorkoutSkeleton> {
         val base = listOf(
-            skeleton("Push", p, listOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.VERTICAL_PUSH), listOf(MovementPattern.ARM_EXTENSION)),
-            skeleton("Pull", p, listOf(MovementPattern.VERTICAL_PULL, MovementPattern.HORIZONTAL_PULL), listOf(MovementPattern.ARM_FLEXION)),
-            skeleton("Legs", p, listOf(MovementPattern.KNEE_DOMINANT, MovementPattern.HINGE), listOf(MovementPattern.SINGLE_LEG, MovementPattern.CORE))
+            skeleton(
+                "Push", p,
+                compounds = listOf(
+                    MovementPattern.HORIZONTAL_PUSH, // bench press
+                    MovementPattern.VERTICAL_PUSH,   // OHP
+                    MovementPattern.HORIZONTAL_PUSH, // incline / dips
+                ),
+                isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
+            ),
+            skeleton(
+                "Pull", p,
+                compounds = listOf(
+                    MovementPattern.VERTICAL_PULL,   // pull-up
+                    MovementPattern.HORIZONTAL_PULL, // barbell row
+                    MovementPattern.VERTICAL_PULL,   // lat pulldown / cable row
+                ),
+                isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.MOBILITY)
+            ),
+            skeleton(
+                "Legs", p,
+                compounds = listOf(
+                    MovementPattern.KNEE_DOMINANT,   // squat
+                    MovementPattern.HINGE,           // deadlift variation
+                    MovementPattern.SINGLE_LEG,      // lunge / leg press
+                ),
+                isolations = listOf(MovementPattern.CORE, MovementPattern.CONDITIONING)
+            )
         )
         return (base + base).take(dayCount)
     }
