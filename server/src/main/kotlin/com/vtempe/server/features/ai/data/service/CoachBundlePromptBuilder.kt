@@ -106,6 +106,7 @@ internal fun buildBundlePrompt(
         val skeletons = TrainingSplitPlanner.build(
             trainingDays        = trainingDays,
             focusRaw            = request.profile.trainingFocus,
+            goalRaw             = request.profile.goal,
             experienceLevel     = request.profile.experienceLevel,
             sessionDurationMins = request.profile.sessionDurationMins,
             weekIndex           = request.weekIndex

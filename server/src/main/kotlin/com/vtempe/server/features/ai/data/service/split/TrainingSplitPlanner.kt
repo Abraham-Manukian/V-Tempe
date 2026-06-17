@@ -9,12 +9,14 @@ internal object TrainingSplitPlanner {
     fun build(
         trainingDays: List<String>,
         focusRaw: String,
+        goalRaw: String,
         experienceLevel: Int,
         sessionDurationMins: Int,
         weekIndex: Int
     ): List<WorkoutSkeleton> {
-        val focus = SplitParamsFactory.focusFromRaw(focusRaw)
-        val params = SplitParamsFactory.create(focus, experienceLevel, sessionDurationMins, weekIndex)
+        val focus    = SplitParamsFactory.focusFromRaw(focusRaw)
+        val goal     = SplitParamsFactory.goalFromRaw(goalRaw)
+        val params   = SplitParamsFactory.create(goal, focus, experienceLevel, sessionDurationMins, weekIndex)
         val dayCount = trainingDays.size.coerceIn(1, 6)
         val templates = when {
             dayCount <= 2 -> SplitTemplates.fullBodyAB(params)
@@ -32,17 +34,25 @@ internal object TrainingSplitPlanner {
         appendLine("MANDATORY WORKOUT SKELETON — follow exactly, no deviations.")
         appendLine("For each slot: pick one exerciseId token, assign a realistic weightKg.")
         appendLine()
+        appendLine("Loading tier legend:")
+        appendLine("  [PRIMARY]   = main compound accent — heaviest, longest rest")
+        appendLine("  [SECONDARY] = supporting compound — moderate load/rest")
+        appendLine("  [ISOLATION] = accessory — light, short rest, pump-focus")
+        appendLine()
         skeletons.forEachIndexed { i, s ->
             appendLine("Session ${i + 1} (${s.label}):")
             s.slots.forEachIndexed { j, slot ->
                 appendLine("  Slot ${j + 1}: ${slot.describe()}")
             }
+            appendLine()
         }
-        appendLine()
-        appendLine("Sets/reps/rest above are FINAL — do not override.")
-        appendLine("Order: compound patterns FIRST (Nunes 2021), isolations LAST.")
+        appendLine("Sets/reps/rest/RPE above are FINAL — do not override.")
+        appendLine("Order: PRIMARY and SECONDARY patterns FIRST (Nunes 2021), ISOLATION LAST.")
+        appendLine("IMPORTANT: use the session label exactly as the 'label' field in your JSON.")
     }
 
-    private fun PatternSlot.describe() =
-        "${pattern.token} — ${sets}×${repMin}–${repMax} reps — RPE $rpeTarget — ${restSeconds}s rest"
+    private fun PatternSlot.describe(): String {
+        val tier = "[${slotType.name}]".padEnd(12)
+        return "$tier ${pattern.token} — ${sets}×${repMin}–${repMax} reps — RPE $rpeTarget — ${restSeconds}s rest"
+    }
 }

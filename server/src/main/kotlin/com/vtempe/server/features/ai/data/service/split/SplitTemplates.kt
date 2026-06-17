@@ -2,6 +2,7 @@ package com.vtempe.server.features.ai.data.service.split
 
 import com.vtempe.server.features.ai.domain.model.MovementPattern
 import com.vtempe.server.features.ai.domain.model.PatternSlot
+import com.vtempe.server.features.ai.domain.model.SlotType
 import com.vtempe.server.features.ai.domain.model.WorkoutSkeleton
 
 /**
@@ -10,50 +11,46 @@ import com.vtempe.server.features.ai.domain.model.WorkoutSkeleton
  * Grgic 2018: ≥2x/week per muscle for hypertrophy.
  * Schoenfeld 2017: hit each muscle from multiple angles per session.
  *
- * Full Body A/B:  each session covers ALL major muscle groups (quads, hamstrings,
- *                 chest, upper back, lats, shoulders + isolation).
- * Upper/Lower:    upper hits push+pull in both planes; lower hits knee+hip+single-leg.
- * PPL:            3 distinct stimuli, rotated 2x per 6-day week.
+ * Slot assignment: first [primarySlotCount] compounds → PRIMARY tier,
+ * remaining compounds → SECONDARY, all isolations → ISOLATION.
  */
 internal object SplitTemplates {
 
-    /** 1–2 training days/week — both sessions must be complete full-body stimulus. */
+    /** 1–2 training days/week — each session covers ALL major muscle groups. */
     fun fullBodyAB(p: SplitParams): List<WorkoutSkeleton> = listOf(
         skeleton(
             "Full Body A", p,
             compounds = listOf(
-                MovementPattern.KNEE_DOMINANT,   // squat variation — quads primary
-                MovementPattern.HORIZONTAL_PUSH, // bench / DB press — chest + triceps
+                MovementPattern.KNEE_DOMINANT,   // squat — quads primary
+                MovementPattern.HORIZONTAL_PUSH, // bench press — chest + triceps
                 MovementPattern.VERTICAL_PULL,   // pull-up / pulldown — lats
-                MovementPattern.HINGE,           // RDL / leg curl — hamstrings + glutes
-                MovementPattern.VERTICAL_PUSH,   // OHP variation — shoulders
+                MovementPattern.HINGE,           // RDL — hamstrings + glutes
+                MovementPattern.VERTICAL_PUSH,   // OHP — shoulders
             ),
             isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.CORE)
         ),
         skeleton(
             "Full Body B", p,
             compounds = listOf(
-                MovementPattern.HINGE,           // deadlift variation — hamstrings primary
-                MovementPattern.HORIZONTAL_PULL, // barbell/cable row — upper back + rhomboids
+                MovementPattern.HINGE,           // deadlift — hamstrings primary
+                MovementPattern.HORIZONTAL_PULL, // barbell/cable row — upper back
                 MovementPattern.KNEE_DOMINANT,   // front squat / leg press — quads
-                MovementPattern.HORIZONTAL_PUSH, // incline press / dips — chest
+                MovementPattern.HORIZONTAL_PUSH, // incline press — chest
                 MovementPattern.VERTICAL_PULL,   // chin-up / lat pulldown — lats
             ),
             isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
         )
     )
 
-    /** 3 training days/week — A→B→A2 rotation each muscle hit ≥2x with exercise variety. */
+    /** 3 training days/week — A→B→A2, each muscle hit ≥2x with exercise variety. */
     fun fullBodyABA(p: SplitParams): List<WorkoutSkeleton> {
         val (a, b) = fullBodyAB(p)
-        // A2: same muscles as A but swap vertical pull → horizontal pull, vertical push → horizontal push
-        // so AI is forced to choose different exercises (e.g. cable row instead of pull-up)
         val a2 = skeleton(
             "Full Body A2", p,
             compounds = listOf(
-                MovementPattern.KNEE_DOMINANT,   // squat variation (can be different: leg press, goblet squat)
-                MovementPattern.HORIZONTAL_PUSH, // incline / dumbbell press (different angle from A)
-                MovementPattern.HORIZONTAL_PULL, // cable row / T-bar row (vs pull-up in A)
+                MovementPattern.KNEE_DOMINANT,   // goblet squat / leg press (different from A)
+                MovementPattern.HORIZONTAL_PUSH, // incline DB press (different angle)
+                MovementPattern.HORIZONTAL_PULL, // cable row / T-bar (vs pull-up in A)
                 MovementPattern.HINGE,           // good morning / Nordic curl variation
                 MovementPattern.VERTICAL_PULL,   // lat pulldown (vs pull-up in A)
             ),
@@ -69,8 +66,8 @@ internal object SplitTemplates {
             compounds = listOf(
                 MovementPattern.HORIZONTAL_PUSH, // bench press
                 MovementPattern.VERTICAL_PULL,   // pull-up / pulldown
-                MovementPattern.HORIZONTAL_PULL, // cable/barbell row — upper back
-                MovementPattern.VERTICAL_PUSH,   // OHP — shoulders
+                MovementPattern.HORIZONTAL_PULL, // cable/barbell row
+                MovementPattern.VERTICAL_PUSH,   // OHP
             ),
             isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION)
         ),
@@ -86,8 +83,8 @@ internal object SplitTemplates {
         skeleton(
             "Upper B", p,
             compounds = listOf(
-                MovementPattern.VERTICAL_PUSH,   // OHP
-                MovementPattern.HORIZONTAL_PULL, // row
+                MovementPattern.VERTICAL_PUSH,   // OHP variation
+                MovementPattern.HORIZONTAL_PULL, // row variation
                 MovementPattern.HORIZONTAL_PUSH, // incline DB press
                 MovementPattern.VERTICAL_PULL,   // chin-up
             ),
@@ -115,13 +112,12 @@ internal object SplitTemplates {
             ),
             isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
         )
-        // Push2: swap incline → dips, add lateral raise angle
         val push2 = skeleton(
             "Push 2", p,
             compounds = listOf(
-                MovementPattern.VERTICAL_PUSH,   // DB shoulder press (vs barbell in Push 1)
+                MovementPattern.VERTICAL_PUSH,   // DB shoulder press
                 MovementPattern.HORIZONTAL_PUSH, // dips / cable fly
-                MovementPattern.VERTICAL_PUSH,   // lateral raise / front raise
+                MovementPattern.VERTICAL_PUSH,   // lateral raise variation
             ),
             isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
         )
@@ -134,7 +130,6 @@ internal object SplitTemplates {
             ),
             isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.MOBILITY)
         )
-        // Pull2: swap to cable-focused, face pulls for rear delt
         val pull2 = skeleton(
             "Pull 2", p,
             compounds = listOf(
@@ -153,7 +148,6 @@ internal object SplitTemplates {
             ),
             isolations = listOf(MovementPattern.CORE, MovementPattern.CONDITIONING)
         )
-        // 5 days: P/Pu/L/P2/Pu2 — 6 days: P/Pu/L/P2/Pu2/L
         val rotation = listOf(push1, pull1, legs, push2, pull2, legs)
         return rotation.take(dayCount)
     }
@@ -172,8 +166,41 @@ internal object SplitTemplates {
     }
 
     private fun compoundSlots(patterns: List<MovementPattern>, p: SplitParams) =
-        patterns.map { PatternSlot(it, p.setsCompound, p.compoundRepMin, p.compoundRepMax, p.rpeCompound, p.restCompoundSeconds) }
+        patterns.mapIndexed { index, pattern ->
+            val slotType = if (index < p.primarySlotCount) SlotType.PRIMARY else SlotType.SECONDARY
+            if (slotType == SlotType.PRIMARY) {
+                PatternSlot(
+                    pattern       = pattern,
+                    slotType      = SlotType.PRIMARY,
+                    sets          = p.primarySets,
+                    repMin        = p.primaryRepMin,
+                    repMax        = p.primaryRepMax,
+                    rpeTarget     = p.primaryRpe,
+                    restSeconds   = p.primaryRestSeconds
+                )
+            } else {
+                PatternSlot(
+                    pattern       = pattern,
+                    slotType      = SlotType.SECONDARY,
+                    sets          = p.secondarySets,
+                    repMin        = p.secondaryRepMin,
+                    repMax        = p.secondaryRepMax,
+                    rpeTarget     = p.secondaryRpe,
+                    restSeconds   = p.secondaryRestSeconds
+                )
+            }
+        }
 
     private fun isolationSlots(patterns: List<MovementPattern>, p: SplitParams) =
-        patterns.map { PatternSlot(it, p.setsIsolation, p.isolationRepMin, p.isolationRepMax, p.rpeIsolation, p.restIsolationSeconds) }
+        patterns.map { pattern ->
+            PatternSlot(
+                pattern       = pattern,
+                slotType      = SlotType.ISOLATION,
+                sets          = p.isolationSets,
+                repMin        = p.isolationRepMin,
+                repMax        = p.isolationRepMax,
+                rpeTarget     = p.isolationRpe,
+                restSeconds   = p.isolationRestSeconds
+            )
+        }
 }

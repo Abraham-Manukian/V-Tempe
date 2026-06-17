@@ -2,6 +2,7 @@ package com.vtempe.server.features.ai.domain.model
 
 data class PatternSlot(
     val pattern: MovementPattern,
+    val slotType: SlotType,
     val sets: Int,
     val repMin: Int,
     val repMax: Int,
