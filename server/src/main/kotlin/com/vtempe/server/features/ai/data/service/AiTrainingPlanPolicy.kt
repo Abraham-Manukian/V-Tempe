@@ -42,8 +42,13 @@ internal fun normalizeTrainingPlan(
     val weekStart = expectedWeekStart(resolvedWeekIndex)
     val usedWorkoutIds = mutableSetOf<String>()
 
-    // Compute skeleton labels server-side — AI frequently ignores the label instruction.
-    val skeletonLabels = profile?.let { computeSkeletonLabels(it, resolvedWeekIndex) } ?: emptyList()
+    // Pre-resolve ALL exercises from the skeleton — AI only provides reps/weight/rpe.
+    // This guarantees correct exercises per slot regardless of what AI returned.
+    val skeletonData = profile?.let {
+        computeSkeletonData(it, resolvedWeekIndex, trainingPlanResolver)
+    }
+    val skeletonLabels = skeletonData?.map { it.first } ?: emptyList()
+    val skeletonExercises = skeletonData?.map { it.second } ?: emptyList()
 
     val workouts = plan.workouts
         .take(MaxWorkoutsPerPlan)
@@ -51,65 +56,71 @@ internal fun normalizeTrainingPlan(
             val safeDate = normalizeWorkoutDate(workout.date, weekStart, index)
             val rawId = sanitizeText(workout.id).ifEmpty { "w_${resolvedWeekIndex}_$index" }
             val safeId = uniqueWorkoutId(rawId, resolvedWeekIndex, index, usedWorkoutIds)
-            val usedExerciseIds = mutableSetOf<String>()
 
-            val normalizedSets = workout.sets
-                .mapIndexedNotNull { setIndex, set ->
-                    val canonical = trainingPlanResolver.resolveExerciseId(
-                        rawToken = set.exerciseId,
-                        trainingModeRaw = profile?.trainingMode,
-                        userExperienceLevel = profile?.experienceLevel ?: 3,
-                        equipment = profile?.equipment.orEmpty(),
-                        usedExerciseIds = usedExerciseIds,
-                        rotationSeed = (index * 31) + setIndex
-                    ) ?: return@mapIndexedNotNull null
-                    usedExerciseIds += canonical
-                    val reps = set.reps.coerceAtLeast(1)
-                    val weight = if (canonical in bodweightOnlyExerciseIds) null
-                                 else set.weightKg?.takeIf { it >= 0.0 }
-                    val rpe = set.rpe?.takeIf { it > 0.0 }
-                    AiSet(
-                        exerciseId = canonical,
-                        reps = reps,
-                        weightKg = weight,
-                        rpe = rpe
-                    )
-                }
-                .distinctBy { it.exerciseId }
-                .take(MaxSetsPerWorkout)
+            val preResolved = skeletonExercises.getOrNull(index)
+            val normalizedSets = if (preResolved != null) {
+                // Skeleton-driven: exercise IDs are authoritative, AI supplies reps/weight/rpe only.
+                preResolved.mapIndexed { slotIndex, exerciseId ->
+                    val aiSet = workout.sets.getOrNull(slotIndex)
+                    val reps = aiSet?.reps?.coerceAtLeast(1) ?: 8
+                    val weight = if (exerciseId in bodweightOnlyExerciseIds) null
+                                 else aiSet?.weightKg?.takeIf { it >= 0.0 }
+                    val rpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
+                    AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe)
+                }.take(MaxSetsPerWorkout)
+            } else {
+                // No skeleton available — fall back to resolver-based flow.
+                val usedExerciseIds = mutableSetOf<String>()
+                workout.sets
+                    .mapIndexedNotNull { setIndex, set ->
+                        val canonical = trainingPlanResolver.resolveExerciseId(
+                            rawToken = set.exerciseId,
+                            trainingModeRaw = profile?.trainingMode,
+                            userExperienceLevel = profile?.experienceLevel ?: 3,
+                            equipment = profile?.equipment.orEmpty(),
+                            usedExerciseIds = usedExerciseIds,
+                            rotationSeed = (index * 31) + setIndex
+                        ) ?: return@mapIndexedNotNull null
+                        usedExerciseIds += canonical
+                        val reps = set.reps.coerceAtLeast(1)
+                        val weight = if (canonical in bodweightOnlyExerciseIds) null
+                                     else set.weightKg?.takeIf { it >= 0.0 }
+                        val rpe = set.rpe?.takeIf { it > 0.0 }
+                        AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe)
+                    }
+                    .distinctBy { it.exerciseId }
+                    .take(MaxSetsPerWorkout)
+            }
 
-            val safeSets = if (normalizedSets.isEmpty()) {
-                val fallbackExerciseId = trainingPlanResolver.resolveExerciseId(
+            val safeSets = normalizedSets.ifEmpty {
+                val fallback = trainingPlanResolver.resolveExerciseId(
                     rawToken = "pattern:knee_dominant",
                     trainingModeRaw = profile?.trainingMode,
                     userExperienceLevel = profile?.experienceLevel ?: 3,
                     equipment = profile?.equipment.orEmpty(),
                     rotationSeed = index
                 ) ?: "lunge"
-                listOf(AiSet(fallbackExerciseId, reps = 8, weightKg = null, rpe = 7.0))
-            } else {
-                normalizedSets
+                listOf(AiSet(fallback, reps = 8, weightKg = null, rpe = 7.0))
             }
 
-            // Use skeleton label if available; fall back to AI label (stripped of day prefix).
             val label = skeletonLabels.getOrNull(index) ?: workout.label.trimDayPrefix()
 
-            AiWorkout(
-                id = safeId,
-                label = label,
-                date = safeDate,
-                sets = safeSets
-            )
+            AiWorkout(id = safeId, label = label, date = safeDate, sets = safeSets)
         }
 
     return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
 }
 
 /**
- * Builds skeleton labels for each workout using the same parameters as the prompt builder.
- * Returns pure session names like "Full Body A", "Push", "Upper A" — without day prefix.
+ * Builds skeleton data: label + pre-resolved exercise IDs per slot for each workout.
+ * Returns pairs of (sessionLabel, listOfExerciseIds).
+ * Exercise IDs are authoritative — AI output is used only for reps/weight/rpe.
  */
-private fun computeSkeletonLabels(profile: AiProfile, weekIndex: Int): List<String> {
+private fun computeSkeletonData(
+    profile: AiProfile,
+    weekIndex: Int,
+    resolver: TrainingPlanResolver
+): List<Pair<String, List<String>>> {
     val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         .filter { profile.weeklySchedule[it] == true }
     if (trainingDays.isEmpty()) return emptyList()
@@ -126,7 +137,23 @@ private fun computeSkeletonLabels(profile: AiProfile, weekIndex: Int): List<Stri
             injuries            = profile.injuries,
             sessionDurationMins = profile.sessionDurationMins,
             weekIndex           = weekIndex
-        ).map { it.label.trimDayPrefix() }
+        ).mapIndexed { si, skeleton ->
+            val label = skeleton.label.trimDayPrefix()
+            val usedInSession = mutableSetOf<String>()
+            val exerciseIds = skeleton.slots.mapIndexedNotNull { j, slot ->
+                val id = resolver.resolveExerciseId(
+                    rawToken            = slot.pattern.token,
+                    trainingModeRaw     = profile.trainingMode,
+                    equipment           = profile.equipment,
+                    usedExerciseIds     = usedInSession,
+                    rotationSeed        = si * 31 + j,
+                    userExperienceLevel = profile.experienceLevel
+                )
+                if (id != null) usedInSession += id
+                id
+            }
+            label to exerciseIds
+        }
     }.getOrDefault(emptyList())
 }
 
