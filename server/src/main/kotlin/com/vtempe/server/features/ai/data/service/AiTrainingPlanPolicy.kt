@@ -59,12 +59,19 @@ internal fun normalizeTrainingPlan(
 
             val preResolved = skeletonExercises.getOrNull(index)
             val normalizedSets = if (preResolved != null) {
-                // Skeleton-driven: exercise IDs are authoritative, AI supplies reps/weight/rpe only.
+                // Skeleton-driven: exercise IDs are authoritative.
+                // Weight is kept only when AI chose the same exercise — otherwise null,
+                // because 70kg deadlift ≠ 70kg barbell row.
                 preResolved.mapIndexed { slotIndex, exerciseId ->
                     val aiSet = workout.sets.getOrNull(slotIndex)
+                    val aiExerciseMatches = aiSet != null &&
+                        normalizeExerciseToken(aiSet.exerciseId) == exerciseId
                     val reps = aiSet?.reps?.coerceAtLeast(1) ?: 8
-                    val weight = if (exerciseId in bodweightOnlyExerciseIds) null
-                                 else aiSet?.weightKg?.takeIf { it >= 0.0 }
+                    val weight = when {
+                        exerciseId in bodweightOnlyExerciseIds -> null
+                        aiExerciseMatches -> aiSet?.weightKg?.takeIf { it >= 0.0 }
+                        else -> null  // AI picked a different exercise — its weight is meaningless here
+                    }
                     val rpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
                     AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe)
                 }.take(MaxSetsPerWorkout)
