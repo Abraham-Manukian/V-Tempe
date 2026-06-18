@@ -166,18 +166,25 @@ class AiService(
                 callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "coach-bundle", requestId) },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
-                    // Check skeleton compliance on the RAW AI response — gives actionable feedback
-                    // before normalization so AI can self-correct exercise choices.
-                    val skeletonErrors = bundle.trainingPlan?.let {
+                    // Log skeleton compliance violations on the RAW AI response for observability.
+                    // These are NOT treated as critical errors — normalizeTrainingPlan enforces
+                    // correct exercises as safety net, so we never throw away valid AI weights/reps
+                    // just because the AI picked the wrong exercise pattern.
+                    val skeletonViolations = bundle.trainingPlan?.let {
                         validateSkeletonCompliance(it, profile, weekIndex)
                     }.orEmpty()
-                    if (skeletonErrors.isNotEmpty()) {
-                        AiQualityMetrics.recordValidation(logger, "coach-bundle-skeleton", requestId, skeletonErrors)
+                    if (skeletonViolations.isNotEmpty()) {
+                        logger.info(
+                            "LLM coach-bundle requestId={} skeleton violations (auto-corrected by normalizer): {}",
+                            requestId,
+                            skeletonViolations.joinToString(" | ")
+                        )
+                        AiQualityMetrics.recordValidation(logger, "coach-bundle-skeleton", requestId, skeletonViolations)
                     }
 
                     val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
                     val errors = validateBundle(normalizedCandidate, profile, locale)
-                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors + skeletonErrors)
+                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                     if (criticalErrors.isNotEmpty()) {
                         AiQualityMetrics.recordValidation(logger, "coach-bundle", requestId, criticalErrors)
                     }
