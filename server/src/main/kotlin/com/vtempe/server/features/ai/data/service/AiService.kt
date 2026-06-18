@@ -14,6 +14,7 @@ import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapResponse
 import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
 import com.vtempe.server.shared.dto.profile.AiProfile
+import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
@@ -165,9 +166,18 @@ class AiService(
                 callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "coach-bundle", requestId) },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
+                    // Check skeleton compliance on the RAW AI response — gives actionable feedback
+                    // before normalization so AI can self-correct exercise choices.
+                    val skeletonErrors = bundle.trainingPlan?.let {
+                        validateSkeletonCompliance(it, profile, weekIndex)
+                    }.orEmpty()
+                    if (skeletonErrors.isNotEmpty()) {
+                        AiQualityMetrics.recordValidation(logger, "coach-bundle-skeleton", requestId, skeletonErrors)
+                    }
+
                     val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
                     val errors = validateBundle(normalizedCandidate, profile, locale)
-                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
+                    val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors + skeletonErrors)
                     if (criticalErrors.isNotEmpty()) {
                         AiQualityMetrics.recordValidation(logger, "coach-bundle", requestId, criticalErrors)
                     }
@@ -587,6 +597,64 @@ class AiService(
                 PendingBundle(deferred = created, isOwner = true)
             }
         }
+    }
+
+    /**
+     * Checks that each exercise in the raw AI response belongs to the expected movement pattern
+     * for that skeleton slot. Returns specific, actionable error messages fed back to the LLM
+     * so it can self-correct. Normalization still acts as a safety net after all retries.
+     */
+    private fun validateSkeletonCompliance(
+        plan: AiTrainingResponse,
+        profile: AiProfile,
+        weekIndex: Int
+    ): List<String> {
+        val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            .filter { profile.weeklySchedule[it] == true }
+        if (trainingDays.isEmpty()) return emptyList()
+        val skeletons = runCatching {
+            TrainingSplitPlanner.build(
+                trainingDays        = trainingDays,
+                focusRaw            = profile.trainingFocus,
+                goalRaw             = profile.goal,
+                splitPreferenceRaw  = profile.splitPreference,
+                experienceLevel     = profile.experienceLevel,
+                age                 = profile.age,
+                sexRaw              = profile.sex,
+                lifestyleRaw        = profile.lifestyleActivity,
+                injuries            = profile.injuries,
+                sessionDurationMins = profile.sessionDurationMins,
+                weekIndex           = weekIndex
+            )
+        }.getOrDefault(emptyList())
+        if (skeletons.isEmpty()) return emptyList()
+
+        val mode = trainingPlanResolver.resolveMode(profile.trainingMode, profile.equipment)
+        val equipment = trainingPlanResolver.normalizeEquipment(profile.equipment)
+        val errors = mutableListOf<String>()
+
+        plan.workouts.forEachIndexed { wi, workout ->
+            val skeleton = skeletons.getOrNull(wi) ?: return@forEachIndexed
+            val sessionLabel = skeleton.label.let {
+                val dash = it.indexOf(" — "); if (dash >= 0) it.substring(dash + 3) else it
+            }
+            workout.sets.forEachIndexed { si, set ->
+                val expectedSlot = skeleton.slots.getOrNull(si) ?: return@forEachIndexed
+                val token = normalizeExerciseToken(set.exerciseId)
+                // Pattern tokens (pattern:*) are allowed — resolver picks the exercise
+                if (token.startsWith("pattern:")) return@forEachIndexed
+                val catalogItem = exerciseCatalog.findByIdOrAlias(token) ?: return@forEachIndexed
+                if (catalogItem.primaryPattern != expectedSlot.pattern) {
+                    val examples = exerciseCatalog.candidatesFor(expectedSlot.pattern, mode, equipment)
+                        .take(3).joinToString(", ") { it.id }
+                    errors += "workout[$wi] ($sessionLabel) slot ${si + 1}: " +
+                        "expected ${expectedSlot.pattern.id} (${expectedSlot.pattern.promptDescription}) " +
+                        "but got '${catalogItem.id}' which is ${catalogItem.primaryPattern.id}. " +
+                        "Use one of: $examples"
+                }
+            }
+        }
+        return errors
     }
 
     private fun validateBundle(
