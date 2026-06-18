@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.intl.Locale
+import com.vtempe.shared.domain.exercise.ExerciseBrowseCatalog
 import com.vtempe.shared.domain.exercise.ExerciseCalibrationKind
 import com.vtempe.shared.domain.exercise.ExerciseDefinition
 import com.vtempe.shared.domain.exercise.ExerciseLibrary
@@ -35,13 +36,14 @@ internal data class ExerciseGuideData(
 )
 
 @Composable
-internal fun exerciseLabel(exerciseId: String): String =
-    ExerciseLibrary.findByIdOrAlias(exerciseId)
-        ?.name
-        ?.resolve(Locale.current.language)
+internal fun exerciseLabel(exerciseId: String): String {
+    val lang = Locale.current.language
+    return ExerciseLibrary.findByIdOrAlias(exerciseId)?.name?.resolve(lang)
+        ?: ExerciseBrowseCatalog.all.find { it.id == exerciseId }?.name(lang)
         ?: exerciseId.replace('_', ' ').replaceFirstChar {
             if (it.isLowerCase()) it.titlecase() else it.toString()
         }
+}
 
 @Composable
 internal fun exerciseGuide(
