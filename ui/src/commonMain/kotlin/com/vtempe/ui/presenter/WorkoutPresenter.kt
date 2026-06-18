@@ -52,6 +52,15 @@ interface WorkoutPresenter {
         actualWeightKg: Double?,
         actualRpe: Double?
     )
+    /** Increments completedSetsCount for the exercise. Marks exercise done when count reaches totalSets. */
+    fun markSetDone(
+        workoutId: String,
+        exerciseIndex: Int,
+        totalSets: Int,
+        actualReps: Int?,
+        actualWeightKg: Double?,
+        actualRpe: Double?
+    )
     fun updateNotes(workoutId: String, notes: String)
     fun updateRestSeconds(workoutId: String, restSeconds: Int)
     fun submitFeedback(workoutId: String)
@@ -133,7 +142,8 @@ class WorkoutPresenterDelegate(
             val current = _state.value.progress[workoutId] ?: WorkoutProgress(workoutId)
             val sets = current.performedSets.toMutableList()
             val idx = sets.indexOfFirst { it.setIndex == setIndex }
-            val updated = PerformedSet(setIndex, completed, actualReps, actualWeightKg, actualRpe)
+            val existing = sets.getOrNull(idx)
+            val updated = PerformedSet(setIndex, completed, existing?.completedSetsCount ?: 0, actualReps, actualWeightKg, actualRpe)
             if (idx >= 0) sets[idx] = updated else sets.add(updated)
             val newProgress = current.copy(
                 performedSets = sets,
@@ -141,6 +151,39 @@ class WorkoutPresenterDelegate(
             )
             runCatching { trainingRepository.saveWorkoutProgress(newProgress) }
                 .onFailure { Napier.e("updatePerformedSet failed", it) }
+        }
+    }
+
+    override fun markSetDone(
+        workoutId: String,
+        exerciseIndex: Int,
+        totalSets: Int,
+        actualReps: Int?,
+        actualWeightKg: Double?,
+        actualRpe: Double?
+    ) {
+        scope.launch {
+            val current = _state.value.progress[workoutId] ?: WorkoutProgress(workoutId)
+            val sets = current.performedSets.toMutableList()
+            val idx = sets.indexOfFirst { it.setIndex == exerciseIndex }
+            val existing = sets.getOrNull(idx)
+            val newCount = (existing?.completedSetsCount ?: 0) + 1
+            val isComplete = newCount >= totalSets
+            val updated = PerformedSet(
+                setIndex = exerciseIndex,
+                completed = isComplete,
+                completedSetsCount = newCount,
+                actualReps = actualReps,
+                actualWeightKg = actualWeightKg,
+                actualRpe = actualRpe
+            )
+            if (idx >= 0) sets[idx] = updated else sets.add(updated)
+            val newProgress = current.copy(
+                performedSets = sets,
+                updatedAtEpochMs = Clock.System.now().toEpochMilliseconds()
+            )
+            runCatching { trainingRepository.saveWorkoutProgress(newProgress) }
+                .onFailure { Napier.e("markSetDone failed", it) }
         }
     }
 

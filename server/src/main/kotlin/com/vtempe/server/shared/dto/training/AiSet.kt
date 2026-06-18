@@ -8,4 +8,5 @@ data class AiSet(
     val reps: Int,
     val weightKg: Double? = null,
     val rpe: Double? = null,
+    val sets: Int = 3,
 )

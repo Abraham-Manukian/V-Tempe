@@ -119,6 +119,7 @@ data class Exercise(
 data class PerformedSet(
     val setIndex: Int,
     val completed: Boolean = false,
+    val completedSetsCount: Int = 0,
     val actualReps: Int? = null,
     val actualWeightKg: Double? = null,
     val actualRpe: Double? = null
@@ -160,7 +161,8 @@ data class WorkoutSet(
     val exerciseId: String,
     val reps: Int,
     val weightKg: Double? = null,
-    val rpe: Double? = null
+    val rpe: Double? = null,
+    val sets: Int = 3
 )
 
 @Serializable

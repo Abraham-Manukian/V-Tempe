@@ -58,6 +58,7 @@ internal fun normalizeTrainingPlan(
             val safeId = uniqueWorkoutId(rawId, resolvedWeekIndex, index, usedWorkoutIds)
 
             val preResolved = skeletonExercises.getOrNull(index)
+            val preResolvedSets = skeletonData?.getOrNull(index)?.third
             val normalizedSets = if (preResolved != null) {
                 // Skeleton-driven: exercise IDs are authoritative.
                 // Weight is kept only when AI chose the same exercise — otherwise null,
@@ -73,7 +74,8 @@ internal fun normalizeTrainingPlan(
                         else -> null  // AI picked a different exercise — its weight is meaningless here
                     }
                     val rpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
-                    AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe)
+                    val setsCount = preResolvedSets?.getOrNull(slotIndex) ?: 3
+                    AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount)
                 }.take(MaxSetsPerWorkout)
             } else {
                 // No skeleton available — fall back to resolver-based flow.
@@ -119,15 +121,15 @@ internal fun normalizeTrainingPlan(
 }
 
 /**
- * Builds skeleton data: label + pre-resolved exercise IDs per slot for each workout.
- * Returns pairs of (sessionLabel, listOfExerciseIds).
+ * Builds skeleton data: label + pre-resolved exercise IDs + sets count per slot.
+ * Returns triples of (sessionLabel, listOfExerciseIds, listOfSetsCounts).
  * Exercise IDs are authoritative — AI output is used only for reps/weight/rpe.
  */
 private fun computeSkeletonData(
     profile: AiProfile,
     weekIndex: Int,
     resolver: TrainingPlanResolver
-): List<Pair<String, List<String>>> {
+): List<Triple<String, List<String>, List<Int>>> {
     val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         .filter { profile.weeklySchedule[it] == true }
     if (trainingDays.isEmpty()) return emptyList()
@@ -147,7 +149,9 @@ private fun computeSkeletonData(
         ).mapIndexed { si, skeleton ->
             val label = skeleton.label.trimDayPrefix()
             val usedInSession = mutableSetOf<String>()
-            val exerciseIds = skeleton.slots.mapIndexedNotNull { j, slot ->
+            val exerciseIds = mutableListOf<String>()
+            val setsCounts = mutableListOf<Int>()
+            skeleton.slots.forEachIndexed { j, slot ->
                 val id = resolver.resolveExerciseId(
                     rawToken            = slot.pattern.token,
                     trainingModeRaw     = profile.trainingMode,
@@ -156,10 +160,13 @@ private fun computeSkeletonData(
                     rotationSeed        = si * 31 + j,
                     userExperienceLevel = profile.experienceLevel
                 )
-                if (id != null) usedInSession += id
-                id
+                if (id != null) {
+                    usedInSession += id
+                    exerciseIds += id
+                    setsCounts += slot.sets
+                }
             }
-            label to exerciseIds
+            Triple(label, exerciseIds.toList(), setsCounts.toList())
         }
     }.getOrDefault(emptyList())
 }

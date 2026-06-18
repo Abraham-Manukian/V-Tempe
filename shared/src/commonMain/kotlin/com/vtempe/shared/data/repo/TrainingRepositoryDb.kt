@@ -109,7 +109,7 @@ class TrainingRepositoryDb(
                     db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.label, workout.date.toString())
                     db.workoutQueries.deleteSetsForWorkout(workout.id)
                     workout.sets.forEach { set ->
-                        db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe)
+                        db.workoutQueries.insertSet(workout.id, set.exerciseId, set.reps.toLong(), set.weightKg, set.rpe, set.sets.toLong())
                     }
                 }
             }

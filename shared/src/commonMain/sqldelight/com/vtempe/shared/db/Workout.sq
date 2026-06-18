@@ -11,7 +11,8 @@ CREATE TABLE WorkoutSet(
   exerciseId TEXT NOT NULL,
   reps INTEGER NOT NULL,
   weightKg REAL,
-  rpe REAL
+  rpe REAL,
+  sets INTEGER NOT NULL DEFAULT 3
 );
 
 CREATE INDEX IF NOT EXISTS idx_workout_week ON Workout(weekIndex);
@@ -30,19 +31,19 @@ deleteWorkoutsByWeek:
 DELETE FROM Workout WHERE weekIndex = ?;
 
 insertSet:
-INSERT INTO WorkoutSet(workoutId, exerciseId, reps, weightKg, rpe) VALUES (?, ?, ?, ?, ?);
+INSERT INTO WorkoutSet(workoutId, exerciseId, reps, weightKg, rpe, sets) VALUES (?, ?, ?, ?, ?, ?);
 
 deleteSetsForWorkout:
 DELETE FROM WorkoutSet WHERE workoutId = ?;
 
 selectWorkoutsWithSets:
-SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
+SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe, s.sets
 FROM Workout w
 LEFT JOIN WorkoutSet s ON s.workoutId = w.id
 ORDER BY w.date;
 
 selectWorkoutsWithSetsByWeek:
-SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
+SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe, s.sets
 FROM Workout w
 LEFT JOIN WorkoutSet s ON s.workoutId = w.id
 WHERE w.weekIndex = ?

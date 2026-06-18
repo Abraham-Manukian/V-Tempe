@@ -53,6 +53,7 @@ internal object TrainingSplitPlanner {
         } else {
             appendLine("For each slot: pick one exerciseId token, assign a realistic weightKg.")
         }
+        appendLine("IMPORTANT: Each slot = exactly ONE object in the sets array. '3 sets x 8 reps' means 3 sets to perform in the gym — NOT 3 JSON entries. 5 slots = 5 objects in sets[].")
         appendLine()
         appendLine("Loading tier legend:")
         appendLine("  [PRIMARY]   = main compound accent — heaviest, longest rest")

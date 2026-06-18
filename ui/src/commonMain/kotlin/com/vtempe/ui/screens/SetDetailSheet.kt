@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -73,7 +74,7 @@ internal fun SetDetailSheet(
     restSeconds: Int,
     onDismiss: () -> Unit,
     onResultChanged: (Boolean, Int?, Double?, Double?) -> Unit,
-    onDoneStartRest: (Int?, Double?, Double?) -> Unit,
+    onSetDone: (Int?, Double?, Double?) -> Unit,
     onUseSuggestedRest: (Int) -> Unit,
     onAskCoach: (String) -> Unit
 ) {
@@ -84,6 +85,15 @@ internal fun SetDetailSheet(
     val isBodyweight = calibrationKind == ExerciseCalibrationKind.BODYWEIGHT_REPS
     val askCoachPrompt = stringResource(Res.string.workout_ask_coach_prompt).kmpFormat(exerciseName)
     val completed = performed?.completed == true
+    val totalSets = plannedSet.sets.coerceAtLeast(1)
+    val doneSets = performed?.completedSetsCount ?: 0
+    val currentSetNumber = (doneSets + 1).coerceAtMost(totalSets)
+    val isLastSet = doneSets + 1 >= totalSets
+
+    // Auto-dismiss when all sets of this exercise are done
+    LaunchedEffect(completed) {
+        if (completed) onDismiss()
+    }
 
     var reps by remember(setIndex, performed?.actualReps, plannedSet.reps) {
         mutableIntStateOf(performed?.actualReps ?: plannedSet.reps)
@@ -198,6 +208,43 @@ internal fun SetDetailSheet(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── Set progress: "Подход X из N" + dots ─────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    "Подход $currentSetNumber из $totalSets",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                // Set dots: filled = done, outline = pending
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(totalSets) { i ->
+                        val isDone = i < doneSets
+                        val isCurrent = i == doneSets
+                        Box(
+                            modifier = Modifier
+                                .size(if (isCurrent) 14.dp else 10.dp)
+                                .background(
+                                    color = when {
+                                        isDone -> AiPalette.DeepAccent
+                                        isCurrent -> AiPalette.DeepAccent.copy(alpha = 0.35f)
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             // ── Target row ────────────────────────────────────────
             Row(
                 modifier = Modifier
@@ -265,52 +312,51 @@ internal fun SetDetailSheet(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Primary CTA: mark done + start rest ──────────────
+            // ── Primary CTA: mark set done + start rest ──────────
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
                     .padding(horizontal = 20.dp),
-                onClick = { onDoneStartRest(reps, weight, rpe) },
+                onClick = { onSetDone(reps, weight, rpe) },
+                enabled = !completed,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (completed) MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = if (isLastSet) MaterialTheme.colorScheme.tertiary
                     else AiPalette.DeepAccent,
-                    contentColor = if (completed) MaterialTheme.colorScheme.onSurfaceVariant
-                    else AiPalette.OnDeepAccent
+                    contentColor = AiPalette.OnDeepAccent
                 ),
                 shape = MaterialTheme.shapes.large
             ) {
                 Icon(
-                    if (completed) Icons.Filled.RadioButtonUnchecked else Icons.Filled.CheckCircle,
+                    Icons.Filled.CheckCircle,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (completed) stringResource(Res.string.workout_mark_not_done)
-                    else stringResource(Res.string.workout_done_start_rest),
+                    if (isLastSet) "Последний подход · Готово!"
+                    else "Подход выполнен · Отдых",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
-                if (!completed) {
+                if (!isLastSet) {
                     Spacer(Modifier.width(6.dp))
                     Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
                 }
             }
 
-            // Secondary: save without rest
-            if (!completed) {
+            // Secondary: mark not done (undo)
+            if (doneSets > 0) {
                 TextButton(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     onClick = {
-                        onResultChanged(true, reps, weight, rpe)
-                        onDismiss()
+                        onResultChanged(false, reps, weight, rpe)
                     }
                 ) {
                     Text(
-                        stringResource(Res.string.workout_save_result),
+                        stringResource(Res.string.workout_mark_not_done),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

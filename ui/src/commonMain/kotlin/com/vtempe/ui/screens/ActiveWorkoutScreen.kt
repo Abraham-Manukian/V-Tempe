@@ -81,6 +81,7 @@ internal fun ActiveWorkoutScreen(
     onBack: () -> Unit,
     onAddSet: (String, Int, Double?, Double?) -> Unit,
     onResultChanged: (Int, Boolean, Int?, Double?, Double?) -> Unit,
+    onSetDone: (Int, Int, Int?, Double?, Double?) -> Unit,
     onNotesChanged: (String) -> Unit,
     onRestSecondsChanged: (Int) -> Unit,
     onSubmit: () -> Unit,
@@ -110,9 +111,11 @@ internal fun ActiveWorkoutScreen(
         if (restRemaining <= 0) isRestRunning = false
     }
 
-    val completedCount = progress.performedSets.count { it.completed }
-    val progressFraction = if (workout.sets.isEmpty()) 0f
-    else completedCount.toFloat() / workout.sets.size.toFloat()
+    val totalSetsAcrossExercises = workout.sets.sumOf { it.sets.coerceAtLeast(1) }
+    val doneSetsAcrossExercises = progress.performedSets.sumOf { it.completedSetsCount }
+    val completedExercises = progress.performedSets.count { it.completed }
+    val progressFraction = if (totalSetsAcrossExercises == 0) 0f
+    else doneSetsAcrossExercises.toFloat() / totalSetsAcrossExercises.toFloat()
 
     Scaffold(containerColor = Color.Transparent) { _ ->
         Column(modifier = Modifier.fillMaxSize()) {
@@ -123,8 +126,8 @@ internal fun ActiveWorkoutScreen(
                 title = workout.label.ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
                 date = workout.date.toString(),
                 sessionSeconds = sessionSeconds,
-                completedCount = completedCount,
-                totalCount = workout.sets.size,
+                completedCount = doneSetsAcrossExercises,
+                totalCount = totalSetsAcrossExercises,
                 progressFraction = progressFraction
             )
 
@@ -204,11 +207,11 @@ internal fun ActiveWorkoutScreen(
             onResultChanged = { completed, reps, weight, rpe ->
                 onResultChanged(idx, completed, reps, weight, rpe)
             },
-            onDoneStartRest = { reps, weight, rpe ->
-                onResultChanged(idx, true, reps, weight, rpe)
+            onSetDone = { reps, weight, rpe ->
+                onSetDone(idx, selectedSet.sets.coerceAtLeast(1), reps, weight, rpe)
                 restRemaining = progress.restSeconds
                 isRestRunning = true
-                selectedSetIndex = null
+                // Sheet stays open — auto-closes when exercise.completed=true via LaunchedEffect
             },
             onUseSuggestedRest = { seconds ->
                 onRestSecondsChanged(seconds)
@@ -385,7 +388,9 @@ internal fun ExerciseRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Badge: solid accent circle with checkmark (done) or number (pending)
+            // Badge: checkmark (all done) or set progress "X/N"
+            val doneSets = performed?.completedSetsCount ?: 0
+            val totalSets = set.sets.coerceAtLeast(1)
             if (completed) {
                 Icon(
                     Icons.Filled.CheckCircle,
@@ -397,12 +402,16 @@ internal fun ExerciseRow(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(AiPalette.DeepAccent.copy(alpha = 0.14f), CircleShape),
+                        .background(
+                            if (doneSets > 0) AiPalette.DeepAccent.copy(alpha = 0.22f)
+                            else AiPalette.DeepAccent.copy(alpha = 0.14f),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "${index + 1}",
-                        style = MaterialTheme.typography.titleSmall,
+                        if (doneSets > 0) "$doneSets/$totalSets" else "$totalSets",
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = AiPalette.DeepAccent
                     )

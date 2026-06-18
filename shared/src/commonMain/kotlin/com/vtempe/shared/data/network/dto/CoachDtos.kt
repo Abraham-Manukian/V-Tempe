@@ -174,7 +174,8 @@ data class TrainingPlanDto(
         val exerciseId: String,
         val reps: Int,
         val weightKg: Double? = null,
-        val rpe: Double? = null
+        val rpe: Double? = null,
+        val sets: Int = 3
     )
 
     fun toDomain(): TrainingPlan = TrainingPlan(
@@ -189,7 +190,8 @@ data class TrainingPlanDto(
                         exerciseId = set.exerciseId,
                         reps = set.reps,
                         weightKg = set.weightKg,
-                        rpe = set.rpe
+                        rpe = set.rpe,
+                        sets = set.sets
                     )
                 }
             )

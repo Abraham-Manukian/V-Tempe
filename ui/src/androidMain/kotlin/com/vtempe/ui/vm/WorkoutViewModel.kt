@@ -46,6 +46,15 @@ class WorkoutViewModel(
         actualRpe: Double?
     ) = delegate.updatePerformedSet(workoutId, setIndex, completed, actualReps, actualWeightKg, actualRpe)
 
+    override fun markSetDone(
+        workoutId: String,
+        exerciseIndex: Int,
+        totalSets: Int,
+        actualReps: Int?,
+        actualWeightKg: Double?,
+        actualRpe: Double?
+    ) = delegate.markSetDone(workoutId, exerciseIndex, totalSets, actualReps, actualWeightKg, actualRpe)
+
     override fun updateNotes(workoutId: String, notes: String) =
         delegate.updateNotes(workoutId, notes)
 

@@ -74,6 +74,9 @@ fun WorkoutScreen(
                 onResultChanged = { setIndex, completed, reps, weight, rpe ->
                     presenter.updatePerformedSet(detailWorkout.id, setIndex, completed, reps, weight, rpe)
                 },
+                onSetDone = { exerciseIndex, totalSets, reps, weight, rpe ->
+                    presenter.markSetDone(detailWorkout.id, exerciseIndex, totalSets, reps, weight, rpe)
+                },
                 onNotesChanged = { presenter.updateNotes(detailWorkout.id, it) },
                 onRestSecondsChanged = { presenter.updateRestSeconds(detailWorkout.id, it) },
                 onSubmit = { presenter.submitFeedback(detailWorkout.id) },
