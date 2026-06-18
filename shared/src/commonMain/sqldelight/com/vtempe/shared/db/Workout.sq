@@ -2,6 +2,7 @@
 CREATE TABLE Workout(
   id TEXT NOT NULL PRIMARY KEY,
   weekIndex INTEGER NOT NULL,
+  label TEXT NOT NULL DEFAULT '',
   date TEXT NOT NULL -- ISO-8601 LocalDate
 );
 
@@ -20,7 +21,7 @@ selectAllWorkouts:
 SELECT * FROM Workout ORDER BY date;
 
 insertWorkout:
-INSERT OR REPLACE INTO Workout(id, weekIndex, date) VALUES (?, ?, ?);
+INSERT OR REPLACE INTO Workout(id, weekIndex, label, date) VALUES (?, ?, ?, ?);
 
 deleteWorkout:
 DELETE FROM Workout WHERE id = ?;
@@ -35,13 +36,13 @@ deleteSetsForWorkout:
 DELETE FROM WorkoutSet WHERE workoutId = ?;
 
 selectWorkoutsWithSets:
-SELECT w.id, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
+SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
 FROM Workout w
 LEFT JOIN WorkoutSet s ON s.workoutId = w.id
 ORDER BY w.date;
 
 selectWorkoutsWithSetsByWeek:
-SELECT w.id, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
+SELECT w.id, w.label, w.date, s.exerciseId, s.reps, s.weightKg, s.rpe
 FROM Workout w
 LEFT JOIN WorkoutSet s ON s.workoutId = w.id
 WHERE w.weekIndex = ?

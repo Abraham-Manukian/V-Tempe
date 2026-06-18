@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.profile.AiProfile
@@ -40,6 +41,10 @@ internal fun normalizeTrainingPlan(
     val resolvedWeekIndex = enforcedWeekIndex ?: plan.weekIndex
     val weekStart = expectedWeekStart(resolvedWeekIndex)
     val usedWorkoutIds = mutableSetOf<String>()
+
+    // Compute skeleton labels server-side — AI frequently ignores the label instruction.
+    val skeletonLabels = profile?.let { computeSkeletonLabels(it, resolvedWeekIndex) } ?: emptyList()
+
     val workouts = plan.workouts
         .take(MaxWorkoutsPerPlan)
         .mapIndexed { index, workout ->
@@ -86,14 +91,49 @@ internal fun normalizeTrainingPlan(
                 normalizedSets
             }
 
+            // Use skeleton label if available; fall back to AI label (stripped of day prefix).
+            val label = skeletonLabels.getOrNull(index) ?: workout.label.trimDayPrefix()
+
             AiWorkout(
                 id = safeId,
+                label = label,
                 date = safeDate,
                 sets = safeSets
             )
         }
 
     return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
+}
+
+/**
+ * Builds skeleton labels for each workout using the same parameters as the prompt builder.
+ * Returns pure session names like "Full Body A", "Push", "Upper A" — without day prefix.
+ */
+private fun computeSkeletonLabels(profile: AiProfile, weekIndex: Int): List<String> {
+    val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        .filter { profile.weeklySchedule[it] == true }
+    if (trainingDays.isEmpty()) return emptyList()
+    return runCatching {
+        TrainingSplitPlanner.build(
+            trainingDays        = trainingDays,
+            focusRaw            = profile.trainingFocus,
+            goalRaw             = profile.goal,
+            splitPreferenceRaw  = profile.splitPreference,
+            experienceLevel     = profile.experienceLevel,
+            age                 = profile.age,
+            sexRaw              = profile.sex,
+            lifestyleRaw        = profile.lifestyleActivity,
+            injuries            = profile.injuries,
+            sessionDurationMins = profile.sessionDurationMins,
+            weekIndex           = weekIndex
+        ).map { it.label.trimDayPrefix() }
+    }.getOrDefault(emptyList())
+}
+
+/** Strips the "Mon — " / "Tue — " prefix added by TrainingSplitPlanner.build(). */
+private fun String.trimDayPrefix(): String {
+    val dashIndex = indexOf(" — ")
+    return if (dashIndex >= 0) substring(dashIndex + 3) else this
 }
 
 internal fun validateTrainingPlan(

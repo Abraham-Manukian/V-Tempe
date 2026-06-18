@@ -164,6 +164,7 @@ data class TrainingPlanDto(
     @Serializable
     data class WorkoutDto(
         val id: String,
+        val label: String = "",
         val date: String,
         val sets: List<SetDto>
     )
@@ -181,6 +182,7 @@ data class TrainingPlanDto(
         workouts = workouts.map { workout ->
             Workout(
                 id = workout.id,
+                label = workout.label,
                 date = LocalDate.parse(workout.date),
                 sets = workout.sets.map { set ->
                     WorkoutSet(
@@ -202,6 +204,7 @@ data class TrainingPlanDto(
                     val sanitizedId = workout.id.ifBlank { "w_${plan.weekIndex}_$index" }
                     WorkoutDto(
                         id = sanitizedId,
+                        label = workout.label,
                         date = workout.date.toString(),
                         sets = workout.sets
                             .mapNotNull { set ->

@@ -13,35 +13,30 @@ import kotlin.jvm.JvmName
 // SQLDelight generates a separate data class per query even when the projected columns are
 // identical. Both overloads below share the same logic via the private helper.
 
-/**
- * Maps raw [SelectWorkoutsWithSets] rows (all-weeks query) to domain [Workout] objects.
- */
 @JvmName("toWorkoutDomainListAllWeeks")
 internal fun List<SelectWorkoutsWithSets>.toWorkoutDomainList(): List<Workout> =
     mapRows(
-        ids        = map { it.id },
-        groupById  = { groupBy { it.id } },
-        rowDate    = { it.date },
+        ids           = map { it.id },
+        groupById     = { groupBy { it.id } },
+        rowLabel      = { it.label },
+        rowDate       = { it.date },
         rowExerciseId = { it.exerciseId },
-        rowReps    = { it.reps },
-        rowWeight  = { it.weightKg },
-        rowRpe     = { it.rpe },
+        rowReps       = { it.reps },
+        rowWeight     = { it.weightKg },
+        rowRpe        = { it.rpe },
     )
 
-/**
- * Maps raw [SelectWorkoutsWithSetsByWeek] rows (single-week query) to domain [Workout] objects.
- * Same columns as the all-weeks query — different SQLDelight-generated type.
- */
 @JvmName("toWorkoutDomainListByWeek")
 internal fun List<SelectWorkoutsWithSetsByWeek>.toWorkoutDomainList(): List<Workout> =
     mapRows(
-        ids        = map { it.id },
-        groupById  = { groupBy { it.id } },
-        rowDate    = { it.date },
+        ids           = map { it.id },
+        groupById     = { groupBy { it.id } },
+        rowLabel      = { it.label },
+        rowDate       = { it.date },
         rowExerciseId = { it.exerciseId },
-        rowReps    = { it.reps },
-        rowWeight  = { it.weightKg },
-        rowRpe     = { it.rpe },
+        rowReps       = { it.reps },
+        rowWeight     = { it.weightKg },
+        rowRpe        = { it.rpe },
     )
 
 // ---------------------------------------------------------------------------
@@ -51,6 +46,7 @@ internal fun List<SelectWorkoutsWithSetsByWeek>.toWorkoutDomainList(): List<Work
 private fun <T> List<T>.mapRows(
     ids: List<String>,
     groupById: List<T>.() -> Map<String, List<T>>,
+    rowLabel: (T) -> String?,
     rowDate: (T) -> String?,
     rowExerciseId: (T) -> String?,
     rowReps: (T) -> Long?,
@@ -61,9 +57,10 @@ private fun <T> List<T>.mapRows(
         .toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
     return groupById().map { (id, rows) ->
         Workout(
-            id   = id,
-            date = LocalDate.parse(rowDate(rows.first()) ?: fallbackDate),
-            sets = rows
+            id    = id,
+            label = rowLabel(rows.first()) ?: "",
+            date  = LocalDate.parse(rowDate(rows.first()) ?: fallbackDate),
+            sets  = rows
                 .filter { rowExerciseId(it) != null }
                 .map { row ->
                     WorkoutSet(

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AiWorkout(
     val id: String,
+    val label: String = "",
     val date: String,
     val sets: List<AiSet>,
 )
