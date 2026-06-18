@@ -22,7 +22,8 @@ internal fun buildBundlePrompt(
     val profileJson = json.encodeToString(AiProfile.serializer(), request.profile)
     val preferencesSummary = buildPreferencesSummary(request.profile)
     val restrictionsSummary = nutritionRestrictionsPrompt(request.profile)
-    val trainingResolverPrompt = buildTrainingResolverPrompt(
+    // Keep resolver prompt only for the exercise descriptions — skeleton now has pre-resolved IDs.
+    val trainingResolverPrompt = buildTrainingResolverDescriptions(
         exerciseCatalog = exerciseCatalog,
         trainingPlanResolver = trainingPlanResolver,
         trainingModeRaw = request.profile.trainingMode,
@@ -116,7 +117,24 @@ internal fun buildBundlePrompt(
             sessionDurationMins = request.profile.sessionDurationMins,
             weekIndex           = request.weekIndex
         )
-        appendLine(TrainingSplitPlanner.renderPromptBlock(skeletons))
+        // Pre-resolve one concrete exercise per slot so AI just assigns weights/reps —
+        // this eliminates wrong pattern substitution (e.g. pullup in a HORIZONTAL_PUSH slot).
+        val resolvedExercises = skeletons.mapIndexed { si, skeleton ->
+            val usedInSession = mutableSetOf<String>()
+            skeleton.slots.mapIndexed { j, slot ->
+                val id = trainingPlanResolver.resolveExerciseId(
+                    rawToken           = slot.pattern.token,
+                    trainingModeRaw    = request.profile.trainingMode,
+                    equipment          = request.profile.equipment,
+                    usedExerciseIds    = usedInSession,
+                    rotationSeed       = si * 31 + j,
+                    userExperienceLevel = request.profile.experienceLevel
+                )
+                if (id != null) usedInSession += id
+                id
+            }
+        }
+        appendLine(TrainingSplitPlanner.renderPromptBlock(skeletons, resolvedExercises))
         appendLine()
         appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
         appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, mountain_climber, burpee,")
@@ -175,7 +193,7 @@ internal fun buildBundlePrompt(
             appendLine("- Training workout dates must be ISO (YYYY-MM-DD) and use week index ${request.weekIndex}.")
         }
         appendLine("- Day keys in mealsByDay must be exactly Mon,Tue,Wed,Thu,Fri,Sat,Sun in that order.")
-        appendLine("- exerciseId values must stay within the resolver slot tokens declared above.")
+        appendLine("- exerciseId values must be EXACTLY the exercise IDs listed in the skeleton above — no other values allowed.")
         appendLine("- For every meal, kcal must follow 4*protein + 4*carbs + 9*fat within +/-20 as already stated.")
         appendLine("- Daily meal frequencies you output must respect the goal ranges listed above; reject plans that fall outside the permitted meal counts.")
         appendLine("- All dates in nutrition or training contexts must be valid calendar dates (ISO format).")

@@ -29,7 +29,11 @@ class ProfileRepositoryDb(
             weeklySchedule = schedule,
             budgetLevel = row.budgetLevel.toInt(),
             trainingMode = row.trainingMode,
-            coachTrainerId = CoachTrainerIds.normalize(row.coachTrainerId)
+            coachTrainerId = CoachTrainerIds.normalize(row.coachTrainerId),
+            lifestyleActivity = runCatching { LifestyleActivity.valueOf(row.lifestyleActivity) }.getOrDefault(LifestyleActivity.SEDENTARY),
+            trainingFocus = runCatching { TrainingFocus.valueOf(row.trainingFocus) }.getOrDefault(TrainingFocus.GENERAL),
+            sessionDurationMins = row.sessionDurationMins.toInt(),
+            splitPreference = runCatching { SplitPreference.valueOf(row.splitPreference) }.getOrDefault(SplitPreference.AUTO)
         )
     }
 
@@ -44,7 +48,11 @@ class ProfileRepositoryDb(
             experienceLevel = profile.experienceLevel.toLong(),
             budgetLevel = profile.budgetLevel.toLong(),
             trainingMode = profile.trainingMode,
-            coachTrainerId = CoachTrainerIds.normalize(profile.coachTrainerId)
+            coachTrainerId = CoachTrainerIds.normalize(profile.coachTrainerId),
+            lifestyleActivity = profile.lifestyleActivity.name,
+            trainingFocus = profile.trainingFocus.name,
+            sessionDurationMins = profile.sessionDurationMins.toLong(),
+            splitPreference = profile.splitPreference.name
         )
         // Replace detail tables
         db.profileDetailsQueries.deleteEquipmentForProfile(profile.id)

@@ -34,9 +34,25 @@ internal object TrainingSplitPlanner {
         }
     }
 
-    fun renderPromptBlock(skeletons: List<WorkoutSkeleton>): String = buildString {
+    fun renderPromptBlock(skeletons: List<WorkoutSkeleton>): String =
+        renderPromptBlock(skeletons, emptyList())
+
+    /**
+     * Renders the skeleton with pre-resolved exercise IDs.
+     * When [resolvedExercises] is populated the AI is told to use exactly those IDs
+     * and never substitute — eliminating wrong exercise selection entirely.
+     */
+    fun renderPromptBlock(
+        skeletons: List<WorkoutSkeleton>,
+        resolvedExercises: List<List<String?>>
+    ): String = buildString {
+        val hasResolved = resolvedExercises.isNotEmpty()
         appendLine("MANDATORY WORKOUT SKELETON — follow exactly, no deviations.")
-        appendLine("For each slot: pick one exerciseId token, assign a realistic weightKg.")
+        if (hasResolved) {
+            appendLine("exerciseId values are PRE-ASSIGNED below — copy them EXACTLY, do NOT substitute or change.")
+        } else {
+            appendLine("For each slot: pick one exerciseId token, assign a realistic weightKg.")
+        }
         appendLine()
         appendLine("Loading tier legend:")
         appendLine("  [PRIMARY]   = main compound accent — heaviest, longest rest")
@@ -46,7 +62,8 @@ internal object TrainingSplitPlanner {
         skeletons.forEachIndexed { i, s ->
             appendLine("Session ${i + 1} (${s.label}):")
             s.slots.forEachIndexed { j, slot ->
-                appendLine("  Slot ${j + 1}: ${slot.describe()}")
+                val exerciseId = resolvedExercises.getOrNull(i)?.getOrNull(j)
+                appendLine("  Slot ${j + 1}: ${if (exerciseId != null) slot.describeWithExercise(exerciseId) else slot.describe()}")
             }
             appendLine()
         }
@@ -74,5 +91,10 @@ internal object TrainingSplitPlanner {
     private fun PatternSlot.describe(): String {
         val tier = "[${slotType.name}]".padEnd(12)
         return "$tier ${pattern.token} — ${sets}×${repMin}–${repMax} reps — RPE $rpeTarget — ${restSeconds}s rest"
+    }
+
+    private fun PatternSlot.describeWithExercise(exerciseId: String): String {
+        val tier = "[${slotType.name}]".padEnd(12)
+        return "$tier $exerciseId — ${sets}×${repMin}–${repMax} reps — RPE $rpeTarget — ${restSeconds}s rest"
     }
 }
