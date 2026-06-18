@@ -63,6 +63,7 @@ data class OnboardingState(
     val languageTag: String = "system",
     val currentStep: Int = 0,
     val saving: Boolean = false,
+    val savingStep: Int = 0,  // 0=profile, 1=generating plan
     val error: String? = null
 )
 
@@ -125,7 +126,7 @@ class OnboardingPresenterDelegate(
 
     override fun save(onSuccess: () -> Unit) {
         val s = _state.value
-        _state.update { it.copy(saving = true, error = null) }
+        _state.update { it.copy(saving = true, savingStep = 0, error = null) }
         scope.launch {
             runCatching {
                 val profile = Profile(
@@ -155,6 +156,7 @@ class OnboardingPresenterDelegate(
                     )
                 )
                 profileRepository.upsertProfile(profile)
+                _state.update { it.copy(savingStep = 1) }
                 bootstrapCoachData()
             }.onSuccess {
                 _state.update { it.copy(saving = false) }

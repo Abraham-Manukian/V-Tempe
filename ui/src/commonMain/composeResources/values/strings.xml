@@ -329,6 +329,15 @@
     <string name="settings_inc_weight">+0.5 kg</string>
     <string name="settings_dec_weight">-0.5 kg</string>
     <string name="settings_saving">Saving…</string>
+    <string name="saving_overlay_title">Your coach is working…</string>
+    <string name="saving_step_profile">Profile saved</string>
+    <string name="saving_step_plan">Building your personal plan</string>
+    <string name="saving_sub_analyze">Analysing your data…</string>
+    <string name="saving_sub_workouts">Designing workout plan…</string>
+    <string name="saving_sub_exercises">Selecting exercises…</string>
+    <string name="saving_sub_nutrition">Preparing nutrition plan…</string>
+    <string name="saving_sub_sleep">Adding sleep advice…</string>
+    <string name="saving_sub_finishing">Almost done…</string>
     <string name="settings_edit_profile">Edit profile</string>
     <string name="settings_units_title">Units</string>
     <string name="settings_units_metric">kg / cm</string>

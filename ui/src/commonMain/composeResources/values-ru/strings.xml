@@ -330,6 +330,15 @@
     <string name="settings_inc_weight">+0,5 кг</string>
     <string name="settings_dec_weight">-0,5 кг</string>
     <string name="settings_saving">Сохранение:</string>
+    <string name="saving_overlay_title">Тренер работает…</string>
+    <string name="saving_step_profile">Профиль сохранён</string>
+    <string name="saving_step_plan">Создаём персональный план</string>
+    <string name="saving_sub_analyze">Анализируем ваши данные…</string>
+    <string name="saving_sub_workouts">Составляем план тренировок…</string>
+    <string name="saving_sub_exercises">Подбираем упражнения…</string>
+    <string name="saving_sub_nutrition">Готовим план питания…</string>
+    <string name="saving_sub_sleep">Добавляем советы по сну…</string>
+    <string name="saving_sub_finishing">Финальные штрихи…</string>
     <string name="settings_edit_profile">Редактировать профиль</string>
     <string name="settings_units_title">Единицы измерения</string>
     <string name="settings_units_metric">кг / см</string>
