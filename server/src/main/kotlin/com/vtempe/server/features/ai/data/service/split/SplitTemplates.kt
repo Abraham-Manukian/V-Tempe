@@ -124,18 +124,18 @@ internal object SplitTemplates {
         val pull1 = skeleton(
             "Pull", p,
             compounds = listOf(
-                MovementPattern.VERTICAL_PULL,   // weighted pull-up
-                MovementPattern.HORIZONTAL_PULL, // barbell row
-                MovementPattern.VERTICAL_PULL,   // lat pulldown
+                MovementPattern.VERTICAL_PULL,   // pull-up — lats vertical
+                MovementPattern.HORIZONTAL_PULL, // barbell/cable row — upper back
+                MovementPattern.HORIZONTAL_PULL, // seated cable row / T-bar — mid back
             ),
             isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.MOBILITY)
         )
         val pull2 = skeleton(
             "Pull 2", p,
             compounds = listOf(
+                MovementPattern.VERTICAL_PULL,   // chin-up (supinated grip)
                 MovementPattern.HORIZONTAL_PULL, // cable seated row
-                MovementPattern.VERTICAL_PULL,   // chin-up (supinated)
-                MovementPattern.HORIZONTAL_PULL, // face pull / rear delt fly
+                MovementPattern.HORIZONTAL_PULL, // face pull / rear delt row
             ),
             isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.MOBILITY)
         )
