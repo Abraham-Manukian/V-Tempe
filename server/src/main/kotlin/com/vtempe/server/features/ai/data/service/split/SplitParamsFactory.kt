@@ -1,18 +1,7 @@
 package com.vtempe.server.features.ai.data.service.split
 
-/**
- * Maps user profile → SplitParams with three loading tiers per session (PDF + ACSM).
- *
- * PRIMARY   = 4×6-8,  RPE 8.5, 3 min rest  — main compound accents
- * SECONDARY = 3×8-12, RPE 7.5, 90s rest     — supporting compounds
- * ISOLATION = 2×10-15, RPE 7.0, 60s rest    — accessories
- *
- * Beginners (exp 1-2): no PRIMARY tier — only SECONDARY+ISOLATION.
- * Deload every 7th week: -35% volume, RPE capped at 7.
- * Age 36-50: -10% sets. Age 50+: -20% sets, -1 PRIMARY slot.
- * Female: +4 reps across all ranges (higher rep tolerance, Schoenfeld 2020).
- * Lifestyle VERY_ACTIVE: -20% volume. SEDENTARY: +10%.
- */
+import com.vtempe.server.features.ai.data.service.split.TrainingConstants as C
+
 internal object SplitParamsFactory {
 
     enum class Focus     { STRENGTH, HYPERTROPHY, GENERAL, FAT_LOSS }
@@ -30,15 +19,17 @@ internal object SplitParamsFactory {
         sessionDurationMins: Int,
         weekIndex: Int
     ): SplitParams {
-        val isDeload   = weekIndex > 0 && weekIndex % 7 == 6
-        val isBeginner = experienceLevel <= 2
+        val isDeload   = weekIndex > 0 && weekIndex % C.DELOAD_WEEK_MODULO == C.DELOAD_WEEK_INDEX
+        val isBeginner = experienceLevel <= C.BEGINNER_MAX_LEVEL
         val exercises  = exercisesFromDuration(sessionDurationMins, isBeginner)
-        val combined   = goalVolumeFactor(goal) * ageFactor(age) * lifestyleFactor(lifestyle)
-        val base       = baseParams(goal, focus, experienceLevel, weekIndex, sex)
+        val factor     = goalFactor(goal) * ageFactor(age) * lifestyleFactor(lifestyle)
+        val base       = buildBase(focus, experienceLevel, weekIndex, isBeginner, sex)
                              .copy(exercisesPerSession = exercises)
-                             .applyVolumeFactor(combined, age)
+                             .applyVolumeFactor(factor, age)
         return if (isDeload) deload(base) else base
     }
+
+    // ── Enum parsing ──────────────────────────────────────────────────────────
 
     fun focusFromRaw(raw: String): Focus =
         runCatching { Focus.valueOf(raw.uppercase()) }.getOrDefault(Focus.GENERAL)
@@ -52,182 +43,61 @@ internal object SplitParamsFactory {
     fun lifestyleFromRaw(raw: String): Lifestyle =
         runCatching { Lifestyle.valueOf(raw.uppercase()) }.getOrDefault(Lifestyle.LIGHT)
 
-    // ── Private ──────────────────────────────────────────────────────────────
+    // ── Private ───────────────────────────────────────────────────────────────
 
-    private fun baseParams(goal: Goal, focus: Focus, exp: Int, week: Int, sex: Sex): SplitParams {
-        val isBeginner = exp <= 2
+    private fun buildBase(focus: Focus, exp: Int, week: Int, beginner: Boolean, sex: Sex): SplitParams {
         val base = when (focus) {
-            Focus.STRENGTH    -> strength(exp, week, isBeginner)
-            Focus.HYPERTROPHY -> hypertrophy(exp, week, isBeginner)
-            Focus.GENERAL     -> general(isBeginner)
-            Focus.FAT_LOSS    -> fatLoss()
+            Focus.STRENGTH    -> FocusPresets.strength(exp, week, beginner)
+            Focus.HYPERTROPHY -> FocusPresets.hypertrophy(exp, week, beginner)
+            Focus.GENERAL     -> FocusPresets.general(beginner)
+            Focus.FAT_LOSS    -> FocusPresets.fatLoss()
         }
         return if (sex == Sex.FEMALE) base.applyFemaleReps() else base
     }
 
-    private fun strength(exp: Int, week: Int, beginner: Boolean): SplitParams {
-        // Williams 2017: undulating periodization waves
-        val (repMin, repMax) = if (beginner) 5 to 8 else when (week % 4) {
-            0    -> 4 to 6
-            1    -> 3 to 5
-            2    -> 2 to 4
-            else -> 5 to 6
-        }
-        val primSets = if (beginner) 3 else (exp + 1).coerceIn(3, 5)
-        return SplitParams(
-            primarySets          = primSets,
-            primaryRepMin        = repMin,
-            primaryRepMax        = repMax,
-            primaryRpe           = if (week % 4 == 3) 7.5f else 8.5f,
-            primaryRestSeconds   = 240,
-            primarySlotCount     = if (beginner) 0 else 2,
-            secondarySets        = (primSets - 1).coerceAtLeast(2),
-            secondaryRepMin      = 5,
-            secondaryRepMax      = 8,
-            secondaryRpe         = 7.5f,
-            secondaryRestSeconds = 150,
-            isolationSets        = 2,
-            isolationRepMin      = 8,
-            isolationRepMax      = 12,
-            isolationRpe         = 7.0f,
-            isolationRestSeconds = 90,
-            exercisesPerSession  = 7
-        )
+    private fun goalFactor(goal: Goal) = when (goal) {
+        Goal.GAIN_MUSCLE -> C.FACTOR_GOAL_GAIN_MUSCLE
+        Goal.LOSE_FAT    -> C.FACTOR_GOAL_LOSE_FAT
+        Goal.MAINTAIN    -> 1.0f
     }
 
-    private fun hypertrophy(exp: Int, week: Int, beginner: Boolean): SplitParams {
-        // Schoenfeld 2017: 8-15 reps, ≥10 sets/muscle/week. Singer 2024: 60-90s rest.
-        val (primMin, primMax) = if (beginner) 10 to 15 else when (week % 3) {
-            0    -> 8  to 12
-            1    -> 10 to 15
-            else -> 6  to 10
-        }
-        val primSets = baseSets(exp)
-        return SplitParams(
-            primarySets          = primSets,
-            primaryRepMin        = primMin,
-            primaryRepMax        = primMax,
-            primaryRpe           = if (beginner) 7.0f else 8.0f,
-            primaryRestSeconds   = if (beginner) 90 else 150,
-            primarySlotCount     = if (beginner) 0 else 2,
-            secondarySets        = (primSets - 1).coerceAtLeast(2),
-            secondaryRepMin      = 10,
-            secondaryRepMax      = 15,
-            secondaryRpe         = 7.5f,
-            secondaryRestSeconds = 90,
-            isolationSets        = 2,
-            isolationRepMin      = 12,
-            isolationRepMax      = 15,
-            isolationRpe         = 7.0f,
-            isolationRestSeconds = 60,
-            exercisesPerSession  = 8
-        )
+    private fun ageFactor(age: Int) = when {
+        age >= C.AGE_SENIOR  -> C.FACTOR_AGE_SENIOR
+        age >= C.AGE_MASTERS -> C.FACTOR_AGE_MASTERS
+        else                 -> 1.0f
     }
 
-    private fun general(beginner: Boolean): SplitParams = SplitParams(
-        primarySets          = 3,
-        primaryRepMin        = 8,
-        primaryRepMax        = 12,
-        primaryRpe           = 7.5f,
-        primaryRestSeconds   = 120,
-        primarySlotCount     = if (beginner) 0 else 1,
-        secondarySets        = 3,
-        secondaryRepMin      = 10,
-        secondaryRepMax      = 15,
-        secondaryRpe         = 7.0f,
-        secondaryRestSeconds = 90,
-        isolationSets        = 2,
-        isolationRepMin      = 12,
-        isolationRepMax      = 15,
-        isolationRpe         = 7.0f,
-        isolationRestSeconds = 60,
-        exercisesPerSession  = 7
+    private fun lifestyleFactor(lifestyle: Lifestyle) = when (lifestyle) {
+        Lifestyle.VERY_ACTIVE -> C.FACTOR_LIFESTYLE_VERY_ACTIVE
+        Lifestyle.ACTIVE      -> C.FACTOR_LIFESTYLE_ACTIVE
+        Lifestyle.LIGHT       -> 1.0f
+        Lifestyle.SEDENTARY   -> C.FACTOR_LIFESTYLE_SEDENTARY
+    }
+
+    private fun SplitParams.applyVolumeFactor(factor: Float, age: Int): SplitParams = copy(
+        primarySets      = (primarySets * factor).toInt().coerceAtLeast(1),
+        secondarySets    = (secondarySets * factor).toInt().coerceAtLeast(1),
+        isolationSets    = (isolationSets * factor).toInt().coerceAtLeast(1),
+        primarySlotCount = (primarySlotCount - if (age >= C.AGE_SENIOR) 1 else 0).coerceAtLeast(0)
     )
 
-    private fun fatLoss(): SplitParams = SplitParams(
-        primarySets          = 3,
-        primaryRepMin        = 10,
-        primaryRepMax        = 15,
-        primaryRpe           = 7.5f,
-        primaryRestSeconds   = 60,
-        primarySlotCount     = 1,
-        secondarySets        = 3,
-        secondaryRepMin      = 12,
-        secondaryRepMax      = 20,
-        secondaryRpe         = 7.5f,
-        secondaryRestSeconds = 45,
-        isolationSets        = 2,
-        isolationRepMin      = 15,
-        isolationRepMax      = 20,
-        isolationRpe         = 7.0f,
-        isolationRestSeconds = 30,
-        exercisesPerSession  = 8
+    private fun SplitParams.applyFemaleReps(): SplitParams = copy(
+        primaryRepMin   = primaryRepMin + C.FEMALE_REP_OFFSET_COMPOUND,
+        primaryRepMax   = primaryRepMax + C.FEMALE_REP_OFFSET_COMPOUND,
+        secondaryRepMin = secondaryRepMin + C.FEMALE_REP_OFFSET_COMPOUND,
+        secondaryRepMax = secondaryRepMax + C.FEMALE_REP_OFFSET_COMPOUND,
+        isolationRepMin = isolationRepMin + C.FEMALE_REP_OFFSET_ISOLATION,
+        isolationRepMax = isolationRepMax + C.FEMALE_REP_OFFSET_ISOLATION
     )
 
     private fun deload(base: SplitParams): SplitParams = base.copy(
-        primarySets          = (base.primarySets * 0.65f).toInt().coerceAtLeast(1),
-        secondarySets        = (base.secondarySets * 0.65f).toInt().coerceAtLeast(1),
-        isolationSets        = (base.isolationSets * 0.65f).toInt().coerceAtLeast(1),
-        primaryRpe           = 6.5f,
-        secondaryRpe         = 6.5f,
-        isolationRpe         = 6.0f,
-        exercisesPerSession  = (base.exercisesPerSession - 2).coerceAtLeast(4)
-    )
-
-    /** ACSM: beginners 2 sets, intermediate 3, advanced 4+. */
-    private fun baseSets(exp: Int) = when {
-        exp <= 2 -> 2
-        exp == 3 -> 3
-        else     -> 4
-    }
-
-    /** Adjust total volume by goal — deficit = less volume, surplus = more. */
-    private fun goalVolumeFactor(goal: Goal) = when (goal) {
-        Goal.GAIN_MUSCLE -> 1.10f
-        Goal.LOSE_FAT    -> 0.85f
-        Goal.MAINTAIN    -> 1.00f
-    }
-
-    /** Older athletes recover slower — reduce total sets and cap PRIMARY slots. */
-    private fun ageFactor(age: Int) = when {
-        age >= 50 -> 0.80f
-        age >= 36 -> 0.90f
-        else      -> 1.00f
-    }
-
-    /**
-     * VERY_ACTIVE workers accumulate fatigue before training — less gym volume needed.
-     * SEDENTARY workers have more recovery capacity — can handle slightly more volume.
-     */
-    private fun lifestyleFactor(lifestyle: Lifestyle) = when (lifestyle) {
-        Lifestyle.VERY_ACTIVE -> 0.80f
-        Lifestyle.ACTIVE      -> 0.90f
-        Lifestyle.LIGHT       -> 1.00f
-        Lifestyle.SEDENTARY   -> 1.10f
-    }
-
-    /** Apply a combined volume multiplier to all set counts. 50+ also loses a PRIMARY slot. */
-    private fun SplitParams.applyVolumeFactor(factor: Float, age: Int): SplitParams {
-        val primaryPenalty = if (age >= 50) 1 else 0
-        return copy(
-            primarySets      = (primarySets * factor).toInt().coerceAtLeast(1),
-            secondarySets    = (secondarySets * factor).toInt().coerceAtLeast(1),
-            isolationSets    = (isolationSets * factor).toInt().coerceAtLeast(1),
-            primarySlotCount = (primarySlotCount - primaryPenalty).coerceAtLeast(0)
-        )
-    }
-
-    /**
-     * Women have higher rep-to-failure tolerance (Schoenfeld 2020) — shift all rep
-     * ranges up by 4 reps while keeping the same total sets and rest.
-     */
-    private fun SplitParams.applyFemaleReps(): SplitParams = copy(
-        primaryRepMin      = primaryRepMin + 4,
-        primaryRepMax      = primaryRepMax + 4,
-        secondaryRepMin    = secondaryRepMin + 4,
-        secondaryRepMax    = secondaryRepMax + 4,
-        isolationRepMin    = isolationRepMin + 2,
-        isolationRepMax    = isolationRepMax + 2
+        primarySets         = (base.primarySets * C.DELOAD_VOLUME_FACTOR).toInt().coerceAtLeast(1),
+        secondarySets       = (base.secondarySets * C.DELOAD_VOLUME_FACTOR).toInt().coerceAtLeast(1),
+        isolationSets       = (base.isolationSets * C.DELOAD_VOLUME_FACTOR).toInt().coerceAtLeast(1),
+        primaryRpe          = C.RPE_DELOAD_PRIMARY,
+        secondaryRpe        = C.RPE_DELOAD_SECONDARY,
+        isolationRpe        = C.RPE_DELOAD_ISOLATION,
+        exercisesPerSession = (base.exercisesPerSession - C.DELOAD_EXERCISE_REDUCTION).coerceAtLeast(C.DELOAD_MIN_EXERCISES)
     )
 
     private fun exercisesFromDuration(mins: Int, beginner: Boolean): Int {
