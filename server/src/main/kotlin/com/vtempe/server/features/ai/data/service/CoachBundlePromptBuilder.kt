@@ -109,6 +109,10 @@ internal fun buildBundlePrompt(
             goalRaw             = request.profile.goal,
             splitPreferenceRaw  = request.profile.splitPreference,
             experienceLevel     = request.profile.experienceLevel,
+            age                 = request.profile.age,
+            sexRaw              = request.profile.sex,
+            lifestyleRaw        = request.profile.lifestyleActivity,
+            injuries            = request.profile.injuries,
             sessionDurationMins = request.profile.sessionDurationMins,
             weekIndex           = request.weekIndex
         )

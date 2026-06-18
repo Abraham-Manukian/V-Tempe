@@ -12,16 +12,22 @@ internal object TrainingSplitPlanner {
         goalRaw: String,
         splitPreferenceRaw: String,
         experienceLevel: Int,
+        age: Int,
+        sexRaw: String,
+        lifestyleRaw: String,
+        injuries: List<String>,
         sessionDurationMins: Int,
         weekIndex: Int
     ): List<WorkoutSkeleton> {
-        val focus    = SplitParamsFactory.focusFromRaw(focusRaw)
-        val goal     = SplitParamsFactory.goalFromRaw(goalRaw)
-        val params   = SplitParamsFactory.create(goal, focus, experienceLevel, sessionDurationMins, weekIndex)
-        val dayCount = trainingDays.size.coerceIn(1, 6)
-        val pref     = runCatching { SplitPreference.valueOf(splitPreferenceRaw.uppercase()) }
-                           .getOrDefault(SplitPreference.AUTO)
-        val templates = chooseTemplates(pref, dayCount, params)
+        val focus     = SplitParamsFactory.focusFromRaw(focusRaw)
+        val goal      = SplitParamsFactory.goalFromRaw(goalRaw)
+        val sex       = SplitParamsFactory.sexFromRaw(sexRaw)
+        val lifestyle = SplitParamsFactory.lifestyleFromRaw(lifestyleRaw)
+        val params    = SplitParamsFactory.create(goal, focus, experienceLevel, age, sex, lifestyle, sessionDurationMins, weekIndex)
+        val dayCount  = trainingDays.size.coerceIn(1, 6)
+        val pref      = runCatching { SplitPreference.valueOf(splitPreferenceRaw.uppercase()) }
+                            .getOrDefault(SplitPreference.AUTO)
+        val templates = InjuryFilter.applyTo(chooseTemplates(pref, dayCount, params), injuries)
         return templates.mapIndexed { i, t ->
             val day = trainingDays.getOrNull(i) ?: "Day ${i + 1}"
             t.copy(label = "$day — ${t.label}")
