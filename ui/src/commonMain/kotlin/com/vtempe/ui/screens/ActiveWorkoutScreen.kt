@@ -410,7 +410,7 @@ internal fun ExerciseRow(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (doneSets > 0) "$doneSets/$totalSets" else "$totalSets",
+                        if (doneSets > 0) "$doneSets/$totalSets" else "${totalSets}×",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = AiPalette.DeepAccent

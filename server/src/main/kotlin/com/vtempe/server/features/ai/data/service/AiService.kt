@@ -483,7 +483,7 @@ class AiService(
     ): String {
         val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
         val profileJson = json.encodeToString(AiProfile.serializer(), profile)
-        val trainingResolverPrompt = buildTrainingResolverPrompt(
+        val trainingResolverDescriptions = buildTrainingResolverDescriptions(
             exerciseCatalog = exerciseCatalog,
             trainingPlanResolver = trainingPlanResolver,
             trainingModeRaw = profile.trainingMode,
@@ -491,6 +491,38 @@ class AiService(
         )
         val today = java.time.LocalDate.now()
         val workoutDates = computeWorkoutDatesForWeek(profile.weeklySchedule, today)
+
+        val trainingDays = if (workoutDates.isNotEmpty()) workoutDates
+            else listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").filter { profile.weeklySchedule[it] == true }
+        val skeletons = TrainingSplitPlanner.build(
+            trainingDays        = trainingDays,
+            focusRaw            = profile.trainingFocus,
+            goalRaw             = profile.goal,
+            splitPreferenceRaw  = profile.splitPreference,
+            experienceLevel     = profile.experienceLevel,
+            age                 = profile.age,
+            sexRaw              = profile.sex,
+            lifestyleRaw        = profile.lifestyleActivity,
+            injuries            = profile.injuries,
+            sessionDurationMins = profile.sessionDurationMins,
+            weekIndex           = weekIndex
+        )
+        val resolvedExercises = skeletons.mapIndexed { si, skeleton ->
+            val used = mutableSetOf<String>()
+            skeleton.slots.mapIndexed { j, slot ->
+                val id = trainingPlanResolver.resolveExerciseId(
+                    rawToken            = slot.pattern.token,
+                    trainingModeRaw     = profile.trainingMode,
+                    equipment           = profile.equipment,
+                    usedExerciseIds     = used,
+                    rotationSeed        = si * 31 + j,
+                    userExperienceLevel = profile.experienceLevel
+                )
+                if (id != null) used += id
+                id
+            }
+        }
+
         return buildString {
             appendLine("You are an elite strength coach.")
             appendLine("User locale: $languageDisplay ($localeTag). Reply with JSON only.")
@@ -504,8 +536,19 @@ class AiService(
                 appendLine("Plan for weekIndex=$weekIndex starting from $today. All workout dates must be >= $today.")
             }
             appendLine("Return ONLY this JSON schema:")
-            appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")
-            appendLine(trainingResolverPrompt)
+            appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"label\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")
+            appendLine()
+            appendLine(TrainingSplitPlanner.renderPromptBlock(skeletons, resolvedExercises))
+            appendLine()
+            appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
+            appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, lunge, nordic_curl, muscle_up): set weightKg = null.")
+            appendLine("- Barbell exercises (squat, bench_press, deadlift, rdl, barbell_row, overhead_press): assign realistic starting weights.")
+            appendLine("  Beginner male: ~60kg squat, ~50kg bench, ~70kg deadlift. Scale ±20% per experience level.")
+            appendLine("  Beginner female: ~30kg squat, ~25kg bench, ~40kg deadlift.")
+            appendLine("- Dumbbell exercises: use per-dumbbell weight (e.g. 15.0 for 15kg dumbbells).")
+            appendLine("- NEVER assign the same weightKg to a barbell compound AND a bodyweight exercise.")
+            appendLine()
+            appendLine(trainingResolverDescriptions)
             appendLine("Max 5 workouts, max 6 sets per workout, no duplicate workout IDs.")
             appendLine("PROFILE JSON:")
             append(profileJson)

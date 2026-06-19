@@ -70,8 +70,9 @@ internal fun normalizeTrainingPlan(
                     val reps = aiSet?.reps?.coerceAtLeast(1) ?: 8
                     val weight = when {
                         exerciseId in bodweightOnlyExerciseIds -> null
-                        aiExerciseMatches -> aiSet?.weightKg?.takeIf { it >= 0.0 }
-                        else -> null  // AI picked a different exercise — its weight is meaningless here
+                        // In skeleton path we override the exercise ID ourselves, so AI's weight
+                        // is always the intended slot weight — use it regardless of exercise match.
+                        else -> aiSet?.weightKg?.takeIf { it >= 0.0 }
                     }
                     val rpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
                     val setsCount = preResolvedSets?.getOrNull(slotIndex) ?: 3
