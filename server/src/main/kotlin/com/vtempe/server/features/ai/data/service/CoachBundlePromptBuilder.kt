@@ -136,6 +136,13 @@ internal fun buildBundlePrompt(
         }
         appendLine(TrainingSplitPlanner.renderPromptBlock(skeletons, resolvedExercises))
         appendLine()
+        appendLine("DURATION EXERCISES — use `reps` field for time, NOT repetition count:")
+        appendLine("- plank, side_plank, wall_sit, l_sit, hollow_body: `reps` = seconds (e.g. reps=30 means 30s hold). Range: 20–120.")
+        appendLine("- bike/stationary_bike/cycling, mountain_climber: `reps` = seconds (e.g. reps=300 means 5 min cardio). Range: 60–600.")
+        appendLine("- run/treadmill: `reps` = minutes (e.g. reps=20 means 20-minute run). Range: 5–60.")
+        appendLine("- NEVER set reps=8 for a plank — that means 8 reps which makes no sense. Set reps=30 for 30 seconds.")
+        appendLine("- For all duration exercises: set weightKg = null.")
+        appendLine()
         appendLine("WEIGHT ASSIGNMENT RULES (CRITICAL):")
         appendLine("- Bodyweight exercises (pullup, chin_up, wide_pullup, pushup, dip, plank, mountain_climber, burpee,")
         appendLine("  lunge without equipment, bodyweight_squat, nordic_curl, muscle_up): set weightKg = null ALWAYS.")

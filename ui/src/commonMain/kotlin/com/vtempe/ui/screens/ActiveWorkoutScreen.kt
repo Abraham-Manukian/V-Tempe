@@ -430,7 +430,7 @@ internal fun ExerciseRow(
                     )
                 )
                 val subtitleText = if (performed != null && performed.actualReps != null) {
-                    buildPerformedSummary(performed)
+                    buildPerformedSummary(performed, set.exerciseId)
                 } else {
                     plannedSetSummary(set)
                 }

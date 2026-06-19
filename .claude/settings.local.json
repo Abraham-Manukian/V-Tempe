@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(git ls-tree *)",
+      "Bash(cp \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\.claude\\\\worktrees\\\\amazing-northcutt-fc6005\\\\ui\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\ui\\\\screens\\\\WorkoutScreen.kt\" \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\ui\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\ui\\\\screens\\\\WorkoutScreen.kt\")",
+      "Bash(cp \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\.claude\\\\worktrees\\\\amazing-northcutt-fc6005\\\\ui\\\\src\\\\commonMain\\\\composeResources\\\\values\\\\strings.xml\" \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\ui\\\\src\\\\commonMain\\\\composeResources\\\\values\\\\strings.xml\")",
+      "Bash(cp \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\.claude\\\\worktrees\\\\amazing-northcutt-fc6005\\\\ui\\\\src\\\\commonMain\\\\composeResources\\\\values-ru\\\\strings.xml\" \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\ui\\\\src\\\\commonMain\\\\composeResources\\\\values-ru\\\\strings.xml\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\shared\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\shared\\\\domain\\\\exercise\")",
+      "Bash(cp \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\.claude\\\\worktrees\\\\amazing-northcutt-fc6005\\\\shared\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\shared\\\\domain\\\\exercise\\\\ExerciseModels.kt\" \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\shared\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\shared\\\\domain\\\\exercise\\\\ExerciseModels.kt\")",
+      "Bash(cp \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\.claude\\\\worktrees\\\\amazing-northcutt-fc6005\\\\shared\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\shared\\\\domain\\\\exercise\\\\ExerciseLibrary.kt\" \"C:\\\\Users\\\\Abraham\\\\AndroidStudioProjects\\\\V-Tempe\\\\shared\\\\src\\\\commonMain\\\\kotlin\\\\com\\\\vtempe\\\\shared\\\\domain\\\\exercise\\\\ExerciseLibrary.kt\")"
+    ]
+  }
+}

@@ -128,25 +128,46 @@ internal fun genericExerciseDefinition(): ExerciseDefinition = ExerciseDefinitio
 
 @Composable
 internal fun plannedSetSummary(set: WorkoutSet): String {
-    val weightStr = set.weightKg?.let {
-        stringResource(Res.string.workout_weight_display).kmpFormat(it)
-    } ?: stringResource(Res.string.workout_weight_bodyweight)
+    val kind = ExerciseLibrary.findByIdOrAlias(set.exerciseId)?.calibrationKind
+        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
     val rpeStr = set.rpe?.let {
         stringResource(Res.string.workout_rpe_suffix).kmpFormat(it.toEditableDecimal())
     }.orEmpty()
-    return stringResource(Res.string.workout_set_summary).kmpFormat(set.reps, weightStr) + rpeStr
+    return when (kind) {
+        ExerciseCalibrationKind.DURATION_SECONDS ->
+            stringResource(Res.string.workout_set_summary_seconds).kmpFormat(set.reps) + rpeStr
+        ExerciseCalibrationKind.DURATION_MINUTES ->
+            stringResource(Res.string.workout_set_summary_minutes).kmpFormat(set.reps) + rpeStr
+        else -> {
+            val weightStr = set.weightKg?.let {
+                stringResource(Res.string.workout_weight_display).kmpFormat(it)
+            } ?: stringResource(Res.string.workout_weight_bodyweight)
+            stringResource(Res.string.workout_set_summary).kmpFormat(set.reps, weightStr) + rpeStr
+        }
+    }
 }
 
 @Composable
-internal fun buildPerformedSummary(performed: PerformedSet): String {
-    val repsLabel = stringResource(Res.string.workout_reps_unit)
-    return buildList {
-        performed.actualReps?.let { add("$it $repsLabel") }
-        performed.actualWeightKg?.let {
-            add(stringResource(Res.string.workout_weight_display).kmpFormat(it))
-        }
-        performed.actualRpe?.let { add("RPE ${it.toEditableDecimal()}") }
-    }.joinToString(" · ").ifEmpty { "—" }
+internal fun buildPerformedSummary(performed: PerformedSet, exerciseId: String = ""): String {
+    val kind = ExerciseLibrary.findByIdOrAlias(exerciseId)?.calibrationKind
+        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
+    return when (kind) {
+        ExerciseCalibrationKind.DURATION_SECONDS -> buildList {
+            performed.actualReps?.let { add("$it ${stringResource(Res.string.workout_seconds_unit)}") }
+            performed.actualRpe?.let { add("RPE ${it.toEditableDecimal()}") }
+        }.joinToString(" · ").ifEmpty { "—" }
+        ExerciseCalibrationKind.DURATION_MINUTES -> buildList {
+            performed.actualReps?.let { add("$it ${stringResource(Res.string.workout_minutes_unit)}") }
+            performed.actualRpe?.let { add("RPE ${it.toEditableDecimal()}") }
+        }.joinToString(" · ").ifEmpty { "—" }
+        else -> buildList {
+            performed.actualReps?.let { add("$it ${stringResource(Res.string.workout_reps_unit)}") }
+            performed.actualWeightKg?.let {
+                add(stringResource(Res.string.workout_weight_display).kmpFormat(it))
+            }
+            performed.actualRpe?.let { add("RPE ${it.toEditableDecimal()}") }
+        }.joinToString(" · ").ifEmpty { "—" }
+    }
 }
 
 internal fun formatDuration(seconds: Int): String {

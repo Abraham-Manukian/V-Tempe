@@ -83,6 +83,9 @@ internal fun SetDetailSheet(
     val calibrationKind = ExerciseLibrary.findByIdOrAlias(plannedSet.exerciseId)?.calibrationKind
         ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
     val isBodyweight = calibrationKind == ExerciseCalibrationKind.BODYWEIGHT_REPS
+    val isDurationSeconds = calibrationKind == ExerciseCalibrationKind.DURATION_SECONDS
+    val isDurationMinutes = calibrationKind == ExerciseCalibrationKind.DURATION_MINUTES
+    val isDuration = isDurationSeconds || isDurationMinutes
     val askCoachPrompt = stringResource(Res.string.workout_ask_coach_prompt).kmpFormat(exerciseName)
     val completed = performed?.completed == true
     val totalSets = plannedSet.sets.coerceAtLeast(1)
@@ -281,25 +284,35 @@ internal fun SetDetailSheet(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val repsLabel = when {
+                    isDurationSeconds -> stringResource(Res.string.workout_seconds_label)
+                    isDurationMinutes -> stringResource(Res.string.workout_minutes_label)
+                    else -> stringResource(Res.string.workout_reps_label)
+                }
+                val repsStep = if (isDurationSeconds) 5 else 1
+                val repsMax = if (isDurationSeconds) 600 else if (isDurationMinutes) 60 else 99
+                val repsMin = if (isDuration) 5 else 1
                 StepperControl(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(Res.string.workout_reps_label),
+                    modifier = Modifier.weight(if (isDuration) 1.4f else 1f),
+                    label = repsLabel,
                     value = "$reps",
-                    onDecrement = { if (reps > 1) reps-- },
-                    onIncrement = { if (reps < 99) reps++ }
+                    onDecrement = { if (reps > repsMin) reps -= repsStep },
+                    onIncrement = { if (reps < repsMax) reps += repsStep }
                 )
-                StepperControl(
-                    modifier = Modifier.weight(1.4f),
-                    label = stringResource(
-                        if (isBodyweight) Res.string.workout_weight_extra_label
-                        else Res.string.workout_weight_label
-                    ),
-                    value = weight?.toEditableDecimal() ?: "—",
-                    onDecrement = {
-                        weight = ((weight ?: 0.0) - 2.5).let { if (it <= 0.0) null else it }
-                    },
-                    onIncrement = { weight = (weight ?: 0.0) + 2.5 }
-                )
+                if (!isDuration) {
+                    StepperControl(
+                        modifier = Modifier.weight(1.4f),
+                        label = stringResource(
+                            if (isBodyweight) Res.string.workout_weight_extra_label
+                            else Res.string.workout_weight_label
+                        ),
+                        value = weight?.toEditableDecimal() ?: "—",
+                        onDecrement = {
+                            weight = ((weight ?: 0.0) - 2.5).let { if (it <= 0.0) null else it }
+                        },
+                        onIncrement = { weight = (weight ?: 0.0) + 2.5 }
+                    )
+                }
                 StepperControl(
                     modifier = Modifier.weight(1f),
                     label = stringResource(Res.string.workout_rpe_label),

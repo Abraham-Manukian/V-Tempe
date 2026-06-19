@@ -217,6 +217,8 @@
     <string name="workout_exercise_run">Run</string>
     <string name="workout_exercise_bike">Bike</string>
     <string name="workout_reps_label">Reps</string>
+    <string name="workout_seconds_label">Seconds</string>
+    <string name="workout_minutes_label">Minutes</string>
     <string name="workout_weight_label">Weight</string>
     <string name="workout_weight_extra_label">Extra weight</string>
     <string name="workout_rpe_label">Effort (RPE)</string>
@@ -233,9 +235,13 @@
     <string name="workout_mark_complete">Save feedback</string>
     <string name="workout_weight_unit">kg</string>
     <string name="workout_reps_unit">reps</string>
+    <string name="workout_seconds_unit">sec</string>
+    <string name="workout_minutes_unit">min</string>
     <string name="workout_weight_display">%1$.1f kg</string>
     <string name="workout_weight_bodyweight">Bodyweight</string>
     <string name="workout_set_summary">%1$d reps · %2$s</string>
+    <string name="workout_set_summary_seconds">%1$d sec</string>
+    <string name="workout_set_summary_minutes">%1$d min</string>
     <string name="workout_rpe_suffix"> · RPE %1$s</string>
     <string name="workout_plan_title">Workout plan</string>
     <string name="workout_plan_intro">Keep the familiar card view. Tap any card to open a detailed session with exercise visuals, cues, timers, and result logging.</string>

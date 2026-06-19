@@ -14,6 +14,17 @@ import java.time.temporal.TemporalAdjusters
 private const val MaxWorkoutsPerPlan = 5
 private const val MaxSetsPerWorkout = 6
 
+// Exercises measured in seconds — AI should put seconds in the `reps` field (e.g. reps=30 = 30s hold).
+internal val durationSecondsExerciseIds = setOf(
+    "plank", "side_plank", "wall_sit", "l_sit", "hollow_body", "hollow_hold",
+    "bike", "stationary_bike", "cycling", "mountain_climber", "mountain_climbers"
+)
+
+// Exercises measured in minutes — AI should put minutes in the `reps` field.
+internal val durationMinutesExerciseIds = setOf(
+    "run", "running", "jog", "jogging", "treadmill"
+)
+
 // Exercises where external weight should always be null (no barbell/dumbbell added)
 // Advanced users with a weight belt are the exception, but we keep weight null by default.
 private val bodweightOnlyExerciseIds = setOf(

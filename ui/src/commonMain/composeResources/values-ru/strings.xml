@@ -219,6 +219,8 @@
     <string name="workout_exercise_run">Бег</string>
     <string name="workout_exercise_bike">Велотренажёр</string>
     <string name="workout_reps_label">Повторения</string>
+    <string name="workout_seconds_label">Секунды</string>
+    <string name="workout_minutes_label">Минуты</string>
     <string name="workout_weight_label">Вес</string>
     <string name="workout_weight_extra_label">Доп. вес</string>
     <string name="workout_rpe_label">Усилие (RPE)</string>
@@ -235,9 +237,13 @@
     <string name="workout_mark_complete">Сохранить</string>
     <string name="workout_weight_unit">кг</string>
     <string name="workout_reps_unit">повт.</string>
+    <string name="workout_seconds_unit">сек</string>
+    <string name="workout_minutes_unit">мин</string>
     <string name="workout_weight_display">%1$.1f кг</string>
     <string name="workout_weight_bodyweight">Собственный вес</string>
     <string name="workout_set_summary">%1$d повт. • %2$s</string>
+    <string name="workout_set_summary_seconds">%1$d сек</string>
+    <string name="workout_set_summary_minutes">%1$d мин</string>
     <string name="workout_rpe_suffix"> • RPE %1$s</string>
     <string name="workout_plan_title">План тренировок</string>
     <string name="workout_plan_intro">Оставляем привычные карточки. Нажми на любую карточку, чтобы открыть подробную сессию с картинками упражнений, подсказками, таймерами и фиксацией результата.</string>
