@@ -1,4 +1,7 @@
-@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(
+    org.jetbrains.compose.resources.ExperimentalResourceApi::class,
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+)
 
 package com.vtempe.ui.screens
 
