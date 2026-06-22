@@ -62,14 +62,15 @@ internal object InjuryRestrictions {
         ),
 
         // ── Shoulder ────────────────────────────────────────────────────────
+        // Horizontal press (bench) is first-line exercise therapy for most shoulder
+        // conditions — NOT banned here. Only overhead press is banned (high-risk arc).
+        // Consistent with InjuryFilter which bans VERTICAL_PUSH only (PMC11061926).
         Pair(
             listOf("shoulder", "плеч", "rotator", "ротатор", "cuff", "манжет", "impingement", "импинджмент"),
             setOf(
                 "ohp", "dumbbell_shoulder_press", "arnold_press",
                 "lateral_raise", "front_raise", "upright_row",
-                "handstand_pushup", "muscle_up",
-                "bench", "incline_bench", "close_grip_bench",
-                "cable_fly", "dumbbell_fly", "dip"
+                "handstand_pushup", "muscle_up"
             )
         ),
 
