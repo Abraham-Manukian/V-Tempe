@@ -10,5 +10,6 @@ data class AiRecentWorkout(
     val plannedItems: Int,
     val totalVolumeKg: Double,
     val averageRpe: Double? = null,
-    val notes: String = ""
+    val notes: String = "",
+    val exercises: List<AiExercisePerformance> = emptyList(),
 )

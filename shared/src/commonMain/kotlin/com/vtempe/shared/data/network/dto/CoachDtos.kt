@@ -9,6 +9,7 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.SleepEntry
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.model.ExercisePerformance
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.model.WeightEntry
@@ -25,7 +26,8 @@ internal data class RecentWorkoutDto(
     val plannedItems: Int,
     val totalVolumeKg: Double,
     val averageRpe: Double? = null,
-    val notes: String = ""
+    val notes: String = "",
+    val exercises: List<ExercisePerformance> = emptyList(),
 ) {
     companion object {
         fun fromDomain(summary: WorkoutSummary) = RecentWorkoutDto(
@@ -35,7 +37,8 @@ internal data class RecentWorkoutDto(
             plannedItems = summary.plannedItems,
             totalVolumeKg = summary.totalVolumeKg,
             averageRpe = summary.averageRpe,
-            notes = summary.notes
+            notes = summary.notes,
+            exercises = summary.exercises,
         )
     }
 }

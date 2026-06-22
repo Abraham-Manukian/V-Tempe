@@ -321,14 +321,24 @@ private fun buildProgressionBlock(profile: AiProfile): String {
         profile.recentWorkouts.take(4).forEach { w ->
             val completion = (w.completionRate * 100).toInt()
             val rpe = w.averageRpe
-            val directive = when {
-                completion >= 90 && (rpe == null || rpe < 7.0)  -> "INCREASE weight ~5% — athlete is under-stimulated"
-                completion >= 85 && (rpe == null || rpe <= 7.5) -> "INCREASE weight ~2.5% — solid execution with headroom"
-                completion < 70 || (rpe != null && rpe > 8.5)   -> "DECREASE weight 5–10% or drop 1 set — signs of overreach"
-                else                                              -> "MAINTAIN current weights — athlete is in optimal zone"
+            val sessionDirective = when {
+                completion >= 90 && (rpe == null || rpe < 7.0)  -> "INCREASE ~5%"
+                completion >= 85 && (rpe == null || rpe <= 7.5) -> "INCREASE ~2.5%"
+                completion < 70 || (rpe != null && rpe > 8.5)   -> "DECREASE 5–10% or drop 1 set"
+                else                                              -> "MAINTAIN"
             }
-            appendLine("  ${w.date}: ${completion}% done, avg RPE ${rpe?.let { String.format(Locale.US, "%.1f", it) } ?: "n/a"} → $directive")
+            append("  ${w.date}: ${completion}% done, avg RPE ${rpe?.let { String.format(Locale.US, "%.1f", it) } ?: "n/a"} → $sessionDirective")
+            if (w.exercises.isNotEmpty()) {
+                val exerciseDetail = w.exercises.joinToString(", ") { ex ->
+                    val wt = ex.weightKg?.let { String.format(Locale.US, "%.1f", it) + "kg" } ?: "BW"
+                    "${ex.exerciseId}: $wt×${ex.reps}"
+                }
+                append(" | last weights: $exerciseDetail")
+            }
+            appendLine()
         }
+        appendLine("Apply these exact exercise weights as the STARTING POINT for this week and adjust per the directive above.")
+        appendLine("For exercises not listed above, use the athlete's demographics to estimate an appropriate starting weight.")
     }
 }
 

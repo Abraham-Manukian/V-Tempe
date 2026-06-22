@@ -2,6 +2,7 @@ package com.vtempe.shared.data.repo
 
 import com.russhwolf.settings.Settings
 import com.vtempe.shared.db.AppDatabase
+import com.vtempe.shared.domain.model.ExercisePerformance
 import com.vtempe.shared.domain.model.ExtraWorkoutSet
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
@@ -84,6 +85,18 @@ class WorkoutProgressStore(
                     }
                 }
 
+                val exercisePerformances = progress.performedSets
+                    .filter { it.completed }
+                    .mapNotNull { entry ->
+                        val planned = workout.sets.getOrNull(entry.setIndex) ?: return@mapNotNull null
+                        ExercisePerformance(
+                            exerciseId = planned.exerciseId,
+                            weightKg = entry.actualWeightKg ?: planned.weightKg,
+                            reps = entry.actualReps ?: planned.reps,
+                        )
+                    }
+                    .distinctBy { it.exerciseId }
+
                 WorkoutSummary(
                     workoutId = workout.id,
                     date = workout.date.toString(),
@@ -92,7 +105,8 @@ class WorkoutProgressStore(
                     plannedItems = workout.sets.size,
                     totalVolumeKg = totalVolume,
                     averageRpe = rpeValues.takeIf { it.isNotEmpty() }?.average(),
-                    notes = progress.notes.trim()
+                    notes = progress.notes.trim(),
+                    exercises = exercisePerformances,
                 )
             }
             .sortedByDescending { it.date }

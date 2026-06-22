@@ -144,6 +144,14 @@ data class WorkoutProgress(
     val submitted: Boolean = false
 )
 
+/** Per-exercise result from a completed workout session. */
+@Serializable
+data class ExercisePerformance(
+    val exerciseId: String,
+    val weightKg: Double?,
+    val reps: Int,
+)
+
 @Serializable
 data class WorkoutSummary(
     val workoutId: String,
@@ -153,7 +161,8 @@ data class WorkoutSummary(
     val plannedItems: Int,
     val totalVolumeKg: Double,
     val averageRpe: Double? = null,
-    val notes: String = ""
+    val notes: String = "",
+    val exercises: List<ExercisePerformance> = emptyList(),
 )
 
 @Serializable
