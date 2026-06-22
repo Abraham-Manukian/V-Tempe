@@ -1,6 +1,8 @@
 package com.vtempe.server.features.ai.data.service.split
 
+import com.vtempe.server.features.ai.domain.model.MovementPattern
 import com.vtempe.server.features.ai.domain.model.PatternSlot
+import com.vtempe.server.features.ai.domain.model.SlotType
 import com.vtempe.server.features.ai.domain.model.WorkoutSkeleton
 
 /** Orchestrates split selection and returns a labeled skeleton per training day. */
@@ -29,6 +31,17 @@ internal object TrainingSplitPlanner {
         val pref      = runCatching { SplitPreference.valueOf(splitPreferenceRaw.uppercase()) }
                             .getOrDefault(SplitPreference.AUTO)
         val templates = InjuryFilter.applyTo(chooseTemplates(pref, dayCount, params), injuries)
+            .map { skeleton ->
+                // Guard: if all patterns were banned by InjuryFilter, fall back to a safe
+                // core + mobility session rather than generating an empty workout.
+                if (skeleton.slots.isNotEmpty()) skeleton
+                else skeleton.copy(
+                    slots = listOf(
+                        PatternSlot(MovementPattern.CORE,     SlotType.ISOLATION, params.isolationSets, params.isolationRepMin, params.isolationRepMax, params.isolationRpe, params.isolationRestSeconds),
+                        PatternSlot(MovementPattern.MOBILITY, SlotType.ISOLATION, params.isolationSets, params.isolationRepMin, params.isolationRepMax, params.isolationRpe, params.isolationRestSeconds)
+                    )
+                )
+            }
         return templates.mapIndexed { i, t ->
             val day = trainingDays.getOrNull(i) ?: "Day ${i + 1}"
             t.copy(label = "$day — ${t.label}")
