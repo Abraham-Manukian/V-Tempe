@@ -5,7 +5,8 @@ CREATE TABLE Meal(
   kcal INTEGER NOT NULL,
   protein INTEGER NOT NULL,
   fat INTEGER NOT NULL,
-  carbs INTEGER NOT NULL
+  carbs INTEGER NOT NULL,
+  recipe TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE MealIngredient(
@@ -26,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_mealbyday_week ON MealByDay(weekIndex);
 CREATE INDEX IF NOT EXISTS idx_mealingredient_meal ON MealIngredient(mealId);
 
 insertMeal:
-INSERT OR REPLACE INTO Meal(id, name, kcal, protein, fat, carbs) VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Meal(id, name, kcal, protein, fat, carbs, recipe) VALUES (?, ?, ?, ?, ?, ?, ?);
 
 insertMealIngredient:
 INSERT INTO MealIngredient(mealId, ingredient) VALUES (?, ?);
@@ -38,7 +39,7 @@ insertMealByDay:
 INSERT OR REPLACE INTO MealByDay(weekIndex, day, indexInDay, mealId) VALUES (?, ?, ?, ?);
 
 selectMealsForDay:
-SELECT m.id, m.name, m.kcal, m.protein, m.fat, m.carbs, i.ingredient, b.indexInDay
+SELECT m.id, m.name, m.kcal, m.protein, m.fat, m.carbs, m.recipe, i.ingredient, b.indexInDay
 FROM MealByDay b
 JOIN Meal m ON m.id = b.mealId
 LEFT JOIN MealIngredient i ON i.mealId = m.id

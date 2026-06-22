@@ -125,7 +125,21 @@ fun NutritionDetailScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     meal.ingredients.forEach { ing ->
-                                        Text("- $ing", color = Color(0xFF3A3A3A))
+                                        Text("• $ing", color = Color(0xFF3A3A3A))
+                                    }
+                                    if (meal.recipe.isNotBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            stringResource(Res.string.nutrition_recipe),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color(0xFF1A1A1A),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            meal.recipe,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF3A3A3A)
+                                        )
                                     }
                                 }
                             }

@@ -295,6 +295,7 @@
     <string name="nutrition_detail_title">Meal details</string>
     <string name="nutrition_detail_missing">Meal not found</string>
     <string name="nutrition_ingredients">Ingredients</string>
+    <string name="nutrition_recipe">How to prepare</string>
     <string name="nutrition_macro_protein">Protein</string>
     <string name="nutrition_macro_fat">Fat</string>
     <string name="nutrition_macro_carbs">Carbs</string>

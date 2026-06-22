@@ -201,7 +201,8 @@ data class Meal(
     val name: String,
     val ingredients: List<String>,
     val kcal: Int,
-    val macros: Macros
+    val macros: Macros,
+    val recipe: String = "",
 )
 
 @Serializable

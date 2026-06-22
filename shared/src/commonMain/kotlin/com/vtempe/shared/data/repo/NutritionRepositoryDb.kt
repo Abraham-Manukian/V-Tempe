@@ -111,7 +111,8 @@ class NutritionRepositoryDb(
                         meal.kcal.toLong(),
                         meal.macros.proteinGrams.toLong(),
                         meal.macros.fatGrams.toLong(),
-                        meal.macros.carbsGrams.toLong()
+                        meal.macros.carbsGrams.toLong(),
+                        meal.recipe,
                     )
                     db.nutritionQueries.deleteIngredientsForMeal(mealId)
                     meal.ingredients.forEach { ingredient ->
@@ -163,7 +164,8 @@ class NutritionRepositoryDb(
                             fatGrams = row.fat.toInt(),
                             carbsGrams = row.carbs.toInt(),
                             kcal = row.kcal.toInt()
-                        )
+                        ),
+                        recipe = row.recipe,
                     )
                 }
                 val ingredient = row.ingredient?.trim()

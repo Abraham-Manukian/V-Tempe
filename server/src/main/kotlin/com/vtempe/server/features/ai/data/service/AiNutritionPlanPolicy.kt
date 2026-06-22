@@ -76,7 +76,8 @@ internal fun normalizeNutritionPlan(
                     name = name,
                     ingredients = ingredients,
                     kcal = normalizedKcal,
-                    macros = normalizedMacros
+                    macros = normalizedMacros,
+                    recipe = meal.recipe.trim(),
                 )
             }
         }

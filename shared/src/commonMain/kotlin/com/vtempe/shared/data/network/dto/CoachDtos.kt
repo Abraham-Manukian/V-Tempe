@@ -242,7 +242,8 @@ data class NutritionPlanDto(
         val name: String,
         val ingredients: List<String>,
         val kcal: Int,
-        val macros: Macros
+        val macros: Macros,
+        val recipe: String = "",
     )
 
     fun toDomain(): NutritionPlan {
@@ -258,7 +259,8 @@ data class NutritionPlanDto(
                     name = meal.name,
                     ingredients = meal.ingredients.map { it.trim() }.filter { it.isNotEmpty() },
                     kcal = meal.kcal,
-                    macros = meal.macros
+                    macros = meal.macros,
+                    recipe = meal.recipe.trim(),
                 )
             }
         }
@@ -287,7 +289,8 @@ data class NutritionPlanDto(
                         name = sanitizedName,
                         ingredients = sanitizedIngredients,
                         kcal = meal.kcal,
-                        macros = meal.macros
+                        macros = meal.macros,
+                        recipe = meal.recipe,
                     )
                 }
             }

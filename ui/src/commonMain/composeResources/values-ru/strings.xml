@@ -297,6 +297,7 @@
     <string name="nutrition_detail_title">Детали блюда</string>
     <string name="nutrition_detail_missing">Блюдо не найдено</string>
     <string name="nutrition_ingredients">Ингредиенты</string>
+    <string name="nutrition_recipe">Приготовление</string>
     <string name="nutrition_macro_protein">Белки</string>
     <string name="nutrition_macro_fat">Жиры</string>
     <string name="nutrition_macro_carbs">Углеводы</string>
