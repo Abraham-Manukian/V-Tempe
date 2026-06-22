@@ -323,12 +323,19 @@ internal fun RestBanner(
         else -> MaterialTheme.colorScheme.error
     }
 
-    Surface(color = accentColor.copy(alpha = 0.1f)) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+        color = Color.White.copy(alpha = 0.95f),
+        shadowElevation = 4.dp
+    ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -361,7 +368,7 @@ internal fun RestBanner(
             }
             LinearProgressIndicator(
                 progress = { fraction },
-                modifier = Modifier.fillMaxWidth().height(2.dp),
+                modifier = Modifier.fillMaxWidth().height(3.dp),
                 trackColor = accentColor.copy(alpha = 0.15f),
                 color = accentColor
             )
