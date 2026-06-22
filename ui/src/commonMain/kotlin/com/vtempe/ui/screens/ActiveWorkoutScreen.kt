@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -121,7 +122,10 @@ internal fun ActiveWorkoutScreen(
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ── Fixed header with progress bar ────────────────────
+            // zIndex(1f) draws the header on top of the LazyColumn so the
+            // glass card's drop shadow lands over cards, not in the gap below.
             ActiveWorkoutHeader(
+                modifier = Modifier.zIndex(1f),
                 onBack = onBack,
                 title = workout.label.ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
                 date = workout.date.toString(),
@@ -239,9 +243,10 @@ internal fun ActiveWorkoutHeader(
     sessionSeconds: Int,
     completedCount: Int,
     totalCount: Int,
-    progressFraction: Float
+    progressFraction: Float,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         GlassTopBarContainer {
             Row(
                 modifier = Modifier
