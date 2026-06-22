@@ -117,7 +117,14 @@ class ChatService(
             ?: req.messages.lastOrNull()?.content
             ?: ""
 
-        val history = req.messages.dropLast(1).joinToString("\n") { "${it.role}: ${it.content}" }
+        // Keep only the last 8 messages (4 turns) — older context is stale and can confuse
+        // the AI when plans have changed since those turns were recorded.
+        val history = req.messages.dropLast(1)
+            .takeLast(8)
+            .joinToString("\n") { msg ->
+                val truncated = if (msg.content.length > 400) msg.content.take(400) + "…" else msg.content
+                "${msg.role}: $truncated"
+            }
 
         // Serialize current plans so the coach can make targeted edits
         val currentTrainingPlanJson = req.currentTrainingPlan?.let {
