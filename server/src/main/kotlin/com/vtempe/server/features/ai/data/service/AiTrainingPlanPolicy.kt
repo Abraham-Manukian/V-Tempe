@@ -11,7 +11,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-private const val MaxWorkoutsPerPlan = 5
+private const val MaxWorkoutsPerPlan = 7
 private const val MaxSetsPerWorkout = 6
 
 // Exercises measured in seconds — AI should put seconds in the `reps` field (e.g. reps=30 = 30s hold).

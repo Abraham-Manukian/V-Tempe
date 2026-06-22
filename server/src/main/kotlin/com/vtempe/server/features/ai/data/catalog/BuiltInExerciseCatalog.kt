@@ -610,7 +610,9 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
     private fun supportsMode(item: ExerciseCatalogItem, mode: TrainingMode): Boolean =
         when (mode) {
             TrainingMode.AUTO, TrainingMode.MIXED -> true
-            else -> item.supportedModes.contains(mode) || item.supportedModes.contains(TrainingMode.MIXED)
+            // MIXED in supportedModes means the exercise is usable in a mixed gym+home context,
+            // NOT that it's available at home. Only exercises explicitly listing HOME are home-safe.
+            else -> item.supportedModes.contains(mode)
         }
 
     private fun matchesEquipment(
