@@ -88,24 +88,26 @@ internal object FocusPresets {
         exercisesPerSession  = 7
     )
 
+    // Goal in a caloric deficit = preserve muscle mass, not mimic cardio.
+    // Rep ranges match general training; rest is shorter than hypertrophy to keep sessions compact.
     fun fatLoss(): SplitParams = SplitParams(
         primarySets          = 3,
-        primaryRepMin        = 10,
-        primaryRepMax        = 15,
-        primaryRpe           = C.RPE_SECONDARY,
-        primaryRestSeconds   = C.REST_ISOLATION_DEFAULT,
+        primaryRepMin        = 8,
+        primaryRepMax        = 12,
+        primaryRpe           = C.RPE_SECONDARY,          // 7.5 — avoid failure in deficit
+        primaryRestSeconds   = C.REST_PRIMARY_GENERAL,   // 120s
         primarySlotCount     = 1,
         secondarySets        = 3,
-        secondaryRepMin      = 12,
-        secondaryRepMax      = 20,
-        secondaryRpe         = C.RPE_SECONDARY,
-        secondaryRestSeconds = C.REST_SECONDARY_FAT_LOSS,
+        secondaryRepMin      = 10,
+        secondaryRepMax      = 15,
+        secondaryRpe         = C.RPE_ISOLATION,          // 7.0
+        secondaryRestSeconds = C.REST_SECONDARY_GENERAL, // 90s
         isolationSets        = 2,
-        isolationRepMin      = 15,
-        isolationRepMax      = 20,
+        isolationRepMin      = 12,
+        isolationRepMax      = 15,
         isolationRpe         = C.RPE_ISOLATION,
-        isolationRestSeconds = C.REST_ISOLATION_FAT_LOSS,
-        exercisesPerSession  = 8
+        isolationRestSeconds = C.REST_ISOLATION_DEFAULT, // 60s
+        exercisesPerSession  = 7  // 1 fewer than hypertrophy — lower total volume in deficit
     )
 
     // ACSM: beginners 2 sets, intermediate 3, advanced 4+

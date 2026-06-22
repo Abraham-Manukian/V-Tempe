@@ -17,9 +17,10 @@ internal object SplitParamsFactory {
         sex: Sex,
         lifestyle: Lifestyle,
         sessionDurationMins: Int,
-        weekIndex: Int
+        weekIndex: Int,
+        forceDeload: Boolean = false
     ): SplitParams {
-        val isDeload   = weekIndex > 0 && weekIndex % C.DELOAD_WEEK_MODULO == C.DELOAD_WEEK_INDEX
+        val isDeload   = forceDeload || (weekIndex > 0 && weekIndex % C.DELOAD_WEEK_MODULO == C.DELOAD_WEEK_INDEX)
         val isBeginner = experienceLevel <= C.BEGINNER_MAX_LEVEL
         val exercises  = exercisesFromDuration(sessionDurationMins, isBeginner)
         val factor     = goalFactor(goal) * ageFactor(age) * lifestyleFactor(lifestyle)

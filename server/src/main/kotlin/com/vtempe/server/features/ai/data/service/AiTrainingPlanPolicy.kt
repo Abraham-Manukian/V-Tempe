@@ -32,9 +32,11 @@ private val bodweightOnlyExerciseIds = setOf(
     "pushup", "diamond_pushup", "wide_pushup", "decline_pushup", "incline_pushup", "pike_pushup",
     "dip", "inverted_row", "handstand_pushup",
     "plank", "side_plank", "mountain_climber", "burpee", "jumping_jack", "jump_squat",
-    "toes_to_bar", "hanging_knee_raise", "hanging_leg_raise", "l_sit",
+    "toes_to_bar", "hanging_knee_raise", "hanging_leg_raise",
+    "l_sit", "hollow_body", "hollow_hold",
     "wall_sit", "lunge", "reverse_lunge", "walking_lunge", "split_squat",
-    "sumo_squat", "glute_bridge", "nordic_curl", "step_up"
+    "sumo_squat", "glute_bridge", "glute_bridge_hold", "nordic_curl", "step_up",
+    "bear_crawl", "crab_walk", "inchworm"
 )
 
 internal fun normalizeTrainingPlan(
@@ -157,7 +159,8 @@ private fun computeSkeletonData(
             lifestyleRaw        = profile.lifestyleActivity,
             injuries            = profile.injuries,
             sessionDurationMins = profile.sessionDurationMins,
-            weekIndex           = weekIndex
+            weekIndex           = weekIndex,
+            forceDeload         = shouldForceDeload(profile.recentWorkouts)
         ).mapIndexed { si, skeleton ->
             val label = skeleton.label.trimDayPrefix()
             val usedInSession = mutableSetOf<String>()
@@ -169,7 +172,7 @@ private fun computeSkeletonData(
                     trainingModeRaw     = profile.trainingMode,
                     equipment           = profile.equipment,
                     usedExerciseIds     = usedInSession,
-                    rotationSeed        = si * 31 + j,
+                    rotationSeed        = si * 31 + j + (weekIndex * 17),
                     userExperienceLevel = profile.experienceLevel
                 )
                 if (id != null) {
@@ -273,4 +276,19 @@ private fun uniqueWorkoutId(
         suffix += 1
     }
     return candidate
+}
+
+/**
+ * Returns true when the last [DELOAD_SIGNAL_WEEKS] workouts consistently show poor performance.
+ * Triggers deload independently of the calendar-based fallback in SplitParamsFactory.
+ * Poor performance = completion below threshold OR RPE above threshold.
+ */
+internal fun shouldForceDeload(recentWorkouts: List<com.vtempe.server.shared.dto.profile.AiRecentWorkout>): Boolean {
+    val C = com.vtempe.server.features.ai.data.service.split.TrainingConstants
+    if (recentWorkouts.size < C.DELOAD_SIGNAL_WEEKS) return false
+    val lastN = recentWorkouts.takeLast(C.DELOAD_SIGNAL_WEEKS)
+    return lastN.all { w ->
+        w.completionRate < C.DELOAD_COMPLETION_TRIGGER ||
+            (w.averageRpe != null && w.averageRpe > C.DELOAD_RPE_TRIGGER)
+    }
 }

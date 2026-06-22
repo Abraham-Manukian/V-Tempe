@@ -17,13 +17,14 @@ internal object TrainingSplitPlanner {
         lifestyleRaw: String,
         injuries: List<String>,
         sessionDurationMins: Int,
-        weekIndex: Int
+        weekIndex: Int,
+        forceDeload: Boolean = false
     ): List<WorkoutSkeleton> {
         val focus     = SplitParamsFactory.focusFromRaw(focusRaw)
         val goal      = SplitParamsFactory.goalFromRaw(goalRaw)
         val sex       = SplitParamsFactory.sexFromRaw(sexRaw)
         val lifestyle = SplitParamsFactory.lifestyleFromRaw(lifestyleRaw)
-        val params    = SplitParamsFactory.create(goal, focus, experienceLevel, age, sex, lifestyle, sessionDurationMins, weekIndex)
+        val params    = SplitParamsFactory.create(goal, focus, experienceLevel, age, sex, lifestyle, sessionDurationMins, weekIndex, forceDeload)
         val dayCount  = trainingDays.size.coerceIn(1, 6)
         val pref      = runCatching { SplitPreference.valueOf(splitPreferenceRaw.uppercase()) }
                             .getOrDefault(SplitPreference.AUTO)

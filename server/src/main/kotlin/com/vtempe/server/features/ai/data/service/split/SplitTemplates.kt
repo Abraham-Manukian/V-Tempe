@@ -148,7 +148,13 @@ internal object SplitTemplates {
             ),
             isolations = listOf(MovementPattern.CORE, MovementPattern.CONDITIONING)
         )
-        val rotation = listOf(push1, pull1, legs, push2, pull2, legs)
+        // 5 days: legs must appear twice (Grgic 2018: ≥2×/week per muscle).
+        // pull2 gets dropped — push/pull balance still maintained via push2.
+        val rotation = if (dayCount == 5) {
+            listOf(push1, pull1, legs, push2, legs)
+        } else {
+            listOf(push1, pull1, legs, push2, pull2, legs)
+        }
         return rotation.take(dayCount)
     }
 
