@@ -119,16 +119,18 @@ internal fun buildBundlePrompt(
         )
         // Pre-resolve one concrete exercise per slot so AI just assigns weights/reps —
         // this eliminates wrong pattern substitution (e.g. pullup in a HORIZONTAL_PUSH slot).
+        val recentExerciseIds = request.profile.recentWorkouts.flatMap { it.exercises }.map { it.exerciseId }.toSet()
         val resolvedExercises = skeletons.mapIndexed { si, skeleton ->
             val usedInSession = mutableSetOf<String>()
             skeleton.slots.mapIndexed { j, slot ->
                 val id = trainingPlanResolver.resolveExerciseId(
-                    rawToken           = slot.pattern.token,
-                    trainingModeRaw    = request.profile.trainingMode,
-                    equipment          = request.profile.equipment,
-                    usedExerciseIds    = usedInSession,
-                    rotationSeed       = si * 31 + j + (request.weekIndex * 17),
-                    userExperienceLevel = request.profile.experienceLevel
+                    rawToken            = slot.pattern.token,
+                    trainingModeRaw     = request.profile.trainingMode,
+                    equipment           = request.profile.equipment,
+                    usedExerciseIds     = usedInSession,
+                    rotationSeed        = si * 31 + j + (request.weekIndex * 17),
+                    userExperienceLevel = request.profile.experienceLevel,
+                    recentExerciseIds   = recentExerciseIds,
                 )
                 if (id != null) usedInSession += id
                 id

@@ -166,6 +166,7 @@ private fun computeSkeletonData(
             val usedInSession = mutableSetOf<String>()
             val exerciseIds = mutableListOf<String>()
             val setsCounts = mutableListOf<Int>()
+            val recentExerciseIds = profile.recentWorkouts.flatMap { it.exercises }.map { it.exerciseId }.toSet()
             skeleton.slots.forEachIndexed { j, slot ->
                 val id = resolver.resolveExerciseId(
                     rawToken            = slot.pattern.token,
@@ -173,7 +174,8 @@ private fun computeSkeletonData(
                     equipment           = profile.equipment,
                     usedExerciseIds     = usedInSession,
                     rotationSeed        = si * 31 + j + (weekIndex * 17),
-                    userExperienceLevel = profile.experienceLevel
+                    userExperienceLevel = profile.experienceLevel,
+                    recentExerciseIds   = recentExerciseIds,
                 )
                 if (id != null) {
                     usedInSession += id

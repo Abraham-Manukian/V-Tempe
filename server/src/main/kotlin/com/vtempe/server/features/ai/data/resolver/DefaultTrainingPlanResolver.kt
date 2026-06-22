@@ -38,7 +38,8 @@ class DefaultTrainingPlanResolver(
         equipment: List<String>,
         usedExerciseIds: Set<String>,
         rotationSeed: Int,
-        userExperienceLevel: Int
+        userExperienceLevel: Int,
+        recentExerciseIds: Set<String>,
     ): String? {
         val token = normalizeExerciseToken(rawToken)
         if (token.isBlank()) return null
@@ -49,7 +50,6 @@ class DefaultTrainingPlanResolver(
         exerciseCatalog.findByIdOrAlias(token)?.let { explicit ->
             val compatibleCandidates = exerciseCatalog.candidatesFor(explicit.primaryPattern, mode, normalizedEquipment)
             val concreteCompatible = compatibleCandidates.any { it.id == explicit.id }
-            // Never return an exercise that is far too hard for the user, even if explicitly requested by LLM
             val tooHard = explicit.difficulty > (userExperienceLevel + 1).coerceAtMost(5)
             return if (
                 concreteCompatible &&
@@ -64,12 +64,12 @@ class DefaultTrainingPlanResolver(
             ) {
                 explicit.id
             } else {
-                selectCandidate(explicit.primaryPattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel)
+                selectCandidate(explicit.primaryPattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel, recentExerciseIds)
             }
         }
 
         val pattern = MovementPattern.fromToken(token) ?: return null
-        return selectCandidate(pattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel)
+        return selectCandidate(pattern, mode, normalizedEquipment, usedExerciseIds, rotationSeed, userExperienceLevel, recentExerciseIds)
     }
 
     private fun selectCandidate(
@@ -78,7 +78,8 @@ class DefaultTrainingPlanResolver(
         normalizedEquipment: Set<String>,
         usedExerciseIds: Set<String>,
         rotationSeed: Int,
-        userExperienceLevel: Int = 3
+        userExperienceLevel: Int = 3,
+        recentExerciseIds: Set<String> = emptySet(),
     ): String? {
         val candidates = exerciseCatalog.candidatesFor(pattern, mode, normalizedEquipment)
         if (candidates.isEmpty()) return null
@@ -86,7 +87,13 @@ class DefaultTrainingPlanResolver(
         val freshCandidates = candidates.filterNot { usedExerciseIds.contains(it.id) }
         val pool = freshCandidates.ifEmpty { candidates }
         val ranked = pool
-            .map { candidate -> candidateScore(candidate, pattern, mode, pool, userExperienceLevel) to candidate }
+            .map { candidate ->
+                var score = candidateScore(candidate, pattern, mode, pool, userExperienceLevel)
+                // Soft penalty for exercises used in recent weeks — deprioritises repeats
+                // without hard-excluding them (avoids deadlock when the catalog is small).
+                if (candidate.id in recentExerciseIds) score += 200
+                score to candidate
+            }
             .sortedBy { it.first }
 
         val bestScore = ranked.first().first

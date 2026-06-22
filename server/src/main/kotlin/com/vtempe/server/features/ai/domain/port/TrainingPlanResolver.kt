@@ -11,6 +11,8 @@ interface TrainingPlanResolver {
         equipment: List<String>,
         usedExerciseIds: Set<String> = emptySet(),
         rotationSeed: Int = 0,
-        userExperienceLevel: Int = 3
+        userExperienceLevel: Int = 3,
+        /** Exercises used in recent weeks — deprioritised to avoid repetition across sessions. */
+        recentExerciseIds: Set<String> = emptySet(),
     ): String?
 }
