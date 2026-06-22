@@ -127,7 +127,7 @@ internal fun buildBundlePrompt(
                     trainingModeRaw    = request.profile.trainingMode,
                     equipment          = request.profile.equipment,
                     usedExerciseIds    = usedInSession,
-                    rotationSeed       = si * 31 + j,
+                    rotationSeed       = si * 31 + j + (request.weekIndex * 17),
                     userExperienceLevel = request.profile.experienceLevel
                 )
                 if (id != null) usedInSession += id
