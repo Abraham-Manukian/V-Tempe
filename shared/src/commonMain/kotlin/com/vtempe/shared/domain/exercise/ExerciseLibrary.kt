@@ -356,7 +356,7 @@ object ExerciseLibrary {
         ),
         ExerciseDefinition(
             id = "pullup",
-            aliases = setOf("pull_up", "pullups", "chin_up", "chinup"),
+            aliases = setOf("pull_up", "pullups", "overhand_pullup"),
             name = LocalizedText("Pull-up", "Подтягивания"),
             muscleGroups = listOf("lats", "biceps", "rear_delts"),
             difficulty = 3,
@@ -389,6 +389,43 @@ object ExerciseLibrary {
                     "Опусти лопатки вниз.",
                     "Подтянись до уровня подбородка над перекладиной.",
                     "Опустись контролируемо в полный вис."
+                ),
+                defaultRestSeconds = 90
+            )
+        ),
+        ExerciseDefinition(
+            id = "chin_up",
+            aliases = setOf("chinup", "supinated_pullup", "underhand_pullup"),
+            name = LocalizedText("Chin-Up", "Подтягивания обратным хватом"),
+            muscleGroups = listOf("biceps", "lats"),
+            difficulty = 3,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.BODYWEIGHT_REPS,
+            calibrationHint = LocalizedText(
+                "Supinated (underhand) grip — easier than pull-up due to greater bicep involvement.",
+                "Обратный хват — легче подтягиваний прямым из-за большего участия бицепса."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "The chin-up builds bicep and lat strength with a supinated grip.",
+                    "Подтягивания обратным хватом развивают бицепс и широчайшие."
+                ),
+                focusEn = listOf("Biceps", "Lats"),
+                focusRu = listOf("Бицепс", "Широчайшие"),
+                keyCue = LocalizedText(
+                    "Drive elbows down and back; squeeze the biceps at the top.",
+                    "Тяни локти вниз и назад; сожми бицепс в верхней точке."
+                ),
+                stepsEn = listOf(
+                    "Dead hang with palms facing you, hands shoulder-width.",
+                    "Pull until chin clears the bar.",
+                    "Lower with full control."
+                ),
+                stepsRu = listOf(
+                    "Вис на прямых руках, ладони к себе, хват на ширине плеч.",
+                    "Подтянись до уровня подбородка над перекладиной.",
+                    "Опустись полностью контролируя движение."
                 ),
                 defaultRestSeconds = 90
             )
@@ -545,7 +582,7 @@ object ExerciseLibrary {
         ),
         ExerciseDefinition(
             id = "tricep_extension",
-            aliases = setOf("triceps_extension", "skull_crusher", "overhead_tricep"),
+            aliases = setOf("triceps_extension", "overhead_tricep", "overhead_tricep_extension"),
             name = LocalizedText("Triceps Extension", "Разгибание рук"),
             muscleGroups = listOf("triceps"),
             difficulty = 1,
@@ -575,6 +612,43 @@ object ExerciseLibrary {
                 stepsRu = listOf(
                     "Держи гантель над головой обеими руками.",
                     "Опусти за голову, сгибая только локти.",
+                    "Выпрями руки в исходное положение."
+                ),
+                defaultRestSeconds = 60
+            )
+        ),
+        ExerciseDefinition(
+            id = "skull_crusher",
+            aliases = setOf("french_press", "ez_skull_crusher", "lying_tricep_extension"),
+            name = LocalizedText("Skull Crusher", "Французский жим"),
+            muscleGroups = listOf("triceps"),
+            difficulty = 2,
+            visualFamily = ExerciseVisualFamily.ARMS,
+            calibrationKind = ExerciseCalibrationKind.WEIGHT_AND_REPS,
+            calibrationHint = LocalizedText(
+                "Use an EZ-bar or dumbbells; go light until you're comfortable with the movement.",
+                "Используй EZ-гриф или гантели; начни легко пока не освоишь технику."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "Skull crushers isolate the triceps through a long range of motion lying on a bench.",
+                    "Французский жим изолирует трицепс через большую амплитуду в положении лёжа."
+                ),
+                focusEn = listOf("Triceps"),
+                focusRu = listOf("Трицепс"),
+                keyCue = LocalizedText(
+                    "Keep upper arms vertical and stationary; only the forearms move.",
+                    "Держи плечи вертикально и неподвижно; двигаются только предплечья."
+                ),
+                stepsEn = listOf(
+                    "Lie on a bench, hold the bar above your chest with arms straight.",
+                    "Lower the bar toward your forehead by bending elbows only.",
+                    "Extend back to start."
+                ),
+                stepsRu = listOf(
+                    "Ляг на скамью, держи гриф над грудью на прямых руках.",
+                    "Опусти гриф ко лбу, сгибая только локти.",
                     "Выпрями руки в исходное положение."
                 ),
                 defaultRestSeconds = 60
@@ -619,8 +693,8 @@ object ExerciseLibrary {
         ),
         ExerciseDefinition(
             id = "hip_thrust",
-            aliases = setOf("hipthrust", "hip_thrusts", "glute_bridge"),
-            name = LocalizedText("Hip Thrust", "Ягодичный мостик"),
+            aliases = setOf("hipthrust", "hip_thrusts", "barbell_hip_thrust"),
+            name = LocalizedText("Hip Thrust", "Ягодичный мост"),
             muscleGroups = listOf("glutes", "hamstrings"),
             difficulty = 2,
             visualFamily = ExerciseVisualFamily.LOWER_BODY,
@@ -654,6 +728,45 @@ object ExerciseLibrary {
                     "Медленно опусти."
                 ),
                 defaultRestSeconds = 90
+            )
+        ),
+        ExerciseDefinition(
+            id = "glute_bridge",
+            aliases = setOf("bridge", "bodyweight_glute_bridge"),
+            name = LocalizedText("Glute Bridge", "Ягодичный мостик"),
+            muscleGroups = listOf("glutes", "hamstrings"),
+            difficulty = 1,
+            visualFamily = ExerciseVisualFamily.LOWER_BODY,
+            calibrationKind = ExerciseCalibrationKind.BODYWEIGHT_REPS,
+            calibrationHint = LocalizedText(
+                "Master the bodyweight version before adding a barbell (use hip_thrust for loaded version).",
+                "Освой без веса перед добавлением штанги (для нагруженной версии — ягодичный мост)."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "Glute bridge activates and strengthens the glutes from the floor with no equipment.",
+                    "Ягодичный мостик активирует и укрепляет ягодицы без оборудования."
+                ),
+                focusEn = listOf("Glutes", "Hamstrings", "Core"),
+                focusRu = listOf("Ягодицы", "Бицепс бедра", "Кор"),
+                keyCue = LocalizedText(
+                    "Squeeze glutes hard at the top; don't hyperextend the lower back.",
+                    "Сильно сожми ягодицы вверху; не перегибай поясницу."
+                ),
+                stepsEn = listOf(
+                    "Lie on your back, knees bent, feet flat on the floor.",
+                    "Drive hips up by squeezing glutes.",
+                    "Hold 1–2 seconds at the top.",
+                    "Lower slowly."
+                ),
+                stepsRu = listOf(
+                    "Ляг на спину, согни колени, стопы на полу.",
+                    "Подними бёдра, сжимая ягодицы.",
+                    "Задержись 1–2 секунды вверху.",
+                    "Медленно опустись."
+                ),
+                defaultRestSeconds = 45
             )
         ),
         ExerciseDefinition(
