@@ -95,10 +95,11 @@ internal object TrainingSplitPlanner {
         SplitPreference.FULL_BODY    -> SplitTemplates.fullBodyABA(params).take(dayCount.coerceIn(1, 3))
         SplitPreference.UPPER_LOWER  -> SplitTemplates.upperLower(params).take(dayCount.coerceIn(1, 4))
         SplitPreference.PPL          -> SplitTemplates.ppl(params, dayCount.coerceIn(3, 6))
+        // AUTO defaults to split-based programming — Full Body is only given when
+        // the user explicitly selects it. Real-world gym athletes train splits 8/10.
         SplitPreference.AUTO         -> when {
             dayCount <= 2 -> SplitTemplates.fullBodyAB(params)
-            dayCount == 3 -> SplitTemplates.fullBodyABA(params)
-            dayCount == 4 -> SplitTemplates.upperLower(params)
+            dayCount <= 4 -> SplitTemplates.upperLower(params).take(dayCount)
             else          -> SplitTemplates.ppl(params, dayCount)
         }
     }
