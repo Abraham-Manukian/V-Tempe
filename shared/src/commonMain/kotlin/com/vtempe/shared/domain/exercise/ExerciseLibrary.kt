@@ -161,8 +161,8 @@ object ExerciseLibrary {
         ),
         ExerciseDefinition(
             id = "row",
-            aliases = setOf("bent_over_row", "barbell_row", "db_row", "dumbbell_row"),
-            name = LocalizedText("Row", "Тяга"),
+            aliases = setOf("bent_over_row", "barbell_row"),
+            name = LocalizedText("Barbell Row", "Тяга штанги"),
             muscleGroups = listOf("lats", "rhomboids", "biceps"),
             difficulty = 2,
             visualFamily = ExerciseVisualFamily.PULL,
@@ -196,6 +196,162 @@ object ExerciseLibrary {
                     "Опусти контролируемо."
                 ),
                 defaultRestSeconds = 90
+            )
+        ),
+        ExerciseDefinition(
+            id = "dumbbell_row",
+            aliases = setOf("db_row", "one_arm_row", "single_arm_row"),
+            name = LocalizedText("Dumbbell Row", "Тяга гантели"),
+            muscleGroups = listOf("lats", "rhomboids", "biceps"),
+            difficulty = 2,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.WEIGHT_AND_REPS,
+            calibrationHint = LocalizedText(
+                "Use a bench for support; keep your back flat.",
+                "Обопрись на скамью; держи спину прямо."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "Unilateral row that allows a full range of motion for the lats.",
+                    "Односторонняя тяга с полной амплитудой для широчайших."
+                ),
+                focusEn = listOf("Lats", "Rhomboids", "Rear delts"),
+                focusRu = listOf("Широчайшие", "Ромбовидные", "Задние дельты"),
+                keyCue = LocalizedText(
+                    "Pull the elbow straight back past your hip.",
+                    "Тяни локоть прямо назад мимо бедра."
+                ),
+                stepsEn = listOf(
+                    "Place one knee and hand on a bench for support.",
+                    "Hold the dumbbell with a neutral grip.",
+                    "Pull the dumbbell to your hip, elbow close to your side.",
+                    "Lower slowly."
+                ),
+                stepsRu = listOf(
+                    "Упрись коленом и рукой в скамью.",
+                    "Возьми гантель нейтральным хватом.",
+                    "Подтяни гантель к бедру, локоть вдоль тела.",
+                    "Опусти медленно."
+                ),
+                defaultRestSeconds = 60
+            )
+        ),
+        ExerciseDefinition(
+            id = "cable_row",
+            aliases = setOf("seated_cable_row", "low_cable_row", "seated_row"),
+            name = LocalizedText("Cable Row", "Тяга в блоке сидя"),
+            muscleGroups = listOf("lats", "rhomboids", "biceps"),
+            difficulty = 1,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.WEIGHT_AND_REPS,
+            calibrationHint = LocalizedText(
+                "Keep your torso upright; don't lean back to cheat.",
+                "Держи корпус прямо; не откидывайся назад."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "Cable row gives constant tension throughout the full range of motion.",
+                    "Тяга в блоке даёт постоянное натяжение по всей амплитуде."
+                ),
+                focusEn = listOf("Mid back", "Lats", "Biceps"),
+                focusRu = listOf("Средняя спина", "Широчайшие", "Бицепс"),
+                keyCue = LocalizedText(
+                    "Squeeze your shoulder blades together at the end of each rep.",
+                    "Своди лопатки в конечной точке каждого повтора."
+                ),
+                stepsEn = listOf(
+                    "Sit at the cable station, feet on the platform, knees slightly bent.",
+                    "Grip the handle and straighten your back.",
+                    "Pull the handle to your abdomen, driving elbows back.",
+                    "Slowly return to the starting position."
+                ),
+                stepsRu = listOf(
+                    "Сядь к тренажёру, ноги на платформе, колени слегка согнуты.",
+                    "Возьмись за рукоять и выпрями спину.",
+                    "Потяни рукоять к животу, отводя локти назад.",
+                    "Медленно вернись в исходное положение."
+                ),
+                defaultRestSeconds = 60
+            )
+        ),
+        ExerciseDefinition(
+            id = "t_bar_row",
+            aliases = setOf("tbar_row", "t_bar"),
+            name = LocalizedText("T-Bar Row", "Тяга Т-грифа"),
+            muscleGroups = listOf("lats", "rhomboids", "biceps"),
+            difficulty = 3,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.WEIGHT_AND_REPS,
+            calibrationHint = LocalizedText(
+                "Start light — this loads the lower back heavily.",
+                "Начни с лёгкого веса — упражнение сильно грузит поясницу."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "T-bar row targets the mid-back with a narrower grip than a barbell row.",
+                    "Тяга Т-грифа прорабатывает среднюю часть спины с узким хватом."
+                ),
+                focusEn = listOf("Lats", "Mid back", "Biceps"),
+                focusRu = listOf("Широчайшие", "Средняя спина", "Бицепс"),
+                keyCue = LocalizedText(
+                    "Keep your chest on the pad and pull with your elbows.",
+                    "Прижми грудь к подушке и тяни локтями."
+                ),
+                stepsEn = listOf(
+                    "Set the bar in a landmine attachment or corner.",
+                    "Straddle the bar, hinge at the hips.",
+                    "Pull the plates to your chest.",
+                    "Lower under control."
+                ),
+                stepsRu = listOf(
+                    "Установи гриф в угол или специальный упор.",
+                    "Встань над грифом, наклонись вперёд.",
+                    "Подтяни блины к груди.",
+                    "Опусти контролируемо."
+                ),
+                defaultRestSeconds = 90
+            )
+        ),
+        ExerciseDefinition(
+            id = "lat_pulldown",
+            aliases = setOf("cable_pulldown", "pulldown", "lat_pull_down"),
+            name = LocalizedText("Lat Pulldown", "Тяга верхнего блока"),
+            muscleGroups = listOf("lats", "biceps", "rear_delts"),
+            difficulty = 1,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.WEIGHT_AND_REPS,
+            calibrationHint = LocalizedText(
+                "Use a weight where you can feel your lats, not just your arms.",
+                "Выбери вес, при котором чувствуешь спину, а не только руки."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "Lat pulldown is a beginner-friendly vertical pull that builds lat width.",
+                    "Тяга верхнего блока — доступное вертикальное тяговое упражнение для ширины спины."
+                ),
+                focusEn = listOf("Lats", "Biceps", "Rear delts"),
+                focusRu = listOf("Широчайшие", "Бицепс", "Задние дельты"),
+                keyCue = LocalizedText(
+                    "Pull the bar to your upper chest, lean back slightly.",
+                    "Тяни гриф к верхней части груди, слегка откинувшись назад."
+                ),
+                stepsEn = listOf(
+                    "Sit at the pulldown machine, thighs secured under the pad.",
+                    "Grip the bar slightly wider than shoulder width.",
+                    "Pull the bar to your upper chest, elbows pointing down.",
+                    "Slowly return to the top."
+                ),
+                stepsRu = listOf(
+                    "Сядь в тренажёр, бёдра зафиксированы под упором.",
+                    "Возьмись за гриф чуть шире плеч.",
+                    "Потяни гриф к верхней части груди, локти вниз.",
+                    "Медленно верни гриф наверх."
+                ),
+                defaultRestSeconds = 60
             )
         ),
         ExerciseDefinition(

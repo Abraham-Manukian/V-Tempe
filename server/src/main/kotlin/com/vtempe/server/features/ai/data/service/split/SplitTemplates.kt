@@ -171,6 +171,7 @@ internal object SplitTemplates {
             compounds  = listOf(
                 MovementPattern.HORIZONTAL_PUSH, // flat bench
                 MovementPattern.HORIZONTAL_PUSH, // incline press
+                MovementPattern.HORIZONTAL_PUSH, // cable fly / dip
             ),
             isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.ARM_EXTENSION)
         )
@@ -181,7 +182,7 @@ internal object SplitTemplates {
                 MovementPattern.HORIZONTAL_PULL, // barbell / cable row
                 MovementPattern.HORIZONTAL_PULL, // seated row variation
             ),
-            isolations = listOf(MovementPattern.ARM_FLEXION)
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_FLEXION)
         )
         val legsShoulders = skeleton(
             "Legs + Shoulders", p,
@@ -216,7 +217,7 @@ internal object SplitTemplates {
                 MovementPattern.HORIZONTAL_PUSH, // incline
                 MovementPattern.HORIZONTAL_PUSH, // cable fly / dip
             ),
-            isolations = listOf(MovementPattern.CORE)
+            isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
         )
         val back = skeleton(
             "Back", p,
@@ -225,7 +226,7 @@ internal object SplitTemplates {
                 MovementPattern.HORIZONTAL_PULL,
                 MovementPattern.HORIZONTAL_PULL,
             ),
-            isolations = listOf(MovementPattern.MOBILITY)
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.MOBILITY)
         )
         val shoulders = skeleton(
             "Shoulders", p,
