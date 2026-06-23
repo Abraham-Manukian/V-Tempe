@@ -158,6 +158,101 @@ internal object SplitTemplates {
         return rotation.take(dayCount)
     }
 
+    /**
+     * Bro split — each session targets one or two specific muscle groups.
+     * 3 days: Chest+Triceps / Back+Biceps / Legs+Shoulders
+     * 4 days: Chest+Triceps / Back+Biceps / Legs / Shoulders+Arms
+     * 5 days: Chest / Back / Legs / Shoulders / Arms+Abs
+     * 6 days: 3-day rotation × 2
+     */
+    fun broSplit(p: SplitParams, dayCount: Int): List<WorkoutSkeleton> {
+        val chestTri = skeleton(
+            "Chest + Triceps", p,
+            compounds  = listOf(
+                MovementPattern.HORIZONTAL_PUSH, // flat bench
+                MovementPattern.HORIZONTAL_PUSH, // incline press
+            ),
+            isolations = listOf(MovementPattern.ARM_EXTENSION, MovementPattern.ARM_EXTENSION)
+        )
+        val backBi = skeleton(
+            "Back + Biceps", p,
+            compounds  = listOf(
+                MovementPattern.VERTICAL_PULL,   // pull-up / pulldown
+                MovementPattern.HORIZONTAL_PULL, // barbell / cable row
+                MovementPattern.HORIZONTAL_PULL, // seated row variation
+            ),
+            isolations = listOf(MovementPattern.ARM_FLEXION)
+        )
+        val legsShoulders = skeleton(
+            "Legs + Shoulders", p,
+            compounds  = listOf(
+                MovementPattern.KNEE_DOMINANT,   // squat
+                MovementPattern.HINGE,           // RDL
+                MovementPattern.VERTICAL_PUSH,   // OHP
+            ),
+            isolations = listOf(MovementPattern.SINGLE_LEG, MovementPattern.CORE)
+        )
+        val legs = skeleton(
+            "Legs", p,
+            compounds  = listOf(
+                MovementPattern.KNEE_DOMINANT,
+                MovementPattern.HINGE,
+                MovementPattern.SINGLE_LEG,
+            ),
+            isolations = listOf(MovementPattern.CORE, MovementPattern.CONDITIONING)
+        )
+        val shouldersArms = skeleton(
+            "Shoulders + Arms", p,
+            compounds  = listOf(
+                MovementPattern.VERTICAL_PUSH,   // OHP
+                MovementPattern.VERTICAL_PUSH,   // lateral raise
+            ),
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
+        )
+        val chest = skeleton(
+            "Chest", p,
+            compounds  = listOf(
+                MovementPattern.HORIZONTAL_PUSH, // flat bench
+                MovementPattern.HORIZONTAL_PUSH, // incline
+                MovementPattern.HORIZONTAL_PUSH, // cable fly / dip
+            ),
+            isolations = listOf(MovementPattern.CORE)
+        )
+        val back = skeleton(
+            "Back", p,
+            compounds  = listOf(
+                MovementPattern.VERTICAL_PULL,
+                MovementPattern.HORIZONTAL_PULL,
+                MovementPattern.HORIZONTAL_PULL,
+            ),
+            isolations = listOf(MovementPattern.MOBILITY)
+        )
+        val shoulders = skeleton(
+            "Shoulders", p,
+            compounds  = listOf(
+                MovementPattern.VERTICAL_PUSH,
+                MovementPattern.VERTICAL_PUSH,
+            ),
+            isolations = listOf(MovementPattern.CORE)
+        )
+        val armsAbs = skeleton(
+            "Arms + Abs", p,
+            compounds  = listOf(
+                MovementPattern.ARM_FLEXION,
+                MovementPattern.ARM_EXTENSION,
+            ),
+            isolations = listOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION, MovementPattern.CORE)
+        )
+
+        val rotation = when {
+            dayCount <= 3 -> listOf(chestTri, backBi, legsShoulders)
+            dayCount == 4 -> listOf(chestTri, backBi, legs, shouldersArms)
+            dayCount == 5 -> listOf(chest, back, legs, shoulders, armsAbs)
+            else          -> listOf(chestTri, backBi, legsShoulders, chestTri, backBi, legsShoulders)
+        }
+        return rotation.take(dayCount)
+    }
+
     // ── Private ──────────────────────────────────────────────────────────────
 
     private fun skeleton(

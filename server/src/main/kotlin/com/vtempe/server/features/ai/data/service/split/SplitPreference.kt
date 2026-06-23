@@ -1,3 +1,3 @@
 package com.vtempe.server.features.ai.data.service.split
 
-internal enum class SplitPreference { AUTO, FULL_BODY, UPPER_LOWER, PPL }
+internal enum class SplitPreference { AUTO, FULL_BODY, UPPER_LOWER, PPL, BRO_SPLIT }

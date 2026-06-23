@@ -203,6 +203,7 @@ private fun SplitPreferenceSection(edit: EditProfileState, onUpdate: (EditProfil
         SplitPreference.FULL_BODY   to (stringResource(Res.string.split_full_body)   to stringResource(Res.string.split_full_body_desc)),
         SplitPreference.UPPER_LOWER to (stringResource(Res.string.split_upper_lower) to stringResource(Res.string.split_upper_lower_desc)),
         SplitPreference.PPL         to (stringResource(Res.string.split_ppl)         to stringResource(Res.string.split_ppl_desc)),
+        SplitPreference.BRO_SPLIT   to (stringResource(Res.string.split_bro)         to stringResource(Res.string.split_bro_desc)),
     )
     ProfileCard {
         SectionHeading(stringResource(Res.string.label_split_preference))

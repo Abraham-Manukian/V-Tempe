@@ -156,8 +156,10 @@
     <string name="split_full_body_desc">Каждая тренировка — все основные группы мышц. Идеально для 2–3 дней в неделю. Высокая частота, меньший объём за сессию.</string>
     <string name="split_upper_lower">Верх / Низ</string>
     <string name="split_upper_lower_desc">Чередование верха и низа тела. Идеально для 4 дней в неделю. Классический научно обоснованный сплит (Schoenfeld 2016).</string>
-    <string name="split_ppl">Жим / Тяга / Ноги</string>
-    <string name="split_ppl_desc">Три разных сессии, чередующихся по неделе. Для 5–6 дней. Высокий объём на группу за тренировку.</string>
+    <string name="split_ppl">Push / Pull / Legs</string>
+    <string name="split_ppl_desc">Грудь+плечи+трицепс / Спина+бицепс / Ноги. 3–6 дней. Высокий объём на группу мышц.</string>
+    <string name="split_bro">Бро-сплит</string>
+    <string name="split_bro_desc">Отдельные дни на группу мышц: грудь, спина, ноги, плечи, руки. Классика бодибилдинга, 3–6 дней.</string>
 
     <string name="exlib_title">Библиотека упражнений</string>
     <string name="exlib_all">Все</string>

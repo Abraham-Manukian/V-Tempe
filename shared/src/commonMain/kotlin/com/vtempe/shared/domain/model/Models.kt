@@ -28,8 +28,10 @@ enum class SplitPreference {
     FULL_BODY,
     /** Upper / Lower split — 4 days. */
     UPPER_LOWER,
-    /** Push / Pull / Legs — 5–6 days. */
-    PPL
+    /** Push / Pull / Legs — 3–6 days. */
+    PPL,
+    /** Bro split — one or two muscle groups per session (3–6 days). */
+    BRO_SPLIT,
 }
 
 /**

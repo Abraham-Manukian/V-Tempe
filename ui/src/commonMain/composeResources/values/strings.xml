@@ -157,7 +157,9 @@
     <string name="split_upper_lower">Upper / Lower</string>
     <string name="split_upper_lower_desc">Alternate upper and lower body days. Ideal for 4 days/week. Classic evidence-based split (Schoenfeld 2016).</string>
     <string name="split_ppl">Push / Pull / Legs</string>
-    <string name="split_ppl_desc">Three distinct sessions rotated over the week. Best for 5–6 days. High volume per muscle group per session.</string>
+    <string name="split_ppl_desc">Chest+Shoulders+Triceps / Back+Biceps / Legs. 3–6 days. High volume per muscle group.</string>
+    <string name="split_bro">Bro Split</string>
+    <string name="split_bro_desc">One or two muscle groups per session: Chest, Back, Legs, Shoulders, Arms. Classic bodybuilder split for 3–6 days.</string>
 
     <string name="exlib_title">Exercise library</string>
     <string name="exlib_all">All</string>
