@@ -2,6 +2,7 @@ package com.vtempe.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,11 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.icons.AiIcons
+import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.navigation.isBottomNav
 import com.vtempe.ui.screens.*
@@ -32,8 +37,17 @@ import org.jetbrains.compose.resources.stringResource
 val LocalTopBarHeight = compositionLocalOf { 0.dp }
 val LocalBottomBarHeight = compositionLocalOf { 0.dp }
 
+val LocalAppLocaleUpdater = compositionLocalOf<(String?) -> Unit> { {} }
+
 @Composable
 fun AppRoot() {
+    val savedTag = remember {
+        KoinProvider.koin?.get<LanguagePreferences>()?.getLanguageTag()
+    }
+    var languageTag by remember { mutableStateOf(savedTag) }
+
+    key(languageTag) {
+    CompositionLocalProvider(LocalAppLocaleUpdater provides { languageTag = it }) {
     VTempeTheme {
         // Simple back stack — bottom-nav tabs replace each other, other screens push/pop
         val backStack = remember { mutableStateListOf<Destination>(Destination.Splash) }
@@ -74,6 +88,7 @@ fun AppRoot() {
             if (currentDest !is Destination.Workout) isActiveWorkout = false
         }
 
+        val focusManager = LocalFocusManager.current
         val density = LocalDensity.current
         var topBarHeight by remember { mutableStateOf(0.dp) }
         var bottomBarHeight by remember { mutableStateOf(0.dp) }
@@ -83,7 +98,10 @@ fun AppRoot() {
             LocalTopBarHeight provides topBarHeight,
             LocalBottomBarHeight provides bottomBarHeight
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
+            ) {
                 AppBackground()
 
                 Scaffold(
@@ -148,6 +166,8 @@ fun AppRoot() {
             }
         }
     }
+    } // CompositionLocalProvider
+    } // key(languageTag)
 }
 
 @Composable
