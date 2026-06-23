@@ -323,6 +323,36 @@ internal fun SetDetailSheet(
                 )
             }
 
+            // ── Calibration hint: shown when set not yet done and weight is planned ──
+            if (!completed && performed?.actualWeightKg == null && plannedSet.weightKg != null && !isBodyweight && !isDuration) {
+                Spacer(Modifier.height(4.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.FitnessCenter,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            stringResource(Res.string.workout_calibration_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
 
             // ── Primary CTA: mark set done + start rest ──────────

@@ -319,7 +319,16 @@ internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
  * RPE and completion rate together determine whether to increase, maintain, or reduce load.
  */
 private fun buildProgressionBlock(profile: AiProfile): String {
-    if (profile.recentWorkouts.isEmpty()) return ""
+    if (profile.recentWorkouts.isEmpty()) return buildString {
+        appendLine("FIRST-SESSION WEIGHT CALIBRATION:")
+        appendLine("This athlete has no workout history — we cannot know their actual strength yet.")
+        appendLine("Assign CONSERVATIVE starting weights: use 60–70% of the typical beginner values below.")
+        appendLine("  Conservative male:   squat ~40kg, bench ~35kg, deadlift ~50kg, OHP ~25kg, row ~35kg")
+        appendLine("  Conservative female: squat ~20kg, bench ~15kg, deadlift ~30kg, OHP ~15kg, row ~20kg")
+        appendLine("Scale proportionally for dumbbells (per dumbbell) and machine weights.")
+        appendLine("The user will adjust weight during the session; we will use their actual performance next week.")
+        appendLine("Err on the side of LIGHTER — it is safer and less discouraging than starting too heavy.")
+    }
     return buildString {
         appendLine("PROGRESSIVE OVERLOAD DIRECTIVES (based on recent sessions — apply to this week's weights):")
         profile.recentWorkouts.take(4).forEach { w ->
