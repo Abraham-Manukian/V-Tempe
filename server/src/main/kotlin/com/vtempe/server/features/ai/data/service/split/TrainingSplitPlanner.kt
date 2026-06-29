@@ -96,11 +96,15 @@ internal object TrainingSplitPlanner {
         SplitPreference.UPPER_LOWER  -> SplitTemplates.upperLower(params).take(dayCount.coerceIn(1, 4))
         SplitPreference.PPL          -> SplitTemplates.ppl(params, dayCount.coerceIn(3, 6))
         SplitPreference.BRO_SPLIT    -> SplitTemplates.broSplit(params, dayCount.coerceIn(3, 6))
-        // AUTO defaults to PPL — the standard split gym athletes use.
-        // Full Body is only given when explicitly selected.
+        // AUTO: muscle-group splits from 3 days up; full body only for ≤2 days.
+        // 3 days → bro split (Chest+Tri / Back+Bi / Legs+Shoulders) — classic & intuitive.
+        // 4 days → upper/lower — best frequency-to-recovery ratio at 4 sessions.
+        // 5–6 days → PPL — highest frequency, suits intermediate+.
         SplitPreference.AUTO         -> when {
             dayCount <= 2 -> SplitTemplates.fullBodyAB(params)
-            else          -> SplitTemplates.ppl(params, dayCount.coerceIn(3, 6))
+            dayCount == 3 -> SplitTemplates.broSplit(params, 3)
+            dayCount == 4 -> SplitTemplates.upperLower(params)
+            else          -> SplitTemplates.ppl(params, dayCount.coerceIn(5, 6))
         }
     }
 

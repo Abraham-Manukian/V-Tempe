@@ -1,4 +1,7 @@
-@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(
+    org.jetbrains.compose.resources.ExperimentalResourceApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+)
 
 package com.vtempe.ui.screens
 
@@ -10,17 +13,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +52,7 @@ import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.exercise.BrowseExercise
 import com.vtempe.shared.domain.exercise.ExerciseBrowseCatalog
-import com.vtempe.shared.domain.exercise.MuscleGroup
+import com.vtempe.shared.domain.exercise.ExerciseVisualFamily
 import com.vtempe.shared.domain.exercise.TrainMode
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.ui.LocalBottomBarHeight
@@ -56,6 +69,7 @@ fun ExerciseLibraryScreen(
 ) {
     val localeTag = Locale.current.language
     var selectedMode by remember { mutableStateOf<TrainMode?>(null) }
+    var detailExercise by remember { mutableStateOf<BrowseExercise?>(null) }
 
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
@@ -76,7 +90,6 @@ fun ExerciseLibraryScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // ── Filter chips: All / Gym / Home / Outdoor ────────────────────
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -117,7 +130,6 @@ fun ExerciseLibraryScreen(
                 )
             }
 
-            // ── Grouped by muscle ───────────────────────────────────────────
             grouped.forEach { (muscle, exercises) ->
                 item(key = "header_${muscle.name}") {
                     Text(
@@ -131,52 +143,185 @@ fun ExerciseLibraryScreen(
                     ExerciseRow(
                         exercise = exercises[idx],
                         coachTrainerId = coachTrainerId,
-                        localeTag = localeTag
+                        localeTag = localeTag,
+                        onClick = { detailExercise = exercises[idx] }
                     )
+                }
+            }
+        }
+    }
+
+    detailExercise?.let { ex ->
+        ExerciseDetailSheet(
+            exercise = ex,
+            coachTrainerId = coachTrainerId,
+            localeTag = localeTag,
+            onDismiss = { detailExercise = null }
+        )
+    }
+}
+
+// ── Detail sheet ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ExerciseDetailSheet(
+    exercise: BrowseExercise,
+    coachTrainerId: String,
+    localeTag: String,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val guide = exerciseGuide(exercise.id, coachTrainerId)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
+        ) {
+            // Large illustration
+            Image(
+                painter = painterResource(guide.illustration),
+                contentDescription = exercise.name(localeTag),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                // Name + badges
+                Text(
+                    text = exercise.name(localeTag),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DifficultyBadge(exercise.difficulty)
+                    exercise.modes.sortedBy { it.ordinal }.forEach { ModeTag(it) }
+                }
+
+                // Description
+                if (guide.description.isNotBlank()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = guide.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                }
+
+                // Focus
+                if (guide.focus.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        color = AiPalette.Primary.copy(alpha = 0.10f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = guide.focus,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = AiPalette.Primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
+                // Steps
+                if (guide.steps.isNotEmpty()) {
+                    Spacer(Modifier.height(20.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.exlib_detail_steps),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    guide.steps.forEachIndexed { index, step ->
+                        Row(
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(AiPalette.Primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${index + 1}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AiPalette.Primary
+                                )
+                            }
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // Key cue
+                if (guide.cue.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        color = AiPalette.DeepAccent.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(text = "💡", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = guide.cue,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun ModeFilterChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(if (selected) AiPalette.DeepAccent else Color.White.copy(alpha = 0.18f))
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) AiPalette.OnDeepAccent else Color.White,
-            maxLines = 1
-        )
-    }
-}
+// ── Row card ─────────────────────────────────────────────────────────────────
 
 @Composable
 private fun ExerciseRow(
     exercise: BrowseExercise,
     coachTrainerId: String,
     localeTag: String,
+    onClick: () -> Unit,
 ) {
     val illustration = coachExerciseIllustration(
         coachTrainerId,
         exercise.id,
-        illustrationFor(com.vtempe.shared.domain.exercise.ExerciseVisualFamily.GENERIC)
+        illustrationFor(ExerciseVisualFamily.GENERIC)
     )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = MaterialTheme.shapes.large
@@ -214,6 +359,33 @@ private fun ExerciseRow(
             }
             DifficultyBadge(exercise.difficulty)
         }
+    }
+}
+
+// ── Shared sub-composables ────────────────────────────────────────────────────
+
+@Composable
+private fun ModeFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (selected) AiPalette.DeepAccent else Color.White.copy(alpha = 0.18f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) AiPalette.OnDeepAccent else Color.White,
+            maxLines = 1
+        )
     }
 }
 
