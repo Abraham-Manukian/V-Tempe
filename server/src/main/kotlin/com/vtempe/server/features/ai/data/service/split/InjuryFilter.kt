@@ -62,6 +62,38 @@ internal object InjuryFilter {
         return banned
     }
 
+    /**
+     * Returns a SAFE alternative movement pattern for a banned [pattern] given the set of
+     * [banned] patterns for this user, or null if no safe substitute exists (slot is dropped).
+     *
+     * Rationale (keeps training volume instead of leaving empty slots):
+     * - KNEE_DOMINANT / SINGLE_LEG (knee/ankle) → HINGE if hinge is safe (posterior chain,
+     *   low knee shear), else HORIZONTAL_PULL, else CORE.
+     * - HINGE (lower-back/hernia) → HORIZONTAL_PULL (supported row) then CORE — never another
+     *   spinal-loading hinge.
+     * - VERTICAL_PUSH (shoulder/neck) → HORIZONTAL_PUSH (first-line shoulder therapy) then CORE.
+     * - ARM_FLEXION / ARM_EXTENSION (elbow/wrist) → CORE.
+     */
+    fun safeAlternativeFor(pattern: MovementPattern, banned: Set<MovementPattern>): MovementPattern? {
+        val candidates: List<MovementPattern> = when (pattern) {
+            MovementPattern.KNEE_DOMINANT,
+            MovementPattern.SINGLE_LEG ->
+                listOf(MovementPattern.HINGE, MovementPattern.HORIZONTAL_PULL, MovementPattern.CORE)
+            MovementPattern.HINGE ->
+                listOf(MovementPattern.HORIZONTAL_PULL, MovementPattern.CORE)
+            MovementPattern.VERTICAL_PUSH ->
+                listOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.CORE)
+            MovementPattern.ARM_FLEXION,
+            MovementPattern.ARM_EXTENSION ->
+                listOf(MovementPattern.CORE, MovementPattern.MOBILITY)
+            MovementPattern.HORIZONTAL_PUSH ->
+                listOf(MovementPattern.HORIZONTAL_PULL, MovementPattern.CORE)
+            else ->
+                listOf(MovementPattern.CORE, MovementPattern.MOBILITY)
+        }
+        return candidates.firstOrNull { it !in banned }
+    }
+
     fun applyTo(
         skeletons: List<WorkoutSkeleton>,
         injuries: List<String>
@@ -69,7 +101,27 @@ internal object InjuryFilter {
         val banned = bannedPatterns(injuries)
         if (banned.isEmpty()) return skeletons
         return skeletons.map { s ->
-            s.copy(slots = s.slots.filter { it.pattern !in banned })
+            // Replace banned patterns with a safe alternative (preserving the slot's loading tier
+            // and set/rep scheme) rather than deleting the slot and shrinking the workout.
+            // CORE and MOBILITY are never duplicated within a session — if a replacement would
+            // collide with an existing pattern in the same day, drop the slot instead.
+            val usedPatterns = s.slots.map { it.pattern }.filter { it !in banned }.toMutableSet()
+            val rebuilt = s.slots.mapNotNull { slot ->
+                if (slot.pattern !in banned) {
+                    slot
+                } else {
+                    val alt = safeAlternativeFor(slot.pattern, banned)
+                    when {
+                        alt == null -> null
+                        alt in usedPatterns && (alt == MovementPattern.CORE || alt == MovementPattern.MOBILITY) -> null
+                        else -> {
+                            usedPatterns += alt
+                            slot.copy(pattern = alt)
+                        }
+                    }
+                }
+            }
+            s.copy(slots = rebuilt)
         }
     }
 }

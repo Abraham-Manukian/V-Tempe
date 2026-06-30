@@ -18,7 +18,8 @@ internal object SplitParamsFactory {
         lifestyle: Lifestyle,
         sessionDurationMins: Int,
         weekIndex: Int,
-        forceDeload: Boolean = false
+        forceDeload: Boolean = false,
+        hasHistory: Boolean = true
     ): SplitParams {
         val isDeload   = forceDeload || (weekIndex > 0 && weekIndex % C.DELOAD_WEEK_MODULO == C.DELOAD_WEEK_INDEX)
         val isBeginner = experienceLevel <= C.BEGINNER_MAX_LEVEL
@@ -27,7 +28,27 @@ internal object SplitParamsFactory {
         val base       = buildBase(focus, experienceLevel, weekIndex, isBeginner, sex)
                              .copy(exercisesPerSession = exercises)
                              .applyVolumeFactor(factor, age)
-        return if (isDeload) deload(base) else base
+        val withDeload = if (isDeload) deload(base) else base
+        // First-session safety: with no logged history we cannot know the athlete's true
+        // strength, so cap RPE conservatively to avoid prescribing near-failure loads blind.
+        return if (!hasHistory) withDeload.applyFirstSessionRpeCap(experienceLevel) else withDeload
+    }
+
+    /**
+     * Caps RPE for athletes with no workout history. The cap scales with experience:
+     * beginner (≤2) → 6.5, intermediate (3) → 7.0, advanced (≥4) → 7.5. No tier may exceed it.
+     */
+    private fun SplitParams.applyFirstSessionRpeCap(experienceLevel: Int): SplitParams {
+        val cap = when {
+            experienceLevel <= C.BEGINNER_MAX_LEVEL -> 6.5f
+            experienceLevel == 3                    -> 7.0f
+            else                                     -> 7.5f
+        }
+        return copy(
+            primaryRpe   = minOf(primaryRpe, cap),
+            secondaryRpe = minOf(secondaryRpe, cap),
+            isolationRpe = minOf(isolationRpe, cap)
+        )
     }
 
     // ── Enum parsing ──────────────────────────────────────────────────────────

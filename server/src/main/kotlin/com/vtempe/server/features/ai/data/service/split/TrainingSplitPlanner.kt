@@ -20,13 +20,14 @@ internal object TrainingSplitPlanner {
         injuries: List<String>,
         sessionDurationMins: Int,
         weekIndex: Int,
-        forceDeload: Boolean = false
+        forceDeload: Boolean = false,
+        hasHistory: Boolean = true
     ): List<WorkoutSkeleton> {
         val focus     = SplitParamsFactory.focusFromRaw(focusRaw)
         val goal      = SplitParamsFactory.goalFromRaw(goalRaw)
         val sex       = SplitParamsFactory.sexFromRaw(sexRaw)
         val lifestyle = SplitParamsFactory.lifestyleFromRaw(lifestyleRaw)
-        val params    = SplitParamsFactory.create(goal, focus, experienceLevel, age, sex, lifestyle, sessionDurationMins, weekIndex, forceDeload)
+        val params    = SplitParamsFactory.create(goal, focus, experienceLevel, age, sex, lifestyle, sessionDurationMins, weekIndex, forceDeload, hasHistory)
         val dayCount  = trainingDays.size.coerceIn(1, 6)
         val pref      = runCatching { SplitPreference.valueOf(splitPreferenceRaw.uppercase()) }
                             .getOrDefault(SplitPreference.AUTO)
@@ -42,10 +43,44 @@ internal object TrainingSplitPlanner {
                     )
                 )
             }
+            .map(::dedupeIsolationAgainstCompounds)
         return templates.mapIndexed { i, t ->
             val day = trainingDays.getOrNull(i) ?: "Day ${i + 1}"
             t.copy(label = "$day — ${t.label}")
         }
+    }
+
+    /**
+     * Prevents a lower-body ISOLATION slot from duplicating a compound leg pattern already
+     * present in the same session (e.g. SINGLE_LEG isolation next to a KNEE_DOMINANT /
+     * SINGLE_LEG compound — both resolve to lunges → two lunges in one workout). Such a
+     * colliding isolation is remapped to CORE (or MOBILITY if CORE is taken). Multi-angle
+     * compound repeats (e.g. HORIZONTAL_PUSH ×3 on a chest day) are intentional and untouched.
+     */
+    private fun dedupeIsolationAgainstCompounds(skeleton: WorkoutSkeleton): WorkoutSkeleton {
+        val legPatterns = setOf(
+            MovementPattern.KNEE_DOMINANT,
+            MovementPattern.SINGLE_LEG,
+            MovementPattern.HINGE
+        )
+        val compoundLegPatterns = skeleton.slots
+            .filter { it.slotType != SlotType.ISOLATION && it.pattern in legPatterns }
+            .map { it.pattern }
+            .toSet()
+        if (compoundLegPatterns.isEmpty()) return skeleton
+
+        val present = skeleton.slots.map { it.pattern }.toMutableSet()
+        val rebuilt = skeleton.slots.map { slot ->
+            if (slot.slotType == SlotType.ISOLATION && slot.pattern in compoundLegPatterns) {
+                val replacement = listOf(MovementPattern.CORE, MovementPattern.MOBILITY)
+                    .firstOrNull { it !in present }
+                if (replacement != null) {
+                    present += replacement
+                    slot.copy(pattern = replacement)
+                } else slot
+            } else slot
+        }
+        return skeleton.copy(slots = rebuilt)
     }
 
     fun renderPromptBlock(skeletons: List<WorkoutSkeleton>): String =

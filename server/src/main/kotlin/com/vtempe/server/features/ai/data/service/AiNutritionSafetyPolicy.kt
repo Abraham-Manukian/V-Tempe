@@ -323,10 +323,26 @@ internal fun validateNutritionPlanQuality(
     val restrictions = buildNutritionRestrictions(profile)
     val frequencyRange = goalMealRange(profile.goal)
 
+    // Pre-computed daily calorie target — used to flag (non-critically) days whose meals
+    // sum more than ±10% off target. Logged as a warning; never crashes generation.
+    val targetKcal = computeTargetNutrition(profile).kcal
+
     qualityDays.forEach { day ->
         val meals = plan.mealsByDay[day].orEmpty()
         if (meals.size !in frequencyRange.min..frequencyRange.max) {
             errors += "$day meal frequency ${meals.size} outside goal range ${frequencyRange.min}-${frequencyRange.max} meals/day"
+        }
+
+        if (targetKcal > 0 && meals.isNotEmpty()) {
+            val dayKcal = meals.sumOf { meal ->
+                if (meal.kcal > 0) meal.kcal
+                else computeKcal(meal.macros.proteinGrams, meal.macros.carbsGrams, meal.macros.fatGrams)
+            }
+            val lower = (targetKcal * 0.90).toInt()
+            val upper = (targetKcal * 1.10).toInt()
+            if (dayKcal < lower || dayKcal > upper) {
+                errors += "$day calorie sum $dayKcal kcal outside ±10% of target $targetKcal kcal"
+            }
         }
 
         val duplicatesInDay = meals

@@ -115,7 +115,8 @@ internal fun buildBundlePrompt(
             lifestyleRaw        = request.profile.lifestyleActivity,
             injuries            = request.profile.injuries,
             sessionDurationMins = request.profile.sessionDurationMins,
-            weekIndex           = request.weekIndex
+            weekIndex           = request.weekIndex,
+            hasHistory          = request.profile.recentWorkouts.isNotEmpty()
         )
         // Pre-resolve one concrete exercise per slot so AI just assigns weights/reps —
         // this eliminates wrong pattern substitution (e.g. pullup in a HORIZONTAL_PUSH slot).

@@ -505,7 +505,8 @@ class AiService(
             lifestyleRaw        = profile.lifestyleActivity,
             injuries            = profile.injuries,
             sessionDurationMins = profile.sessionDurationMins,
-            weekIndex           = weekIndex
+            weekIndex           = weekIndex,
+            hasHistory          = profile.recentWorkouts.isNotEmpty()
         )
         val resolvedExercises = skeletons.mapIndexed { si, skeleton ->
             val used = mutableSetOf<String>()

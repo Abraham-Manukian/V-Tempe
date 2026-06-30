@@ -90,11 +90,12 @@ internal fun normalizeNutritionPlan(
         normalizedMealsByDay[dayKey] = safeMeals
     }
 
-    val normalizedShopping = (plan.shoppingList + normalizedMealsByDay.values.flatten().flatMap { it.ingredients })
+    val rawShopping = (plan.shoppingList + normalizedMealsByDay.values.flatten().flatMap { it.ingredients })
         .map(::sanitizeText)
         .filter { it.isNotEmpty() }
-        .distinct()
-        .sorted()
+    // Group duplicates and sum quantities (e.g. "100г риса" + "Рис 480г" → "Рис — 580 г").
+    val normalizedShopping = com.vtempe.server.features.ai.data.service.nutrition.ShoppingListNormalizer
+        .normalize(rawShopping)
 
     return plan.copy(
         mealsByDay = normalizedMealsByDay,

@@ -41,6 +41,7 @@ internal object AiQualityErrorPolicy {
         return normalized.contains("meal names repeated too often across week") ||
             normalized.contains("meal frequency") ||
             normalized.contains("contains duplicate meals") ||
-            normalized.contains("nutrition language mismatch")
+            normalized.contains("nutrition language mismatch") ||
+            normalized.contains("calorie sum")
     }
 }
