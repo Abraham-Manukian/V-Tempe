@@ -277,6 +277,17 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
             setOf(TrainingMode.GYM, TrainingMode.MIXED),
             priority=35, difficulty=2),
 
+        // Equipment-free fallback: without this, a zero-equipment HOME user has no
+        // HORIZONTAL_PULL candidate at all (row/dumbbell_row/inverted_row/band_row/
+        // face_pull all require gear), the resolver returns null, and the AI is left
+        // to freely guess an exerciseId for that slot — which is how "lunge" ends up
+        // in a Back+Biceps day. Prone bodyweight row covers rear delts/lats/upper back
+        // with zero equipment.
+        ExerciseCatalogItem("superman_row", setOf("prone_row","superman_pull"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=45, difficulty=1),
+
         // ── VERTICAL PUSH ──────────────────────────────────────────────────────
         ExerciseCatalogItem("ohp", setOf("overhead_press","military_press","standing_press"),
             MovementPattern.VERTICAL_PUSH, setOf(),

@@ -88,7 +88,7 @@ private val tagKeywords: Map<FoodRestrictionTag, Set<String>> = mapOf(
     FoodRestrictionTag.Shellfish to setOf("shrimp", "prawn", "mussel", "clam", "lobster", "oyster", "кревет", "мид", "устриц", "омар", "ракообраз"),
     FoodRestrictionTag.Sesame to setOf("sesame", "tahini", "кунжут", "тахин"),
     FoodRestrictionTag.Meat to setOf("meat", "beef", "pork", "lamb", "veal", "мяс", "говя", "свин", "барани", "телят"),
-    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "индейк", "утк")
+    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "курин", "индейк", "утк")
 )
 
 private val lactoseFreeMarkers = setOf(

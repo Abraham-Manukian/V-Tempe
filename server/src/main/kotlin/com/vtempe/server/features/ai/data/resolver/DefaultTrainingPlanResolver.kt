@@ -84,8 +84,14 @@ class DefaultTrainingPlanResolver(
         val candidates = exerciseCatalog.candidatesFor(pattern, mode, normalizedEquipment)
         if (candidates.isEmpty()) return null
 
+        // If every compatible candidate is already used elsewhere in this session, drop the
+        // slot (return null) instead of reusing one. validateTrainingPlan() hard-rejects a
+        // workout that repeats an exerciseId, so returning a forced duplicate here only
+        // guarantees the whole plan later fails validation and falls back to a generic
+        // template — a thin skeleton is strictly better than a rejected one.
         val freshCandidates = candidates.filterNot { usedExerciseIds.contains(it.id) }
-        val pool = freshCandidates.ifEmpty { candidates }
+        if (freshCandidates.isEmpty()) return null
+        val pool = freshCandidates
         val ranked = pool
             .map { candidate ->
                 var score = candidateScore(candidate, pattern, mode, pool, userExperienceLevel)
@@ -110,6 +116,17 @@ class DefaultTrainingPlanResolver(
         userExperienceLevel: Int = 3
     ): Int {
         var score = candidate.priority
+
+        // ── Primary vs secondary pattern match ────────────────────────────────
+        // An exercise that merely touches this pattern secondarily (e.g. burpee is
+        // primarily CONDITIONING but tagged secondary HORIZONTAL_PUSH, lunge is
+        // primarily SINGLE_LEG but tagged secondary KNEE_DOMINANT) must never
+        // outrank a real primary-pattern exercise just because its raw priority
+        // number happens to be lower. Without this, a dedicated "Chest + Triceps"
+        // day could pick burpee over pushup for its compound press slot.
+        if (candidate.primaryPattern != pattern) {
+            score += 60
+        }
 
         // ── Difficulty gate ────────────────────────────────────────────────────
         // Strongly penalise exercises that are too advanced for the user's level.
