@@ -746,6 +746,31 @@ kettlebell_high_pull
 Kettlebell high pull. LEFT: hinge position, kettlebell hanging between the legs. RIGHT: bell pulled up to chest height with the elbow high and back, hips fully extended. Key form: hip drive powers it, elbow leads high.
 ```
 
+```
+towel_row
+Towel row anchored around a sturdy pole or banister, no equipment needed. LEFT: leaning back with straight arms gripping a towel looped around the anchor, feet braced. RIGHT: body pulled up toward the anchor, elbows driven back, chest to the towel. Key form: keep body rigid, pull with the back not the arms.
+```
+
+```
+doorway_row
+Doorway row using a door frame for resistance, bodyweight only. LEFT: gripping the door frame edges with both hands, arms extended, feet braced against the base of the door, body leaning back. RIGHT: chest pulled toward the frame, elbows driven back and close to the body. Key form: brace the door firmly, control the lean angle.
+```
+
+```
+table_row
+Underneath-table row using a sturdy table or desk, bodyweight only. LEFT: lying under the table gripping the edge with both hands, arms extended, body straight. RIGHT: chest pulled up to the table edge, elbows bent and pulled back, body rigid. Key form: keep the body in a straight line, no sagging hips.
+```
+
+```
+prone_y_raise
+Prone Y-raise lying face down on the floor, no equipment. LEFT: lying face down, arms extended overhead in a Y shape, forehead resting down. RIGHT: arms lifted off the floor to shoulder height, thumbs up, shoulder blades pulled down and together. Key form: lift with the upper back, not the lower back.
+```
+
+```
+prone_w_raise
+Prone W-raise (reverse snow angel) lying face down on the floor, no equipment. LEFT: lying face down, elbows bent at sides forming a W shape, forehead resting down. RIGHT: arms and elbows lifted off the floor, shoulder blades squeezed together, elbows staying bent. Key form: squeeze shoulder blades, keep neck neutral.
+```
+
 ---
 
 ### 🏆 ПЛЕЧИ / ВЕРТИКАЛЬНЫЙ ЖИМ (новые)
