@@ -3,6 +3,10 @@
 # Third-party exercise dataset reference data (used only as offline inspiration when
 # writing our own catalog entries — not redistributed, see scripts/ПРОМПТЫ_ДЛЯ_CHATGPT.md)
 /scripts/exercisedb_raw.json
+# ChatGPT web-automation session data — contains your logged-in browser profile, never commit
+/scripts/.chatgpt_browser_profile/
+/scripts/.chatgpt_gen_state.json
+/scripts/__pycache__/
 /local.properties
 /.idea/caches
 /.idea/libraries
