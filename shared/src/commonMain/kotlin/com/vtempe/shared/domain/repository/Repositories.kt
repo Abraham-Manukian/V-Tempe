@@ -102,8 +102,18 @@ interface UnitPreferences {
     fun setUnits(units: String?)
 }
 
+/**
+ * Opt-in consent for sending demographic analytics (age/height/weight/budget buckets,
+ * chosen trainer) to Firebase. Defaults to false — must be explicit opt-in, never opt-out,
+ * per GDPR and Google Play / App Store data-collection requirements.
+ */
+interface AnalyticsConsentPreferences {
+    fun getAnalyticsConsent(): Boolean
+    fun setAnalyticsConsent(granted: Boolean)
+}
+
 /** Combined interface used by Settings and Onboarding screens. */
-interface PreferencesRepository : LanguagePreferences, AiModelPreferences, UnitPreferences
+interface PreferencesRepository : LanguagePreferences, AiModelPreferences, UnitPreferences, AnalyticsConsentPreferences
 
 interface ExerciseCalibrationRepository {
     suspend fun get(exerciseId: String): com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord?

@@ -42,6 +42,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -246,6 +248,23 @@ fun SettingsScreen(
                         platformActions.restartApp()
                     }
                 }
+            }
+
+            PreferenceCard(
+                title = stringResource(Res.string.settings_analytics_consent_title),
+                trailing = {
+                    Switch(
+                        checked = state.analyticsConsent,
+                        onCheckedChange = { presenter.setAnalyticsConsent(it) },
+                        colors = SwitchDefaults.colors(checkedTrackColor = AiPalette.DeepAccent)
+                    )
+                }
+            ) {
+                Text(
+                    stringResource(Res.string.settings_analytics_consent_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
             }
 
             if (state.saving) {

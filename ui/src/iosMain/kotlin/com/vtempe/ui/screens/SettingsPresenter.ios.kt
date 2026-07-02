@@ -8,6 +8,7 @@ import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.ResetCoachData
+import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsPresenterDelegate
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,7 @@ private class IosSettingsPresenter(
     preferencesRepository: PreferencesRepository,
     ensureCoachData: EnsureCoachData,
     resetCoachData: ResetCoachData,
+    syncAnalyticsProfile: SyncAnalyticsProfile,
 ) : SettingsPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -28,6 +30,7 @@ private class IosSettingsPresenter(
         preferencesRepository = preferencesRepository,
         ensureCoachData = ensureCoachData,
         resetCoachData = resetCoachData,
+        syncAnalyticsProfile = syncAnalyticsProfile,
         scope = scope
     )
     override val state get() = delegate.state
@@ -37,6 +40,7 @@ private class IosSettingsPresenter(
     override fun setUnits(units: String) = delegate.setUnits(units)
     override fun setLanguage(tag: String?) = delegate.setLanguage(tag)
     override fun setAiModelMode(mode: com.vtempe.shared.domain.model.AiModelMode) = delegate.setAiModelMode(mode)
+    override fun setAnalyticsConsent(granted: Boolean) = delegate.setAnalyticsConsent(granted)
     fun close() = job.cancel()
 }
 
@@ -48,7 +52,8 @@ actual fun rememberSettingsPresenter(): SettingsPresenter {
             profileRepository = koin.get(),
             preferencesRepository = koin.get(),
             ensureCoachData = koin.get(),
-            resetCoachData = koin.get()
+            resetCoachData = koin.get(),
+            syncAnalyticsProfile = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

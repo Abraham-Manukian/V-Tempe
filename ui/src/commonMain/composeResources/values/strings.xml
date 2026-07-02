@@ -340,6 +340,8 @@
     <string name="settings_inc_weight">+0.5 kg</string>
     <string name="settings_dec_weight">-0.5 kg</string>
     <string name="settings_saving">Saving…</string>
+    <string name="settings_analytics_consent_title">Share anonymous usage statistics</string>
+    <string name="settings_analytics_consent_description">Helps us understand which trainers and workout styles work best. We only send grouped data (age range, height range, weight range, budget tier, chosen trainer) — never your exact numbers or name. You can turn this off anytime.</string>
     <string name="saving_overlay_title">Your coach is working…</string>
     <string name="saving_step_profile">Profile saved</string>
     <string name="saving_step_plan">Building your personal plan</string>

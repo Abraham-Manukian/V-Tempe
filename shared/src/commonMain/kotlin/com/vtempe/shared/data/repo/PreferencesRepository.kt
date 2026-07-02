@@ -10,6 +10,7 @@ class SettingsPreferencesRepository(
     private val KEY_LANG = "prefs.languageTag"
     private val KEY_UNITS = "prefs.units" // metric | imperial
     private val KEY_AI_MODEL = "prefs.aiModelMode" // paid | free
+    private val KEY_ANALYTICS_CONSENT = "prefs.analyticsConsent"
 
     override fun getLanguageTag(): String? = settings.getStringOrNull(KEY_LANG)
     override fun setLanguageTag(tag: String?) {
@@ -26,5 +27,11 @@ class SettingsPreferencesRepository(
 
     override fun setAiModelMode(mode: AiModelMode) {
         settings.putString(KEY_AI_MODEL, mode.wireValue)
+    }
+
+    override fun getAnalyticsConsent(): Boolean = settings.getBoolean(KEY_ANALYTICS_CONSENT, false)
+
+    override fun setAnalyticsConsent(granted: Boolean) {
+        settings.putBoolean(KEY_ANALYTICS_CONSENT, granted)
     }
 }

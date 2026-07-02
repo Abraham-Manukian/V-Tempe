@@ -203,4 +203,57 @@ class ValidateSubscription(
     suspend operator fun invoke(): Boolean = purchasesRepository.isSubscriptionActive()
 }
 
+/**
+ * Sends demographic analytics to Firebase — ONLY when the user has explicitly opted in
+ * (see AnalyticsConsentPreferences). Everything is bucketed rather than exact, even with
+ * consent: Google's own Firebase Analytics terms prohibit sending data that could reveal
+ * health status (height/weight), regardless of user consent — consent covers GDPR/privacy
+ * law, it does not override the platform's own data-category restrictions.
+ *
+ * For precise, non-bucketed analysis (e.g. "exact weight vs chosen trainer"), query the
+ * server's own profile database directly instead of piping raw values through Firebase.
+ */
+class SyncAnalyticsProfile(
+    private val preferencesRepository: PreferencesRepository,
+    private val analytics: AnalyticsRepository
+) {
+    operator fun invoke(profile: Profile) {
+        if (!preferencesRepository.getAnalyticsConsent()) return
+
+        analytics.setUserProperty("coach_trainer_id", profile.coachTrainerId)
+        analytics.setUserProperty("gender", profile.sex.name)
+        analytics.setUserProperty("age_bucket", ageBucket(profile.age))
+        analytics.setUserProperty("height_bucket", heightBucket(profile.heightCm))
+        analytics.setUserProperty("weight_bucket", weightBucket(profile.weightKg))
+        analytics.setUserProperty("budget_level", profile.budgetLevel.toString())
+        analytics.setUserProperty("training_focus", profile.trainingFocus.name)
+        analytics.setUserProperty("goal", profile.goal.name)
+    }
+
+    private fun ageBucket(age: Int): String = when {
+        age < 18 -> "under_18"
+        age < 25 -> "18_24"
+        age < 35 -> "25_34"
+        age < 45 -> "35_44"
+        age < 55 -> "45_54"
+        else -> "55_plus"
+    }
+
+    private fun heightBucket(heightCm: Int): String = when {
+        heightCm < 160 -> "under_160"
+        heightCm < 170 -> "160_170"
+        heightCm < 180 -> "170_180"
+        heightCm < 190 -> "180_190"
+        else -> "190_plus"
+    }
+
+    private fun weightBucket(weightKg: Double): String = when {
+        weightKg < 55 -> "under_55"
+        weightKg < 70 -> "55_70"
+        weightKg < 85 -> "70_85"
+        weightKg < 100 -> "85_100"
+        else -> "100_plus"
+    }
+}
+
 

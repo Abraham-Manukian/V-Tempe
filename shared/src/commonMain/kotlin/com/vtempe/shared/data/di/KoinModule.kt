@@ -117,6 +117,7 @@ object DI {
         factory { ResetCoachData(get(), get()) }
         factory { SyncWithBackend(get()) }
         factory { ValidateSubscription(get()) }
+        factory { SyncAnalyticsProfile(get(), get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }
         factory {
             AskAiTrainer(

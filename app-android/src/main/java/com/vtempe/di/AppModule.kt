@@ -38,7 +38,7 @@ object AppModule {
         viewModel { SleepViewModel(get(), get(), get()) }
         viewModel { ProgressViewModel(get(), get(), get()) }
         viewModel { PaywallViewModel(get()) }
-        viewModel { SettingsViewModel(get(), get(), get(), get()) }
+        viewModel { SettingsViewModel(get(), get(), get(), get(), get()) }
         viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
     }
 }
