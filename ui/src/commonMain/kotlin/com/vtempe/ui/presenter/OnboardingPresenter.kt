@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 15
+const val ONBOARDING_TOTAL_STEPS = 14
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"

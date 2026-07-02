@@ -161,12 +161,8 @@
     <string name="split_bro">Bro Split</string>
     <string name="split_bro_desc">One or two muscle groups per session: Chest, Back, Legs, Shoulders, Arms. Classic bodybuilder split for 3–6 days.</string>
 
-    <string name="label_analytics_consent">Help us improve</string>
-    <string name="analytics_consent_hint">We\'d like to understand which trainers and workout styles work best for different people. This is completely optional and you can change it anytime in Settings.</string>
-    <string name="analytics_consent_accept">Yes, share anonymous statistics</string>
-    <string name="analytics_consent_accept_desc">We send only grouped data — your age range, height range, weight range, budget tier, gender and chosen trainer. Never your exact numbers or your name.</string>
-    <string name="analytics_consent_decline">No, not right now</string>
-    <string name="analytics_consent_decline_desc">Nothing will be shared. The app works exactly the same either way.</string>
+    <string name="analytics_consent_accept">Share anonymous usage statistics</string>
+    <string name="analytics_consent_hint">Helps us understand which trainers and workout styles work best. We only send grouped data (age range, height range, weight range, budget tier, gender, chosen trainer) — never your exact numbers or name. Change anytime in Settings.</string>
 
     <string name="exlib_title">Exercise library</string>
     <string name="exlib_all">All</string>
