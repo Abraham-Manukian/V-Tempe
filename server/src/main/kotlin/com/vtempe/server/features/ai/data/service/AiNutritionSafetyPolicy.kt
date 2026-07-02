@@ -319,6 +319,32 @@ internal fun nutritionRestrictionsPrompt(profile: AiProfile): String {
     }
 }
 
+/**
+ * Builds a directive, actionable fix instruction for a severe (>20%) calorie miss — computed
+ * scaling factor and exact kcal gap, not just "increase portions". The vaguer original wording
+ * ("increase portion sizes to reach the target") let the model make token-sized adjustments that
+ * never closed a large gap even after 3 retries (e.g. a bulking profile stuck ~30% under target).
+ * Telling the model the exact multiplier to apply to ingredient quantities gives it concrete
+ * arithmetic to perform instead of a vague direction to guess at.
+ */
+private fun buildSevereCalorieFixInstruction(day: String, dayKcal: Int, targetKcal: Int): String {
+    val delta = targetKcal - dayKcal
+    val absDelta = kotlin.math.abs(delta)
+    val multiplier = targetKcal.toDouble() / dayKcal.coerceAtLeast(1)
+    val multiplierStr = String.format(Locale.US, "%.2f", multiplier)
+    val action = if (delta > 0) {
+        "you are $absDelta kcal UNDER target — multiply the quantity (grams/ml/pieces) of every " +
+            "ingredient in $day's meals by approximately ${multiplierStr}x, or add one more meal " +
+            "worth about $absDelta kcal, to close the gap"
+    } else {
+        "you are $absDelta kcal OVER target — multiply the quantity of every ingredient in $day's " +
+            "meals by approximately ${multiplierStr}x to reduce portions and close the gap"
+    }
+    return "$day calorie sum severe deviation: $dayKcal kcal vs target $targetKcal kcal — $action. " +
+        "Do NOT just swap ingredient names — scale the actual gram/ml/piece amounts and recompute " +
+        "each meal's kcal/macros to match the new quantities."
+}
+
 internal fun validateNutritionPlanQuality(
     plan: AiNutritionResponse,
     profile: AiProfile,
@@ -355,9 +381,7 @@ internal fun validateNutritionPlanQuality(
             val hardUpper = (targetKcal * 1.20).toInt()
             when {
                 dayKcal < hardLower || dayKcal > hardUpper ->
-                    errors += "$day calorie sum severe deviation: $dayKcal kcal vs target $targetKcal kcal " +
-                        "(more than 20% off — increase portion sizes/add a meal to reach the target if under, " +
-                        "reduce portions if over)"
+                    errors += buildSevereCalorieFixInstruction(day, dayKcal, targetKcal)
                 dayKcal < softLower || dayKcal > softUpper ->
                     errors += "$day calorie sum $dayKcal kcal outside ±10% of target $targetKcal kcal"
             }
