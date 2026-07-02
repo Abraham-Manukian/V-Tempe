@@ -7,6 +7,8 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
 import com.vtempe.shared.domain.model.SplitPreference
 import com.vtempe.shared.domain.model.TrainingFocus
+import com.vtempe.shared.domain.repository.AnalyticsRepository
+import com.vtempe.shared.domain.repository.AnalyticsEvents
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
@@ -84,7 +86,8 @@ class OnboardingPresenterDelegate(
     private val languagePrefs: LanguagePreferences,
     private val scope: CoroutineScope,
     /** Platform hook: Android calls AppCompatDelegate, iOS is no-op. */
-    private val applyLocale: (tag: String?) -> Unit = {}
+    private val applyLocale: (tag: String?) -> Unit = {},
+    private val analytics: AnalyticsRepository
 ) : OnboardingPresenter {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -158,11 +161,14 @@ class OnboardingPresenterDelegate(
                 profileRepository.upsertProfile(profile)
                 _state.update { it.copy(savingStep = 1) }
                 bootstrapCoachData()
+                analytics.logEvent(AnalyticsEvents.PLAN_GENERATED)
             }.onSuccess {
                 _state.update { it.copy(saving = false) }
+                analytics.logEvent(AnalyticsEvents.ONBOARDING_COMPLETE)
                 onSuccess()
             }.onFailure { e ->
                 Napier.e("Onboarding save failed", e)
+                analytics.recordNonFatal(e, "Onboarding save failed")
                 _state.update { it.copy(saving = false, error = e.message) }
             }
         }

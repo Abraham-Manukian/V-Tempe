@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
@@ -17,7 +18,8 @@ import kotlinx.coroutines.SupervisorJob
 private class IosOnboardingPresenter(
     profileRepository: ProfileRepository,
     bootstrapCoachData: BootstrapCoachData,
-    languagePrefs: LanguagePreferences
+    languagePrefs: LanguagePreferences,
+    analytics: AnalyticsRepository
 ) : OnboardingPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -26,7 +28,8 @@ private class IosOnboardingPresenter(
         profileRepository = profileRepository,
         bootstrapCoachData = bootstrapCoachData,
         languagePrefs = languagePrefs,
-        scope = scope
+        scope = scope,
+        analytics = analytics
     )
     override val state get() = delegate.state
     override fun update(transform: (OnboardingState) -> OnboardingState) = delegate.update(transform)
@@ -46,7 +49,8 @@ actual fun rememberOnboardingPresenter(): OnboardingPresenter {
         IosOnboardingPresenter(
             profileRepository = koin.get(),
             bootstrapCoachData = koin.get(),
-            languagePrefs = koin.get()
+            languagePrefs = koin.get(),
+            analytics = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

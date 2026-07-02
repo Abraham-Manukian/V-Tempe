@@ -20,6 +20,7 @@ import com.vtempe.shared.data.repo.SettingsPreferencesRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
+import com.vtempe.shared.data.stub.NoOpAnalyticsRepository
 import com.vtempe.shared.data.stub.StubAdviceRepository
 import com.vtempe.shared.data.stub.StubPurchasesRepository
 import com.vtempe.shared.data.stub.StubSyncRepository
@@ -93,9 +94,12 @@ object DI {
         // PurchasesRepository → AndroidPurchasesRepository / SKProductsStore
         // SyncRepository      → real backend sync
         // AdviceRepository    → NetworkAdviceRepository
+        // AnalyticsRepository → overridden with FirebaseAnalyticsRepository in Android's
+        //                       AppModule.kt; iOS keeps this no-op until Firebase iOS is wired.
         single<AdviceRepository> { StubAdviceRepository() }
         single<PurchasesRepository> { StubPurchasesRepository() }
         single<SyncRepository> { StubSyncRepository() }
+        single<AnalyticsRepository> { NoOpAnalyticsRepository() }
 
         // App-level coroutine scope — lives as long as the process, used for background prefetch.
         // Background prefetch must NOT be tied to any single screen's lifecycle.

@@ -3,6 +3,8 @@ package com.vtempe.ui.presenter
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.domain.model.CoachTrainerIds
+import com.vtempe.shared.domain.repository.AnalyticsEvents
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
@@ -42,7 +44,8 @@ class ChatPresenterDelegate(
     private val chatHistoryStore: ChatHistoryStore,
     private val scope: CoroutineScope,
     /** Platform hook: returns the locale string to pass to the AI. */
-    private val localeProvider: () -> String? = { null }
+    private val localeProvider: () -> String? = { null },
+    private val analytics: AnalyticsRepository
 ) : ChatPresenter {
 
     private val _state = MutableStateFlow(ChatState())
@@ -79,6 +82,7 @@ class ChatPresenterDelegate(
         _state.update { it.copy(messages = displayMessages, input = "", sendState = ChatSendState.Loading) }
         // Persist immediately so the user message survives if the app is killed mid-request
         chatHistoryStore.save(aiHistory + userMsg)
+        analytics.logEvent(AnalyticsEvents.CHAT_MESSAGE_SENT)
 
         scope.launch {
             val result = ask(
@@ -102,6 +106,7 @@ class ChatPresenterDelegate(
                 }
                 is DataResult.Failure -> {
                     Napier.w("Chat error: ${result.message}", result.throwable)
+                    result.throwable?.let { analytics.recordNonFatal(it, "Chat send failed: ${result.message}") }
                     _state.update { it.copy(sendState = ChatSendState.Error(result.message ?: "Unknown error")) }
                 }
             }

@@ -21,6 +21,8 @@ composeCompiler = "1.5.15"
 billing = "6.2.1"
 healthConnect = "1.1.0-alpha10"
 firebaseBom = "33.3.0"
+googleServices = "4.4.2"
+firebaseCrashlyticsPlugin = "3.0.2"
 composeMaterial3 = "1.2.1"
 navigationCompose = "2.8.0"
 androidxComposeUi = "1.7.1"
@@ -114,3 +116,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 android-lint = { id = "com.android.lint", version.ref = "agp" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }

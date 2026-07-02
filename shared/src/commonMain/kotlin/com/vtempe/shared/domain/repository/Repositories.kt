@@ -63,6 +63,27 @@ interface SyncRepository {
     suspend fun syncAll(): Boolean
 }
 
+/**
+ * Minimal analytics/crash-reporting facade so feature code never depends on Firebase
+ * directly. Platforms without a wired backend (iOS, or Android builds without
+ * google-services.json) get a no-op implementation — calling these methods is always safe.
+ */
+interface AnalyticsRepository {
+    fun logEvent(name: String, params: Map<String, String> = emptyMap())
+    fun setUserProperty(key: String, value: String?)
+    fun recordNonFatal(throwable: Throwable, message: String? = null)
+}
+
+/** Named analytics events tracked across the app — keep this the single source of truth. */
+object AnalyticsEvents {
+    const val ONBOARDING_COMPLETE = "onboarding_complete"
+    const val PLAN_GENERATED = "plan_generated"
+    const val CHAT_MESSAGE_SENT = "chat_message_sent"
+    const val WORKOUT_COMPLETED = "workout_completed"
+    const val PAYWALL_SHOWN = "paywall_shown"
+    const val SUBSCRIPTION_PURCHASED = "subscription_purchased"
+}
+
 /** Narrow interface for classes that only need locale access. */
 interface LanguagePreferences {
     fun getLanguageTag(): String?

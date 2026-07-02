@@ -3,8 +3,10 @@ package com.vtempe.shared.data.stub
 import com.vtempe.shared.domain.model.Advice
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.PurchasesRepository
 import com.vtempe.shared.domain.repository.SyncRepository
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -52,4 +54,23 @@ class StubPurchasesRepository : PurchasesRepository {
 
 class StubSyncRepository : SyncRepository {
     override suspend fun syncAll(): Boolean = true
+}
+
+/**
+ * No-op analytics used on platforms/builds without a wired backend (iOS, or Android
+ * without google-services.json). Logs to Napier so events are still visible in dev builds.
+ * Replace with FirebaseAnalyticsRepository once google-services.json is added.
+ */
+class NoOpAnalyticsRepository : AnalyticsRepository {
+    override fun logEvent(name: String, params: Map<String, String>) {
+        Napier.d(tag = "Analytics", message = "event=$name params=$params")
+    }
+
+    override fun setUserProperty(key: String, value: String?) {
+        Napier.d(tag = "Analytics", message = "userProperty $key=$value")
+    }
+
+    override fun recordNonFatal(throwable: Throwable, message: String?) {
+        Napier.e(tag = "Analytics", message = message ?: "non-fatal", throwable = throwable)
+    }
 }

@@ -7,6 +7,16 @@ plugins {
     alias(libs.plugins.jetbrains.compose)
 }
 
+// Firebase Crashlytics/Analytics only activate once google-services.json is present
+// (get it from https://console.firebase.google.com — register an Android app with
+// applicationId "com.vtempe" and download the file into this module's root).
+// Without it the build stays green for anyone who hasn't set up Firebase yet.
+val googleServicesJsonPresent = file("google-services.json").exists()
+if (googleServicesJsonPresent) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
+
 // Read secrets from local.properties (gitignored)
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
@@ -92,5 +102,14 @@ dependencies {
 
     // Billing
     implementation(libs.play.billing)
+
+    // Crashlytics/Analytics SDK — always on the classpath (pure library, compiles fine without
+    // google-services.json). The google-services/crashlytics GRADLE PLUGINS above are what
+    // actually need the json file, so only those are conditional. At runtime,
+    // FirebaseAnalyticsRepository init is wrapped in runCatching (see AppModule.kt) and falls
+    // back to a no-op logger if the Firebase project isn't configured yet.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 }
 

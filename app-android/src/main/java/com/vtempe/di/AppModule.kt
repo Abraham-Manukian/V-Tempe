@@ -1,6 +1,8 @@
 ﻿package com.vtempe.di
 
+import com.vtempe.analytics.createAnalyticsRepository
 import com.vtempe.billing.AndroidPurchasesRepository
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.PurchasesRepository
 import com.vtempe.ui.vm.ChatViewModel
 import com.vtempe.ui.vm.HomeViewModel
@@ -22,13 +24,14 @@ object AppModule {
     val module = module {
         // Android-specific DI overrides
         single<PurchasesRepository> { AndroidPurchasesRepository(androidContext()) }
+        single<AnalyticsRepository> { createAnalyticsRepository(androidContext()) }
 
         // SQLDelight database
         single<SqlDriver> { AndroidSqliteDriver(AppDatabase.Schema, androidContext(), "app_v2.db") }
         single { AppDatabase(get()) }
 
         // ViewModels (Android implementations live in :ui)
-        viewModel { OnboardingViewModel(get(), get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>()) }
+        viewModel { OnboardingViewModel(get(), get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get()) }
         viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
         viewModel { WorkoutViewModel(get(), get(), get(), get(), get()) }
         viewModel { NutritionViewModel(get(), get(), get()) }
@@ -36,6 +39,6 @@ object AppModule {
         viewModel { ProgressViewModel(get(), get(), get()) }
         viewModel { PaywallViewModel(get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get()) }
-        viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get()) }
+        viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
     }
 }

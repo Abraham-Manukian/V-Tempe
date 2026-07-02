@@ -4,6 +4,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.data.repo.ChatHistoryStore
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
@@ -17,6 +18,7 @@ class ChatViewModel(
     languagePrefs: LanguagePreferences,
     profileRepository: ProfileRepository,
     chatHistoryStore: ChatHistoryStore,
+    analytics: AnalyticsRepository
 ) : ViewModel(), ChatPresenter {
 
     private val delegate = ChatPresenterDelegate(
@@ -27,7 +29,8 @@ class ChatViewModel(
         localeProvider = {
             languagePrefs.getLanguageTag()
                 ?: LocaleListCompat.getAdjustedDefault().get(0)?.toLanguageTag()
-        }
+        },
+        analytics = analytics
     )
 
     override val state: StateFlow<ChatState> get() = delegate.state

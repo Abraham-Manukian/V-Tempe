@@ -29,3 +29,9 @@
 -dontwarn java.lang.management.RuntimeMXBean
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 -dontwarn org.slf4j.impl.StaticMDCBinder
+
+# Firebase Crashlytics — keep line numbers and exception types so stack traces stay readable
+# (the Crashlytics Gradle plugin uploads the mapping file separately for de-obfuscation, but
+# these keep rules are still needed for the exception hierarchy to symbolicate correctly).
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception

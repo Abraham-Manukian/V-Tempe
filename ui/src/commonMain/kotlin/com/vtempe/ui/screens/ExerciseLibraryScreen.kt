@@ -221,14 +221,14 @@ private fun ExerciseDetailSheet(
                 }
 
                 // Focus
-                if (guide.focus.isNotBlank()) {
+                if (guide.focus.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Surface(
                         color = AiPalette.Primary.copy(alpha = 0.10f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = guide.focus,
+                            text = guide.focus.joinToString(" · "),
                             style = MaterialTheme.typography.labelMedium,
                             color = AiPalette.Primary,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

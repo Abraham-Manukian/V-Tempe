@@ -6,21 +6,15 @@
 
 ## 🔴 P0 — Блокеры (без этого релиз невозможен)
 
-- [ ] **Продакшн URL бэкенда**
-  `app-android/build.gradle.kts:18` — заменить `"https://api.example.com"` на реальный задеплоенный адрес.
-  В release buildType и в defaultConfig должен стоять один и тот же реальный адрес.
+- [x] **Продакшн URL бэкенда** — ✅ уже настроено (`app-android/build.gradle.kts:42,50`),
+  указывает на `https://vtempe-server-eoofh53gda-ew.a.run.app` в debug и release.
 
-- [ ] **Задеплоить Ktor-сервер**
-  Сервер сейчас работает только локально. Без задеплоенного бэкенда приложение нефункционально.
-  Минимум: Docker-контейнер на VPS / Railway / Fly.io. Настроить env-переменные (`OPENROUTER_API_KEY` и пр.).
+- [x] **Задеплоить Ktor-сервер** — ✅ сервер живой на Cloud Run, подтверждено прямыми запросами (2026-07-01/02).
 
-- [ ] **Аутентификация на `/ai/*` эндпоинтах**
-  `server/src/main/kotlin/com/vtempe/server/features/ai/api/AiRoutes.kt` — все эндпоинты открыты.
-  Добавить минимум: статический API-ключ в заголовке `X-Api-Key` или JWT. Иначе кто угодно сожжёт кредиты OpenRouter.
+- [x] **Аутентификация на `/ai/*` эндпоинтах** — ✅ `X-App-Token` проверка есть в `Application.kt`
+  (`intercept(ApplicationCallPipeline.Plugins)`, сверяет с `APP_SECRET`).
 
-- [ ] **Rate limiting на API**
-  Ktor-плагин `RateLimit` (встроен с Ktor 2.3). Ограничить по IP: не более N запросов в минуту на `/ai/*`.
-  `ThrottledLLMClient` защищает только вызовы LLM — HTTP-уровень не защищён.
+- [x] **Rate limiting на API** — ✅ Ktor `RateLimit` плагин установлен, 30 req/min на `/ai/*`.
 
 - [ ] **Реальная проверка подписки**
   `app-android/src/main/java/com/vtempe/billing/AndroidPurchasesRepository.kt:28` —
@@ -32,12 +26,16 @@
 
 ## 🟡 P1 — Критично (нужно до публикации)
 
-- [ ] **Firebase Crashlytics — настройка**
-  Зависимость подключена, но `google-services.json` и плагин `com.google.gms.google-services` отсутствуют.
-  Без Crashlytics нет мониторинга крашей в продакшне.
+- [x] **Firebase Crashlytics — настройка** — ✅ плагины/зависимости/DI подключены (2026-07-02).
+  Плагин `com.google.gms.google-services` + `com.google.firebase.crashlytics` подключаются условно
+  (`app-android/build.gradle.kts`) — активируются автоматически, как только в модуль будет положен
+  `google-services.json` (зарегистрировать Android-приложение с applicationId `com.vtempe` на
+  console.firebase.google.com и скачать файл — это должен сделать владелец аккаунта, не автоматизируется).
+  До появления файла сборка остаётся зелёной, `AnalyticsRepository` работает в no-op режиме (лог в Napier).
 
-- [ ] **Firebase Analytics — настройка**
-  Вместе с Crashlytics. Минимальный набор событий: onboarding_complete, plan_generated, chat_message_sent.
+- [x] **Firebase Analytics — настройка** — ✅ вместе с Crashlytics. События подключены:
+  `onboarding_complete` и `plan_generated` (`OnboardingPresenter.kt`), `chat_message_sent` (`ChatPresenter.kt`).
+  Полный список — `AnalyticsEvents` в `shared/.../domain/repository/Repositories.kt`.
 
 - [ ] **Убрать Health Connect alpha**
   `libs.versions.toml` — `health-connect = "1.1.0-alpha10"`. Google не пропустит релиз в Play Store с alpha-зависимостью.
@@ -86,8 +84,9 @@
   `app-android/build.gradle.kts:17` — `versionCode = 1` захардкожен.
   Настроить инкремент через `GITHUB_RUN_NUMBER` или аналог в CI.
 
-- [ ] **Настроить ProGuard/R8 для release**
-  Проверить, что правила минификации не ломают Koin DI, kotlinx.serialization, SQLDelight.
+- [x] **Настроить ProGuard/R8 для release** — ✅ проверено (2026-07-02): `./gradlew :app-android:assembleRelease`
+  проходит зелёным с `isMinifyEnabled = true`. Добавлены keep-правила для Crashlytics-стектрейсов
+  (`proguard-rules.pro`). Koin DI, kotlinx.serialization, SQLDelight уже имели свои правила и не сломаны.
 
 - [ ] **ROADMAP.md — починить кодировку**
   Файл содержит битые Cyrillic-символы (Latin-1 вместо UTF-8). Пересохранить в UTF-8.
@@ -131,21 +130,24 @@
 - [ ] **Onboarding skip / повторный вход**
   Проверить: если пользователь уже прошёл онбординг, он не должен проходить его снова при переустановке (профиль восстанавливается из БД).
 
+- [ ] **Календарь с историей**
+  Добавить календарь с историей тренировок, питания и сна.
+
 ---
 
 ## Итоговая сводка по категориям
 
 | Категория | P0 | P1 | P2 | P3 |
 |-----------|----|----|----|----|
-| Backend/Infrastructure | 3 | 1 | 1 | — |
+| Backend/Infrastructure | 1 | 0 | 1 | — |
 | Monetization | 1 | 1 | — | — |
-| Security | 1 | — | 1 | 1 |
-| Features | — | 1 | — | 3 |
-| Code Quality | — | — | 3 | 2 |
+| Security | 0 | — | 0 | 1 |
+| Features | — | 3 | — | 4 |
+| Code Quality | — | — | 2 | 2 |
 | Testing | — | — | 1 | 2 |
-| Polish/Release | — | 1 | 2 | 4 |
+| Polish/Release | — | 0 | 1 | 4 |
 
-**Минимум для публикации в Play Store:** все задачи P0 + P1 (9 задач).
+**Минимум для публикации в Play Store:** оставшиеся 5 задач P0+P1 (подписки, Health Connect, ввод сна, paywall-тест, локализация EN).
 
 
-Добавить календарь с историей тренеровок питания сна 
+Подтягивания с весом показывает хотя там нет веса. Если подразумевается что с дополнительным, это надо указывать.

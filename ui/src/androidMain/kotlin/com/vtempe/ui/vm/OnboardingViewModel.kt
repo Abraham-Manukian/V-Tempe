@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
@@ -15,7 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 class OnboardingViewModel(
     profileRepository: ProfileRepository,
     bootstrapCoachData: BootstrapCoachData,
-    languagePrefs: LanguagePreferences
+    languagePrefs: LanguagePreferences,
+    analytics: AnalyticsRepository
 ) : ViewModel(), OnboardingPresenter {
 
     private val delegate = OnboardingPresenterDelegate(
@@ -29,7 +31,8 @@ class OnboardingViewModel(
             } else {
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
             }
-        }
+        },
+        analytics = analytics
     )
 
     override val state: StateFlow<OnboardingState> get() = delegate.state
