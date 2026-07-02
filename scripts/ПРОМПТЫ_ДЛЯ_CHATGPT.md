@@ -576,6 +576,436 @@ Cat-cow spinal mobility on hands and knees. LEFT: cow pose — spine arched down
 
 ---
 
+# НОВЫЕ УПРАЖНЕНИЯ (расширение каталога)
+
+### 🦵 НОГИ / ПРИСЕДАНИЯ (новые)
+
+```
+bodyweight_squat
+Bodyweight air squat. LEFT: standing tall, feet shoulder-width, arms forward for balance. RIGHT: deep squat, thighs parallel to floor, chest up, knees tracking over toes. Key form: sit back and down, heels down.
+```
+
+```
+prisoner_squat
+Prisoner squat with hands behind the head. LEFT: standing, hands clasped behind head, elbows wide, chest up. RIGHT: deep squat, elbows still wide, torso upright, thighs parallel. Key form: elbows wide, chest proud, upright torso.
+```
+
+```
+wall_sit_march
+Wall sit with marching foot lifts. LEFT: wall sit hold, both feet flat, thighs parallel, back on wall. RIGHT: same wall sit but one foot lifted a few inches off the floor, hips level. Key form: hold 90° knees, lift feet without shifting the torso.
+```
+
+```
+calf_raise
+Standing bodyweight calf raise. LEFT: standing flat, feet together, heels down. RIGHT: up on the balls of the feet, heels raised high, calves contracted. Key form: rise fully, pause at top, slow lower.
+```
+
+```
+kettlebell_goblet_squat
+Kettlebell goblet squat holding the bell by the horns. LEFT: standing tall, kettlebell held at the chest by the horns. RIGHT: deep squat, thighs parallel, elbows inside the knees, torso upright. Key form: chest tall, full depth, drive through heels.
+```
+
+---
+
+### 🍑 ТЯГА / ЯГОДИЦЫ (новые)
+
+```
+single_leg_glute_bridge
+Single-leg glute bridge on the floor. LEFT: lying on back, one knee bent foot flat, other leg extended straight, hips down. RIGHT: hips driven high on one leg, body straight from shoulder to extended foot, hips level. Key form: drive through heel, keep hips even.
+```
+
+```
+bodyweight_good_morning
+Bodyweight good morning hip hinge. LEFT: standing tall, hands crossed on chest, soft knees. RIGHT: torso hinged forward to near parallel with the floor, hips pushed back, flat spine. Key form: hips travel back, flat long spine, hinge not squat.
+```
+
+```
+hip_hinge_wall
+Wall hip hinge drill tapping the wall with the hips. LEFT: standing just in front of a wall, tall posture, soft knees. RIGHT: hips pushed straight back tapping the wall, torso hinged forward, flat back. Key form: hips reach back to wall, not a squat.
+```
+
+```
+prone_leg_curl
+Prone bodyweight leg curl on the floor. LEFT: lying face down, legs straight, hips pressed down. RIGHT: heels curled up toward the glutes, hamstrings contracted, hips staying flat. Key form: pelvis stays down, controlled curl.
+```
+
+```
+glute_kickback
+Quadruped glute kickback on hands and knees. LEFT: on hands and knees, flat back, one knee bent under hip. RIGHT: same leg driven up and back, sole of foot toward ceiling, thigh in line with torso. Key form: flat back, move only from the hip.
+```
+
+```
+fire_hydrant
+Fire hydrant hip abduction on hands and knees. LEFT: on hands and knees, neutral spine, knees under hips. RIGHT: one bent knee lifted out to the side, thigh near parallel to floor, torso stable. Key form: no torso rotation, open at the hip.
+```
+
+```
+kettlebell_clean
+Kettlebell clean to the rack position. LEFT: hinge position, kettlebell hanging between the legs, hips back. RIGHT: kettlebell racked at the shoulder, elbow tucked, bell resting on the forearm, standing tall. Key form: hip drive, keep the bell close.
+```
+
+---
+
+### 🦶 ОДНА НОГА (новые)
+
+```
+cossack_squat
+Cossack squat, deep lateral squat. LEFT: very wide stance, standing tall, toes slightly out. RIGHT: deep squat over one bent leg, other leg fully straight with heel down and toes up, torso upright. Key form: sit deep on one side, opposite leg straight.
+```
+
+```
+split_squat
+Bodyweight split squat, stationary lunge stance. LEFT: split stance, one foot forward, standing tall, torso upright. RIGHT: lowered straight down, back knee near the floor, front thigh parallel, torso upright. Key form: drop straight down, front shin vertical.
+```
+
+```
+jump_lunge
+Explosive jumping lunge switching legs midair. LEFT: bottom of a lunge, back knee low, arms loaded, about to jump. RIGHT: airborne at peak, legs switching positions midair, arms driving. Key form: soft landing, explode straight up, control each rep.
+```
+
+---
+
+### 💪 ГРУДЬ / ГОРИЗОНТАЛЬНЫЙ ЖИМ (новые)
+
+```
+knee_pushup
+Kneeling push-up. LEFT: kneeling plank, hands slightly wider than shoulders, arms extended, straight line from knees to head. RIGHT: chest lowered toward floor, elbows at 45°. Key form: straight body from knees, full chest range.
+```
+
+```
+pseudo_planche_pushup
+Pseudo planche push-up leaning forward. LEFT: push-up position, hands near the waist, fingers pointing back, shoulders leaned forward past the hands. RIGHT: lowered with the forward lean maintained, elbows in. Key form: shoulders stay ahead of hands, fingers back.
+```
+
+```
+archer_pushup
+Archer push-up shifting to one arm. LEFT: wide push-up position, arms extended, hands far apart. RIGHT: chest lowered toward one bent arm, opposite arm straight and extended out to the side. Key form: one arm works, the other stays straight.
+```
+
+```
+clap_pushup
+Explosive clap push-up. LEFT: bottom of a push-up, chest near floor, elbows bent. RIGHT: airborne with hands clapped together off the floor, body still rigid. Key form: explode up, clap, land soft on bent elbows.
+```
+
+```
+db_bench_press
+Dumbbell bench press on a flat bench. LEFT: lying on bench, dumbbells at chest level, elbows down and out. RIGHT: dumbbells pressed up over the chest, arms extended, dumbbells close together. Key form: shoulder blades retracted, deep stretch at bottom.
+```
+
+```
+incline_db_press
+Incline dumbbell press on a 30-45° bench. LEFT: reclined on incline bench, dumbbells at upper-chest level, elbows down. RIGHT: dumbbells pressed up over the collarbones, arms extended. Key form: press slightly back, upper-chest focus.
+```
+
+```
+machine_chest_press
+Machine chest press seated. LEFT: seated at machine, handles at mid-chest, elbows back. RIGHT: handles pressed forward, arms extended, chest contracted. Key form: seat set to mid-chest, controlled return.
+```
+
+```
+svend_press
+Svend press squeezing two plates together. LEFT: standing, two plates pressed together at the chest, elbows in. RIGHT: plates pressed straight out in front, arms extended, still squeezed together. Key form: crush the plates together throughout.
+```
+
+---
+
+### 🏋️ СПИНА / ГОРИЗОНТАЛЬНАЯ ТЯГА (новые)
+
+```
+pendlay_row
+Pendlay row, barbell from the floor. LEFT: hinged over, torso parallel to floor, arms straight gripping the bar on the ground. RIGHT: bar pulled explosively to the lower chest, elbows back, torso staying parallel. Key form: reset on floor each rep, flat back.
+```
+
+```
+seal_row
+Seal row lying face down on a high bench. LEFT: lying chest-down on bench, arms hanging with weights below. RIGHT: weights rowed to the ribs, elbows driven back, chest staying on the bench. Key form: chest stays down, no momentum.
+```
+
+```
+meadows_row
+Landmine single-arm row with a barbell anchored in a corner. LEFT: staggered stance, hinged over, one hand gripping the loaded barbell end, arm extended. RIGHT: bar end rowed up along the side, elbow high, lat contracted. Key form: staggered stance, pull along the body.
+```
+
+```
+renegade_row
+Renegade row from a plank on dumbbells. LEFT: high plank on two dumbbells, feet wide, hips square. RIGHT: one dumbbell rowed to the ribs, elbow high, balancing on the other hand, hips staying level. Key form: no hip twist, wide base.
+```
+
+```
+reverse_fly
+Reverse fly bent over with dumbbells. LEFT: hinged forward, dumbbells hanging below the chest, slight elbow bend. RIGHT: dumbbells raised out to the sides to shoulder level, shoulder blades squeezed. Key form: lead with elbows, flat back.
+```
+
+```
+straight_arm_pulldown
+Straight-arm cable pulldown. LEFT: standing at a high cable, arms extended overhead gripping the bar, slight forward lean. RIGHT: bar swept down to the thighs, arms nearly straight, lats contracted. Key form: minimal elbow bend, drive with the lats.
+```
+
+```
+kettlebell_high_pull
+Kettlebell high pull. LEFT: hinge position, kettlebell hanging between the legs. RIGHT: bell pulled up to chest height with the elbow high and back, hips fully extended. Key form: hip drive powers it, elbow leads high.
+```
+
+---
+
+### 🏆 ПЛЕЧИ / ВЕРТИКАЛЬНЫЙ ЖИМ (новые)
+
+```
+wall_walk
+Gymnastics wall walk. LEFT: push-up position with feet at the base of a wall, hands far out. RIGHT: near-handstand against the wall, feet walked up high, hands walked in close, body vertical. Key form: braced core, move hands and feet together.
+```
+
+```
+pike_pushup_elevated
+Elevated pike push-up with feet on a low box. LEFT: pike position, feet on box, hips high, arms extended, shoulders over hands. RIGHT: head lowered between the hands toward the floor, elbows bent. Key form: hips stay high, shoulders stack over hands.
+```
+
+```
+kettlebell_snatch
+One-arm kettlebell snatch overhead. LEFT: hinge, kettlebell hanging in one hand between the legs. RIGHT: kettlebell locked out overhead, arm straight, bell resting on the back of the forearm, body upright. Key form: hip drive, punch up through the bell.
+```
+
+---
+
+### 🔝 ТУРНИК / ВЕРТИКАЛЬНАЯ ТЯГА (новые)
+
+```
+scapular_pullup
+Scapular pull-up on a bar, straight arms. LEFT: dead hang from bar, arms straight, shoulders shrugged up toward ears. RIGHT: shoulders pulled down and back, body lifted slightly, arms still straight, chest raised. Key form: no elbow bend, only scapular movement.
+```
+
+```
+neutral_grip_pullup
+Neutral-grip pull-up on parallel handles. LEFT: dead hang, palms facing each other, arms extended. RIGHT: chest pulled up to the handles, elbows down and close to the body. Key form: elbows drive down, chest to the bar.
+```
+
+```
+negative_pullup
+Negative pull-up eccentric lowering. LEFT: at the top of a pull-up, chin above the bar, arms bent. RIGHT: slowly lowering, arms extending, body descending under control toward a full hang. Key form: 3-5 second slow descent, fight gravity.
+```
+
+---
+
+### 💪 БИЦЕПС (новые)
+
+```
+preacher_curl
+Preacher curl on an angled bench. LEFT: seated at preacher bench, arms extended down the pad holding the weight. RIGHT: weight curled up to full bicep contraction, arms still on the pad. Key form: arms stay glued to the pad, no swinging.
+```
+
+```
+spider_curl
+Spider curl lying chest-down on an incline bench. LEFT: chest on incline bench, arms hanging straight down holding dumbbells, palms forward. RIGHT: dumbbells curled up, upper arms vertical and still, biceps peaked. Key form: upper arms stay vertical, no swing.
+```
+
+```
+zottman_curl
+Zottman curl with dumbbells. LEFT: dumbbells curled up at the shoulders, palms up. RIGHT: at the shoulders with wrists rotated so palms face down, about to lower. Key form: palms up going up, palms down coming down.
+```
+
+```
+chin_up_hold
+Flexed-arm hang at the top of a chin-up. LEFT: hanging with chin over the bar, underhand grip, elbows fully bent, chest up. RIGHT: same held position sustained isometrically, biceps and lats contracted. Key form: chin over bar, elbows fully bent, hold steady.
+```
+
+---
+
+### 💪 ТРИЦЕПС (новые)
+
+```
+bench_dip
+Bench dip using a bench behind the body. LEFT: hands on bench edge behind hips, arms straight, hips off the bench, legs extended. RIGHT: elbows bent straight back to about 90°, hips lowered toward the floor. Key form: elbows point back, chest stays up.
+```
+
+```
+diamond_pushup_knee
+Kneeling diamond push-up. LEFT: kneeling plank, hands together in a diamond under chest, arms extended, body straight from knees. RIGHT: chest lowered to hands, elbows tucked back along the ribs. Key form: elbows brush ribs, hands form a diamond.
+```
+
+```
+wall_tricep_extension
+Standing wall triceps push-away with hands close together on a wall. LEFT: leaning toward wall, hands close at chest height, arms bent, forehead near wall. RIGHT: arms fully extended, body pushed back from wall, elbows tucked in. Key form: elbows stay tucked, only elbows bend.
+```
+
+```
+overhead_dumbbell_extension
+Overhead dumbbell triceps extension. LEFT: one dumbbell held overhead with both hands, arms fully extended, elbows in. RIGHT: dumbbell lowered behind the head, elbows bent and pointing forward. Key form: elbows tucked, only forearms move.
+```
+
+```
+jm_press
+JM press on a flat bench, close grip. LEFT: lying on bench, barbell held with close grip, arms extended over the chest. RIGHT: bar lowered toward the upper neck, elbows forward, forearms near the biceps. Key form: elbows travel forward, hybrid of press and skull crusher.
+```
+
+```
+close_grip_pushup_feet_elevated
+Decline close-grip push-up, feet elevated. LEFT: feet on a raised surface, hands close under the chest, arms extended, body straight and angled down. RIGHT: chest lowered, elbows tucked tight to the ribs. Key form: hands close, elbows back, feet elevated.
+```
+
+---
+
+### 🧘 КОР (новые)
+
+```
+flutter_kick
+Flutter kicks lying on the back. LEFT: lying on back, both legs straight and hovering low off the floor. RIGHT: legs alternating, one kicked slightly up and one slightly down, lower back pressed to floor. Key form: small quick kicks, low back stays down.
+```
+
+```
+reverse_crunch
+Reverse crunch on the floor. LEFT: lying on back, knees bent at tabletop, hips down, hands beside hips. RIGHT: pelvis curled up, hips lifted off floor, knees drawn toward chest. Key form: lift with pelvic curl, not momentum.
+```
+
+```
+heel_touch
+Heel touches crunching side to side. LEFT: lying on back, knees bent, shoulders slightly lifted, hand reaching toward one heel. RIGHT: crunched to the other side, opposite hand reaching that heel. Key form: shoulders stay lifted, crunch sideways.
+```
+
+```
+plank_shoulder_tap
+Plank shoulder tap in a high plank. LEFT: high plank, both hands on floor under shoulders, body straight. RIGHT: one hand lifted tapping the opposite shoulder, hips held square and level. Key form: no hip rock, keep hips square.
+```
+
+```
+bird_dog
+Bird dog on hands and knees. LEFT: on hands and knees, flat back, neutral spine. RIGHT: one arm reaching forward and the opposite leg extended straight back, body forming a line, back flat. Key form: no arching, reach long and stable.
+```
+
+```
+plank_up_down
+Up-down plank transitioning forearms to hands. LEFT: forearm plank, body straight. RIGHT: high plank on both hands, hips level. Key form: minimal hip rock, alternate lead arm.
+```
+
+```
+side_plank_hip_dip
+Side plank hip dip on a forearm. LEFT: forearm side plank, body in a straight diagonal, hip high. RIGHT: bottom hip lowered toward the floor without touching, obliques loaded. Key form: control the dip, drive hip high.
+```
+
+```
+hollow_rock
+Hollow rock on the back. LEFT: hollow hold, arms overhead, legs low, lower back pressed down, body in a slight banana curve. RIGHT: rocked forward on the hips maintaining the same rigid hollow shape. Key form: keep the banana shape, rock smoothly.
+```
+
+```
+plank_reach
+Plank arm reach in a high plank. LEFT: high plank, both hands down, body straight. RIGHT: one arm extended straight forward, hips square and level, body stable. Key form: hips stay square, reach long.
+```
+
+```
+turkish_getup
+Turkish get-up with a weight held overhead. LEFT: lying on the back, one arm pressing a kettlebell straight up. RIGHT: standing tall, weight locked out overhead, arm vertical, eyes on the weight. Key form: eyes on weight, arm stays vertical throughout.
+```
+
+---
+
+### 🏃 КАРДИО (новые)
+
+```
+squat_thrust
+Squat thrust burpee variation without push-up. LEFT: squat with hands on the floor, feet under the hips. RIGHT: feet jumped back into a plank position, body straight, arms extended. Key form: feet jump straight back, no push-up needed.
+```
+
+```
+tuck_jump
+Tuck jump pulling knees to chest. LEFT: slight dip, arms back, about to jump. RIGHT: airborne at peak with knees pulled up to the chest, torso upright. Key form: explode up, snap knees up, land soft.
+```
+
+```
+bear_crawl
+Bear crawl on hands and toes. LEFT: quadruped start, knees hovering just off the floor, flat back. RIGHT: crawling forward, opposite hand and foot advanced, hips low and level. Key form: knees hover, hips stay low, no rocking.
+```
+
+```
+inchworm
+Inchworm walkout. LEFT: standing hinged forward with hands on the floor near the feet, legs fairly straight. RIGHT: hands walked forward into a high plank, body extended straight. Key form: legs stay fairly straight, controlled walkout.
+```
+
+```
+lateral_shuffle
+Lateral shuffle in an athletic stance. LEFT: low athletic stance, knees bent, weight on one leg about to push off. RIGHT: shuffled sideways, feet apart, staying low, chest up. Key form: stay low, feet don't cross, push off trailing leg.
+```
+
+```
+butt_kick
+Butt kicks jogging in place. LEFT: standing tall, beginning the movement. RIGHT: one heel flicked up toward the glute, knee pointing down, on the ball of the opposite foot. Key form: heels to glutes, stay light and quick.
+```
+
+```
+shadow_boxing
+Shadow boxing in a boxing stance. LEFT: boxing stance, guard up, feet staggered. RIGHT: throwing a cross punch, torso rotated, rear foot pivoted, opposite hand guarding the chin. Key form: guard up, rotate through the hips, stay mobile.
+```
+
+```
+jumping_jack_squat
+Squat jack jumping feet wide into a squat. LEFT: standing with feet together, hands at chest. RIGHT: feet jumped out wide into a squat, hips back, chest up. Key form: land in a squat, chest up, steady rhythm.
+```
+
+```
+sled_push
+Sled push driving a loaded sled forward. LEFT: gripping the sled posts, body leaned forward, one leg driving. RIGHT: mid-drive, powerful stride, back leg fully extended, low forward lean. Key form: lean in, full leg drive each step.
+```
+
+```
+medicine_ball_slam
+Medicine ball slam. LEFT: standing tall, medicine ball raised overhead, body fully extended. RIGHT: ball slammed down to the floor, torso hinged forward, arms following through. Key form: full-body extension, slam hard through the core.
+```
+
+---
+
+### 🧘 МОБИЛЬНОСТЬ И ВОССТАНОВЛЕНИЕ (новые)
+
+```
+downward_dog
+Downward dog yoga pose. LEFT: hands and knees, toes tucked, preparing to lift. RIGHT: full inverted V shape, hips high, legs straight, heels reaching toward floor, spine long. Key form: hips up and back, long spine, chest toward thighs.
+```
+
+```
+cobra_stretch
+Cobra stretch lying face down. LEFT: lying face down, hands under shoulders, chest on the floor. RIGHT: chest lifted, gentle back extension, hips staying on the floor, shoulders down. Key form: lift through the chest, hips stay down.
+```
+
+```
+childs_pose
+Child's pose resting stretch. LEFT: kneeling upright, about to fold forward. RIGHT: hips sitting back on the heels, torso folded forward, arms reaching out front, forehead near the floor. Key form: sit back on heels, relax and breathe.
+```
+
+```
+thoracic_rotation
+Thoracic open-book rotation lying on the side. LEFT: lying on the side, knees bent, arms stacked out in front. RIGHT: top arm opened across the body toward the floor behind, chest rotated open, knees staying stacked. Key form: rotate through the upper back, knees pinned.
+```
+
+```
+pigeon_stretch
+Pigeon stretch hip opener. LEFT: front shin brought forward across the body, back leg extended straight behind, torso upright. RIGHT: torso folded forward over the front shin, hips square and lowered. Key form: hips square, sink and fold forward.
+```
+
+```
+shoulder_dislocate
+Shoulder pass-through with a band. LEFT: standing, band held wide in front with straight arms. RIGHT: band passed overhead and moving behind the back, arms staying straight. Key form: arms stay straight, grip wide enough to be pain-free.
+```
+
+```
+neck_stretch
+Neck stretch seated or standing. LEFT: sitting tall, head neutral, shoulders relaxed. RIGHT: head gently tilted toward one shoulder, opposite side of the neck stretched, shoulders down. Key form: slow and gentle, never force.
+```
+
+```
+ankle_mobility
+Ankle mobility knee-to-wall rock. LEFT: half-kneeling facing a wall, front foot planted a few inches away. RIGHT: front knee driven forward to touch the wall, heel staying flat on the floor. Key form: heel stays down, knee tracks over the toes.
+```
+
+```
+hip_circle
+Standing hip circle mobility drill. LEFT: standing tall, one knee lifted in front. RIGHT: same knee circled out to the side, hip opening, torso stable. Key form: big smooth circles, stable torso.
+```
+
+```
+leg_swing
+Dynamic leg swings holding a support. LEFT: standing tall holding a wall, leg at the back of the swing. RIGHT: same leg swung forward to the front, torso staying upright. Key form: torso stays tall, leg swings freely.
+```
+
+---
+
 ## НЕЙМИНГ ФАЙЛОВ
 При сохранении называй точно так:
 

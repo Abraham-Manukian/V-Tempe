@@ -1,5 +1,8 @@
 *.iml
 .gradle
+# Third-party exercise dataset reference data (used only as offline inspiration when
+# writing our own catalog entries — not redistributed, see scripts/ПРОМПТЫ_ДЛЯ_CHATGPT.md)
+/scripts/exercisedb_raw.json
 /local.properties
 /.idea/caches
 /.idea/libraries

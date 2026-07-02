@@ -579,7 +579,424 @@ class BuiltInExerciseCatalog : ExerciseCatalog {
         ExerciseCatalogItem("cat_cow", emptySet(),
             MovementPattern.MOBILITY, setOf(),
             setOf(TrainingMode.HOME, TrainingMode.GYM, TrainingMode.MIXED),
-            priority=30, difficulty=1)
+            priority=30, difficulty=1),
+
+        // ── KNEE DOMINANT (new) ────────────────────────────────────────
+        ExerciseCatalogItem("bodyweight_squat", setOf("air_squat", "bw_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=12, difficulty=1),
+
+        ExerciseCatalogItem("prisoner_squat", setOf("hands_behind_head_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=28, difficulty=1),
+
+        ExerciseCatalogItem("wall_sit_march", setOf("wall_sit_marching"),
+            MovementPattern.KNEE_DOMINANT, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=2),
+
+        ExerciseCatalogItem("calf_raise", setOf("standing_calf_raise", "bodyweight_calf_raise"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=48, difficulty=1),
+
+        ExerciseCatalogItem("kettlebell_goblet_squat", setOf("kb_goblet_squat"),
+            MovementPattern.KNEE_DOMINANT, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell"), priority=20, difficulty=2),
+
+        // ── HINGE (new) ────────────────────────────────────────────────
+        ExerciseCatalogItem("single_leg_glute_bridge", setOf("one_leg_bridge", "sl_glute_bridge"),
+            MovementPattern.HINGE, setOf(MovementPattern.SINGLE_LEG),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=22, difficulty=2),
+
+        ExerciseCatalogItem("bodyweight_good_morning", setOf("standing_hip_hinge", "hip_hinge_drill"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=26, difficulty=1),
+
+        ExerciseCatalogItem("hip_hinge_wall", setOf("wall_hip_hinge", "hip_tap_wall"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=32, difficulty=1),
+
+        ExerciseCatalogItem("prone_leg_curl", setOf("floor_hamstring_curl", "prone_hamstring"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=45, difficulty=1),
+
+        ExerciseCatalogItem("glute_kickback", setOf("quadruped_kickback", "donkey_kick"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=44, difficulty=1),
+
+        ExerciseCatalogItem("fire_hydrant", setOf("hip_abduction_quadruped"),
+            MovementPattern.HINGE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=46, difficulty=1),
+
+        ExerciseCatalogItem("kettlebell_clean", setOf("kb_clean"),
+            MovementPattern.HINGE, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell"), priority=30, difficulty=3),
+
+        ExerciseCatalogItem("kettlebell_snatch", setOf("kb_snatch", "one_arm_snatch"),
+            MovementPattern.HINGE, setOf(MovementPattern.VERTICAL_PUSH, MovementPattern.CONDITIONING),
+            setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell"), priority=40, difficulty=4),
+
+        // ── SINGLE LEG (new) ───────────────────────────────────────────
+        ExerciseCatalogItem("cossack_squat", setOf("cossack"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=3),
+
+        ExerciseCatalogItem("split_squat", setOf("stationary_lunge", "static_lunge"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=18, difficulty=2),
+
+        ExerciseCatalogItem("jump_lunge", setOf("jumping_lunge", "split_jump"),
+            MovementPattern.SINGLE_LEG, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=38, difficulty=3),
+
+        // ── HORIZONTAL PUSH (new) ──────────────────────────────────────
+        ExerciseCatalogItem("knee_pushup", setOf("kneeling_pushup", "modified_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=25, difficulty=1),
+
+        ExerciseCatalogItem("pseudo_planche_pushup", setOf("lean_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.VERTICAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=35, difficulty=4),
+
+        ExerciseCatalogItem("archer_pushup", setOf("side_to_side_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=34, difficulty=4),
+
+        ExerciseCatalogItem("clap_pushup", setOf("plyo_pushup", "explosive_pushup"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(MovementPattern.CONDITIONING),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=4),
+
+        ExerciseCatalogItem("db_bench_press", setOf("dumbbell_bench_press", "flat_db_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells", "bench"), priority=15, difficulty=2),
+
+        ExerciseCatalogItem("incline_db_press", setOf("incline_dumbbell_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells", "bench"), priority=20, difficulty=2),
+
+        ExerciseCatalogItem("machine_chest_press", setOf("chest_press_machine", "seated_chest_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=45, difficulty=1),
+
+        ExerciseCatalogItem("svend_press", setOf("plate_press", "squeeze_press"),
+            MovementPattern.HORIZONTAL_PUSH, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=48, difficulty=1),
+
+        // ── HORIZONTAL PULL (new) ──────────────────────────────────────
+        ExerciseCatalogItem("towel_row", setOf("door_towel_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=25, difficulty=2),
+
+        ExerciseCatalogItem("doorway_row", setOf("door_frame_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("table_row", setOf("under_table_row", "supine_table_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=28, difficulty=2),
+
+        ExerciseCatalogItem("prone_y_raise", setOf("prone_y", "floor_y_raise"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=1),
+
+        ExerciseCatalogItem("prone_w_raise", setOf("prone_w", "floor_w_raise", "reverse_snow_angel"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=42, difficulty=1),
+
+        ExerciseCatalogItem("pendlay_row", setOf("dead_stop_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=18, difficulty=3),
+
+        ExerciseCatalogItem("seal_row", setOf("bench_seal_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench", "dumbbells", "barbell"), priority=28, difficulty=2),
+
+        ExerciseCatalogItem("meadows_row", setOf("landmine_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell"), priority=30, difficulty=3),
+
+        ExerciseCatalogItem("renegade_row", setOf("plank_row", "dumbbell_plank_row"),
+            MovementPattern.HORIZONTAL_PULL, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=32, difficulty=3),
+
+        ExerciseCatalogItem("reverse_fly", setOf("rear_delt_fly", "bent_over_fly"),
+            MovementPattern.HORIZONTAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells", "bands"), priority=42, difficulty=1),
+
+        ExerciseCatalogItem("kettlebell_high_pull", setOf("kb_high_pull"),
+            MovementPattern.HORIZONTAL_PULL, setOf(MovementPattern.HINGE, MovementPattern.CONDITIONING),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell"), priority=36, difficulty=3),
+
+        // ── VERTICAL PUSH (new) ────────────────────────────────────────
+        ExerciseCatalogItem("wall_walk", setOf("wall_walk_up"),
+            MovementPattern.VERTICAL_PUSH, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=4),
+
+        ExerciseCatalogItem("pike_pushup_elevated", setOf("elevated_pike_pushup", "feet_elevated_pike"),
+            MovementPattern.VERTICAL_PUSH, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=25, difficulty=3),
+
+        // ── VERTICAL PULL (new) ────────────────────────────────────────
+        ExerciseCatalogItem("scapular_pullup", setOf("scap_pull", "scapula_retraction_hang"),
+            MovementPattern.VERTICAL_PULL, setOf(MovementPattern.HORIZONTAL_PULL),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=35, difficulty=2),
+
+        ExerciseCatalogItem("straight_arm_pulldown", setOf("straight_arm_pushdown", "lat_pushdown"),
+            MovementPattern.VERTICAL_PULL, setOf(MovementPattern.HORIZONTAL_PULL),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            priority=44, difficulty=2),
+
+        ExerciseCatalogItem("neutral_grip_pullup", setOf("hammer_pullup", "parallel_grip_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(MovementPattern.ARM_FLEXION),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=18, difficulty=3),
+
+        ExerciseCatalogItem("negative_pullup", setOf("eccentric_pullup"),
+            MovementPattern.VERTICAL_PULL, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=25, difficulty=2),
+
+        // ── CORE (new) ─────────────────────────────────────────────────
+        ExerciseCatalogItem("flutter_kick", setOf("flutter_kicks"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=32, difficulty=2),
+
+        ExerciseCatalogItem("reverse_crunch", setOf("knee_raise_floor"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=2),
+
+        ExerciseCatalogItem("heel_touch", setOf("oblique_heel_taps", "heel_taps"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=36, difficulty=1),
+
+        ExerciseCatalogItem("plank_shoulder_tap", setOf("shoulder_taps", "plank_taps"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=28, difficulty=2),
+
+        ExerciseCatalogItem("bird_dog", setOf("quadruped_reach"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=26, difficulty=1),
+
+        ExerciseCatalogItem("plank_up_down", setOf("plank_walkup", "up_down_plank"),
+            MovementPattern.CORE, setOf(MovementPattern.ARM_EXTENSION),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=34, difficulty=2),
+
+        ExerciseCatalogItem("side_plank_hip_dip", setOf("side_plank_dip"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=38, difficulty=3),
+
+        ExerciseCatalogItem("hollow_rock", setOf("hollow_body_rock"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=42, difficulty=3),
+
+        ExerciseCatalogItem("plank_reach", setOf("plank_arm_reach"),
+            MovementPattern.CORE, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=36, difficulty=2),
+
+        ExerciseCatalogItem("turkish_getup", setOf("get_up", "tgu"),
+            MovementPattern.CORE, setOf(MovementPattern.VERTICAL_PUSH, MovementPattern.SINGLE_LEG),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("kettlebell", "dumbbells"), priority=38, difficulty=4),
+
+        // ── ARM FLEXION / BICEPS (new) ─────────────────────────────────
+        ExerciseCatalogItem("preacher_curl", setOf("scott_curl"),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench", "dumbbells", "barbell"), priority=22, difficulty=2),
+
+        ExerciseCatalogItem("spider_curl", setOf("prone_incline_curl"),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bench", "dumbbells"), priority=30, difficulty=2),
+
+        ExerciseCatalogItem("zottman_curl", emptySet(),
+            MovementPattern.ARM_FLEXION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=32, difficulty=2),
+
+        ExerciseCatalogItem("chin_up_hold", setOf("flexed_arm_hang", "chin_hold"),
+            MovementPattern.ARM_FLEXION, setOf(MovementPattern.VERTICAL_PULL),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            setOf("pullup_bar"), priority=40, difficulty=2),
+
+        // ── ARM EXTENSION / TRICEPS (new) ──────────────────────────────
+        ExerciseCatalogItem("bench_dip", setOf("chair_dip", "tricep_bench_dip"),
+            MovementPattern.ARM_EXTENSION, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=15, difficulty=1),
+
+        ExerciseCatalogItem("diamond_pushup_knee", setOf("knee_diamond_pushup"),
+            MovementPattern.ARM_EXTENSION, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=20, difficulty=1),
+
+        ExerciseCatalogItem("wall_tricep_extension", setOf("standing_wall_tricep", "wall_pushaway"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("overhead_dumbbell_extension", setOf("seated_overhead_extension", "db_overhead_extension"),
+            MovementPattern.ARM_EXTENSION, setOf(),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.MIXED),
+            setOf("dumbbells"), priority=22, difficulty=2),
+
+        ExerciseCatalogItem("jm_press", setOf("jm_bench"),
+            MovementPattern.ARM_EXTENSION, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("barbell", "bench"), priority=34, difficulty=3),
+
+        ExerciseCatalogItem("close_grip_pushup_feet_elevated", setOf("decline_diamond_pushup"),
+            MovementPattern.ARM_EXTENSION, setOf(MovementPattern.HORIZONTAL_PUSH),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=32, difficulty=3),
+
+        // ── CONDITIONING / CARDIO (new) ────────────────────────────────
+        ExerciseCatalogItem("squat_thrust", setOf("no_pushup_burpee", "half_burpee"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=22, difficulty=2),
+
+        ExerciseCatalogItem("tuck_jump", setOf("knee_tuck_jump"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=32, difficulty=3),
+
+        ExerciseCatalogItem("bear_crawl", setOf("bear_walk"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=28, difficulty=2),
+
+        ExerciseCatalogItem("inchworm", setOf("walkout"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.CORE, MovementPattern.MOBILITY),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=2),
+
+        ExerciseCatalogItem("lateral_shuffle", setOf("side_shuffle", "agility_shuffle"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.SINGLE_LEG),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=34, difficulty=1),
+
+        ExerciseCatalogItem("butt_kick", setOf("butt_kicks", "heel_flick"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=30, difficulty=1),
+
+        ExerciseCatalogItem("shadow_boxing", setOf("boxing_drill"),
+            MovementPattern.CONDITIONING, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=36, difficulty=1),
+
+        ExerciseCatalogItem("jumping_jack_squat", setOf("squat_jack"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=33, difficulty=2),
+
+        ExerciseCatalogItem("sled_push", setOf("prowler_push"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.KNEE_DOMINANT),
+            setOf(TrainingMode.GYM, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=35, difficulty=3),
+
+        ExerciseCatalogItem("medicine_ball_slam", setOf("ball_slam", "med_ball_slam"),
+            MovementPattern.CONDITIONING, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.GYM, TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.MIXED),
+            priority=34, difficulty=2),
+
+        // ── MOBILITY (new) ─────────────────────────────────────────────
+        ExerciseCatalogItem("downward_dog", setOf("down_dog"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=28, difficulty=1),
+
+        ExerciseCatalogItem("cobra_stretch", setOf("cobra_pose", "upward_dog"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=32, difficulty=1),
+
+        ExerciseCatalogItem("childs_pose", setOf("child_pose", "balasana"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=34, difficulty=1),
+
+        ExerciseCatalogItem("thoracic_rotation", setOf("open_book", "t_spine_rotation"),
+            MovementPattern.MOBILITY, setOf(MovementPattern.CORE),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=36, difficulty=1),
+
+        ExerciseCatalogItem("pigeon_stretch", setOf("pigeon_pose"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=38, difficulty=2),
+
+        ExerciseCatalogItem("shoulder_dislocate", setOf("band_dislocate", "shoulder_passthrough"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            setOf("bands"), priority=40, difficulty=1),
+
+        ExerciseCatalogItem("neck_stretch", setOf("neck_mobility", "neck_release"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=44, difficulty=1),
+
+        ExerciseCatalogItem("ankle_mobility", setOf("ankle_rocks", "knee_to_wall"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=46, difficulty=1),
+
+        ExerciseCatalogItem("hip_circle", setOf("hip_rotations", "standing_hip_circle"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=42, difficulty=1),
+
+        ExerciseCatalogItem("leg_swing", setOf("dynamic_leg_swing"),
+            MovementPattern.MOBILITY, setOf(),
+            setOf(TrainingMode.HOME, TrainingMode.OUTDOOR, TrainingMode.GYM, TrainingMode.MIXED),
+            priority=40, difficulty=1),
     )
 
     private val canonicalIndex = items.associateBy { it.id }
