@@ -161,6 +161,13 @@
     <string name="split_bro">Бро-сплит</string>
     <string name="split_bro_desc">Отдельные дни на группу мышц: грудь, спина, ноги, плечи, руки. Классика бодибилдинга, 3–6 дней.</string>
 
+    <string name="label_analytics_consent">Помоги нам стать лучше</string>
+    <string name="analytics_consent_hint">Мы хотим понять, какие тренеры и стили тренировок подходят разным людям лучше всего. Это полностью необязательно, можно изменить в любой момент в Настройках.</string>
+    <string name="analytics_consent_accept">Да, делиться анонимной статистикой</string>
+    <string name="analytics_consent_accept_desc">Мы отправляем только сгруппированные данные — возрастную группу, группу роста, группу веса, уровень бюджета, пол и выбранного тренера. Никогда точные цифры или имя.</string>
+    <string name="analytics_consent_decline">Нет, не сейчас</string>
+    <string name="analytics_consent_decline_desc">Ничего не будет отправлено. Приложение работает точно так же в любом случае.</string>
+
     <string name="exlib_title">Библиотека упражнений</string>
     <string name="exlib_all">Все</string>
     <string name="exlib_gym">Зал</string>

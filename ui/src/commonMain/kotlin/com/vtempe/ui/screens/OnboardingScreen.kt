@@ -817,7 +817,7 @@ fun OnboardingScreen(
                             }
                         }
 
-                        else -> {
+                        13 -> {
                             StepTitle(stringResource(Res.string.label_weekdays))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -830,6 +830,52 @@ fun OnboardingScreen(
                                         selected = selected,
                                         onClick = { presenter.update { st -> st.copy(days = st.days + (day to !selected)) } }
                                     )
+                                }
+                            }
+                        }
+
+                        else -> {
+                            StepTitle(stringResource(Res.string.label_analytics_consent))
+                            Text(
+                                text = stringResource(Res.string.analytics_consent_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = onCard.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val consentOptions = listOf(
+                                true to (stringResource(Res.string.analytics_consent_accept) to stringResource(Res.string.analytics_consent_accept_desc)),
+                                false to (stringResource(Res.string.analytics_consent_decline) to stringResource(Res.string.analytics_consent_decline_desc))
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                consentOptions.forEach { (value, labels) ->
+                                    val (label, desc) = labels
+                                    val selected = state.analyticsConsent == value
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { presenter.update { it.copy(analyticsConsent = value) } },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selected) AiPalette.Primary.copy(alpha = 0.12f)
+                                            else Color.White
+                                        ),
+                                        border = if (selected) BorderStroke(2.dp, AiPalette.Primary)
+                                            else BorderStroke(1.dp, AiPalette.Outline.copy(alpha = 0.25f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) AiPalette.Primary else onCard
+                                            )
+                                            Text(
+                                                desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = onCard.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -31,7 +31,7 @@ object AppModule {
         single { AppDatabase(get()) }
 
         // ViewModels (Android implementations live in :ui)
-        viewModel { OnboardingViewModel(get(), get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get()) }
+        viewModel { OnboardingViewModel(get(), get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
         viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
         viewModel { WorkoutViewModel(get(), get(), get(), get(), get()) }
         viewModel { NutritionViewModel(get(), get(), get()) }

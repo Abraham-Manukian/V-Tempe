@@ -6,8 +6,10 @@ import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
+import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
+import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import com.vtempe.ui.presenter.OnboardingPresenter
 import com.vtempe.ui.presenter.OnboardingPresenterDelegate
 import com.vtempe.ui.presenter.OnboardingState
@@ -19,7 +21,9 @@ private class IosOnboardingPresenter(
     profileRepository: ProfileRepository,
     bootstrapCoachData: BootstrapCoachData,
     languagePrefs: LanguagePreferences,
-    analytics: AnalyticsRepository
+    analytics: AnalyticsRepository,
+    preferencesRepository: PreferencesRepository,
+    syncAnalyticsProfile: SyncAnalyticsProfile
 ) : OnboardingPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -29,7 +33,9 @@ private class IosOnboardingPresenter(
         bootstrapCoachData = bootstrapCoachData,
         languagePrefs = languagePrefs,
         scope = scope,
-        analytics = analytics
+        analytics = analytics,
+        analyticsConsentPreferences = preferencesRepository,
+        syncAnalyticsProfile = syncAnalyticsProfile
     )
     override val state get() = delegate.state
     override fun update(transform: (OnboardingState) -> OnboardingState) = delegate.update(transform)
@@ -50,7 +56,9 @@ actual fun rememberOnboardingPresenter(): OnboardingPresenter {
             profileRepository = koin.get(),
             bootstrapCoachData = koin.get(),
             languagePrefs = koin.get(),
-            analytics = koin.get()
+            analytics = koin.get(),
+            preferencesRepository = koin.get(),
+            syncAnalyticsProfile = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

@@ -7,11 +7,13 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
 import com.vtempe.shared.domain.model.SplitPreference
 import com.vtempe.shared.domain.model.TrainingFocus
+import com.vtempe.shared.domain.repository.AnalyticsConsentPreferences
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.AnalyticsEvents
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
+import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-const val ONBOARDING_TOTAL_STEPS = 14
+const val ONBOARDING_TOTAL_STEPS = 15
 const val TRAINING_MODE_GYM = "gym"
 const val TRAINING_MODE_HOME = "home"
 const val TRAINING_MODE_OUTDOOR = "outdoor"
@@ -63,6 +65,8 @@ data class OnboardingState(
         "Sun" to false
     ),
     val languageTag: String = "system",
+    /** Opt-in for bucketed demographic analytics — asked on the last onboarding step. */
+    val analyticsConsent: Boolean = false,
     val currentStep: Int = 0,
     val saving: Boolean = false,
     val savingStep: Int = 0,  // 0=profile, 1=generating plan
@@ -87,7 +91,9 @@ class OnboardingPresenterDelegate(
     private val scope: CoroutineScope,
     /** Platform hook: Android calls AppCompatDelegate, iOS is no-op. */
     private val applyLocale: (tag: String?) -> Unit = {},
-    private val analytics: AnalyticsRepository
+    private val analytics: AnalyticsRepository,
+    private val analyticsConsentPreferences: AnalyticsConsentPreferences,
+    private val syncAnalyticsProfile: SyncAnalyticsProfile
 ) : OnboardingPresenter {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -159,6 +165,8 @@ class OnboardingPresenterDelegate(
                     )
                 )
                 profileRepository.upsertProfile(profile)
+                analyticsConsentPreferences.setAnalyticsConsent(s.analyticsConsent)
+                syncAnalyticsProfile(profile) // no-op internally unless consent was just granted
                 _state.update { it.copy(savingStep = 1) }
                 bootstrapCoachData()
                 analytics.logEvent(AnalyticsEvents.PLAN_GENERATED)
