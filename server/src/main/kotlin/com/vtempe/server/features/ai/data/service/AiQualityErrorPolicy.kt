@@ -38,10 +38,14 @@ internal object AiQualityErrorPolicy {
 
     private fun isNonCriticalError(error: String): Boolean {
         val normalized = error.lowercase(Locale.US)
+        // "calorie sum severe deviation" (>20% off target) is deliberately NOT listed here —
+        // it must stay critical so it forces a retry instead of shipping a plan that actively
+        // works against the user's goal (e.g. a bulking plan landing 30% under target).
+        // Only the soft ±10-20% "calorie sum" warning is non-critical.
         return normalized.contains("meal names repeated too often across week") ||
             normalized.contains("meal frequency") ||
             normalized.contains("contains duplicate meals") ||
             normalized.contains("nutrition language mismatch") ||
-            normalized.contains("calorie sum")
+            (normalized.contains("calorie sum") && !normalized.contains("severe deviation"))
     }
 }

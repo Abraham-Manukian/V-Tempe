@@ -24,6 +24,7 @@ object FoodRestrictionValidator {
         val noPoultry: Boolean = false,
         val noDairy: Boolean = false,
         val noEggs: Boolean = false,
+        val noHoney: Boolean = false,
         val customTerms: Set<String> = emptySet()
     )
 
@@ -37,6 +38,7 @@ object FoodRestrictionValidator {
             noPoultry = FoodRestrictionTag.Poultry in r.tags,
             noDairy = FoodRestrictionTag.Dairy in r.tags || FoodRestrictionTag.Lactose in r.tags,
             noEggs = FoodRestrictionTag.Egg in r.tags,
+            noHoney = FoodRestrictionTag.Honey in r.tags,
             customTerms = r.customTerms
         )
     }
@@ -61,6 +63,7 @@ object FoodRestrictionValidator {
         check(restrictions.noPoultry, POULTRY_KEYWORDS, "poultry")
         check(restrictions.noDairy, DAIRY_KEYWORDS, "dairy")
         check(restrictions.noEggs, EGG_KEYWORDS, "eggs")
+        check(restrictions.noHoney, HONEY_KEYWORDS, "honey")
         return violations
     }
 
@@ -97,4 +100,6 @@ object FoodRestrictionValidator {
         "milk", "cheese", "yogurt", "cream", "whey", "casein"
     )
     private val EGG_KEYWORDS = listOf("яйц", "яичн", "омлет", "глазунь", "egg", "omelet")
+    // "мед" alone deliberately excluded — substring-matches unrelated words like "медленно".
+    private val HONEY_KEYWORDS = listOf("мёд", "медов", "honey")
 }

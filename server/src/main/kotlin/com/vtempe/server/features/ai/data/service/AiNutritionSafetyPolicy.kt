@@ -17,7 +17,8 @@ internal enum class FoodRestrictionTag {
     Shellfish,
     Sesame,
     Meat,
-    Poultry
+    Poultry,
+    Honey
 }
 
 internal data class NutritionRestrictions(
@@ -88,7 +89,9 @@ private val tagKeywords: Map<FoodRestrictionTag, Set<String>> = mapOf(
     FoodRestrictionTag.Shellfish to setOf("shrimp", "prawn", "mussel", "clam", "lobster", "oyster", "кревет", "мид", "устриц", "омар", "ракообраз"),
     FoodRestrictionTag.Sesame to setOf("sesame", "tahini", "кунжут", "тахин"),
     FoodRestrictionTag.Meat to setOf("meat", "beef", "pork", "lamb", "veal", "мяс", "говя", "свин", "барани", "телят"),
-    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "курин", "индейк", "утк")
+    FoodRestrictionTag.Poultry to setOf("poultry", "chicken", "turkey", "duck", "птиц", "куриц", "курин", "индейк", "утк"),
+    // "мед" alone deliberately excluded — substring-matches unrelated words like "медленно" (slowly).
+    FoodRestrictionTag.Honey to setOf("honey", "мёд", "медов")
 )
 
 private val lactoseFreeMarkers = setOf(
@@ -202,7 +205,8 @@ internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictio
                 FoodRestrictionTag.Fish,
                 FoodRestrictionTag.Shellfish,
                 FoodRestrictionTag.Meat,
-                FoodRestrictionTag.Poultry
+                FoodRestrictionTag.Poultry,
+                FoodRestrictionTag.Honey
             )
         }
         if (containsAny(line, setOf("vegetarian", "вегетариан"))) {
@@ -241,7 +245,8 @@ private val tagForbiddenDescription: Map<FoodRestrictionTag, String> = mapOf(
     FoodRestrictionTag.Peanut   to "PEANUTS (peanut, groundnut — арахис)",
     FoodRestrictionTag.TreeNut  to "TREE NUTS (almond, walnut, cashew, hazelnut, pecan — орехи, миндаль, кешью)",
     FoodRestrictionTag.Soy      to "SOY (soy, soya, tofu — соя, тофу)",
-    FoodRestrictionTag.Sesame   to "SESAME (sesame, tahini — кунжут, тахини)"
+    FoodRestrictionTag.Sesame   to "SESAME (sesame, tahini — кунжут, тахини)",
+    FoodRestrictionTag.Honey    to "HONEY (honey — мёд; an animal product, forbidden for vegans)"
 )
 
 internal fun nutritionRestrictionsPrompt(profile: AiProfile): String {
@@ -338,10 +343,23 @@ internal fun validateNutritionPlanQuality(
                 if (meal.kcal > 0) meal.kcal
                 else computeKcal(meal.macros.proteinGrams, meal.macros.carbsGrams, meal.macros.fatGrams)
             }
-            val lower = (targetKcal * 0.90).toInt()
-            val upper = (targetKcal * 1.10).toInt()
-            if (dayKcal < lower || dayKcal > upper) {
-                errors += "$day calorie sum $dayKcal kcal outside ±10% of target $targetKcal kcal"
+            val softLower = (targetKcal * 0.90).toInt()
+            val softUpper = (targetKcal * 1.10).toInt()
+            // Beyond ±20% the plan is no longer just imprecise — it actively works against the
+            // user's goal (e.g. a GAIN_MUSCLE plan landing ~30% under target for a severely
+            // underweight profile). That's promoted to a CRITICAL error (see
+            // AiQualityErrorPolicy.isNonCriticalError) so it forces a retry with the exact
+            // target fed back to the model, instead of silently shipping a plan that fights
+            // the user's goal. ±10-20% stays a soft, non-blocking warning.
+            val hardLower = (targetKcal * 0.80).toInt()
+            val hardUpper = (targetKcal * 1.20).toInt()
+            when {
+                dayKcal < hardLower || dayKcal > hardUpper ->
+                    errors += "$day calorie sum severe deviation: $dayKcal kcal vs target $targetKcal kcal " +
+                        "(more than 20% off — increase portion sizes/add a meal to reach the target if under, " +
+                        "reduce portions if over)"
+                dayKcal < softLower || dayKcal > softUpper ->
+                    errors += "$day calorie sum $dayKcal kcal outside ±10% of target $targetKcal kcal"
             }
         }
 

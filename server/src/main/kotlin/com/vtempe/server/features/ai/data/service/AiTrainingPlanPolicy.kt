@@ -60,8 +60,8 @@ internal fun normalizeTrainingPlan(
     val skeletonData = profile?.let {
         computeSkeletonData(it, resolvedWeekIndex, trainingPlanResolver)
     }
-    val skeletonLabels = skeletonData?.map { it.first } ?: emptyList()
-    val skeletonExercises = skeletonData?.map { it.second } ?: emptyList()
+    val skeletonLabels = skeletonData?.map { it.label } ?: emptyList()
+    val skeletonExercises = skeletonData?.map { it.exerciseIds } ?: emptyList()
 
     val workouts = plan.workouts
         .take(MaxWorkoutsPerPlan)
@@ -71,7 +71,8 @@ internal fun normalizeTrainingPlan(
             val safeId = uniqueWorkoutId(rawId, resolvedWeekIndex, index, usedWorkoutIds)
 
             val preResolved = skeletonExercises.getOrNull(index)
-            val preResolvedSets = skeletonData?.getOrNull(index)?.third
+            val preResolvedSets = skeletonData?.getOrNull(index)?.setsCounts
+            val preResolvedRpes = skeletonData?.getOrNull(index)?.rpeTargets
             val normalizedSets = if (preResolved != null) {
                 // Skeleton-driven: exercise IDs are authoritative.
                 // Weight is kept only when AI chose the same exercise — otherwise null,
@@ -87,7 +88,13 @@ internal fun normalizeTrainingPlan(
                         // is always the intended slot weight — use it regardless of exercise match.
                         else -> aiSet?.weightKg?.takeIf { it >= 0.0 }
                     }
-                    val rpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
+                    val aiRpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
+                    // Clamp to the skeleton's computed RPE ceiling — this is what actually
+                    // enforces deload/first-session caps. Without this, the AI can (and
+                    // routinely does) ignore the prompt's RPE guidance and write its own
+                    // value, silently defeating shouldForceDeload()/applyFirstSessionRpeCap().
+                    val rpeCap = preResolvedRpes?.getOrNull(slotIndex)?.toDouble()
+                    val rpe = if (rpeCap != null) minOf(aiRpe, rpeCap) else aiRpe
                     val setsCount = preResolvedSets?.getOrNull(slotIndex) ?: 3
                     AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount)
                 }.take(MaxSetsPerWorkout)
@@ -139,11 +146,19 @@ internal fun normalizeTrainingPlan(
  * Returns triples of (sessionLabel, listOfExerciseIds, listOfSetsCounts).
  * Exercise IDs are authoritative — AI output is used only for reps/weight/rpe.
  */
+private data class SkeletonSessionData(
+    val label: String,
+    val exerciseIds: List<String>,
+    val setsCounts: List<Int>,
+    /** RPE ceiling per slot — used to clamp whatever RPE the AI writes (see normalizeTrainingPlan). */
+    val rpeTargets: List<Float>
+)
+
 private fun computeSkeletonData(
     profile: AiProfile,
     weekIndex: Int,
     resolver: TrainingPlanResolver
-): List<Triple<String, List<String>, List<Int>>> {
+): List<SkeletonSessionData> {
     val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         .filter { profile.weeklySchedule[it] == true }
     if (trainingDays.isEmpty()) return emptyList()
@@ -160,12 +175,14 @@ private fun computeSkeletonData(
             injuries            = profile.injuries,
             sessionDurationMins = profile.sessionDurationMins,
             weekIndex           = weekIndex,
-            forceDeload         = shouldForceDeload(profile.recentWorkouts)
+            forceDeload         = shouldForceDeload(profile.recentWorkouts),
+            hasHistory          = profile.recentWorkouts.isNotEmpty()
         ).mapIndexed { si, skeleton ->
             val label = skeleton.label.trimDayPrefix()
             val usedInSession = mutableSetOf<String>()
             val exerciseIds = mutableListOf<String>()
             val setsCounts = mutableListOf<Int>()
+            val rpeTargets = mutableListOf<Float>()
             val recentExerciseIds = profile.recentWorkouts.flatMap { it.exercises }.map { it.exerciseId }.toSet()
             skeleton.slots.forEachIndexed { j, slot ->
                 val id = resolver.resolveExerciseId(
@@ -181,9 +198,10 @@ private fun computeSkeletonData(
                     usedInSession += id
                     exerciseIds += id
                     setsCounts += slot.sets
+                    rpeTargets += slot.rpeTarget
                 }
             }
-            Triple(label, exerciseIds.toList(), setsCounts.toList())
+            SkeletonSessionData(label, exerciseIds.toList(), setsCounts.toList(), rpeTargets.toList())
         }
     }.getOrDefault(emptyList())
 }

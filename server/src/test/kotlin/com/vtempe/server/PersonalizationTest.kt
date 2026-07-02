@@ -1,5 +1,8 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.ai.data.service.AiQualityErrorPolicy
+import com.vtempe.server.features.ai.data.service.normalizeTrainingPlan
+import com.vtempe.server.features.ai.data.service.sanitizeTemplateMealsForRestrictions
 import com.vtempe.server.features.ai.data.service.split.InjuryFilter
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.features.ai.data.service.nutrition.FoodRestrictionValidator
@@ -12,6 +15,9 @@ import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
 import com.vtempe.server.shared.dto.nutrition.Macros
 import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.profile.AiRecentWorkout
+import com.vtempe.server.shared.dto.training.AiSet
+import com.vtempe.server.shared.dto.training.AiTrainingResponse
+import com.vtempe.server.shared.dto.training.AiWorkout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -90,6 +96,7 @@ class PersonalizationTest {
         assertTrue(r.noFish)
         assertTrue(r.noDairy)
         assertTrue(r.noEggs)
+        assertTrue(r.noHoney, "honey is an animal product — vegans must exclude it too")
     }
 
     @Test
@@ -306,5 +313,111 @@ class PersonalizationTest {
         )
         val maxRpe = withHistory.flatMap { it.slots }.maxOf { it.rpeTarget }
         assertTrue(maxRpe > 7.0f, "with history, RPE should not be force-capped at 7.0, got $maxRpe")
+    }
+
+    // ── BUG: calorie target not enforced ───────────────────────────────────────
+
+    @Test
+    fun `severe calorie deviation is critical not just a warning`() {
+        val errors = listOf("Mon calorie sum severe deviation: 1683 kcal vs target 2457 kcal (more than 20% off — increase portion sizes/add a meal to reach the target if under, reduce portions if over)")
+        val critical = AiQualityErrorPolicy.criticalErrors(errors)
+        assertTrue(critical.isNotEmpty(), "severe calorie deviation must be critical (force a retry), got critical=$critical")
+    }
+
+    @Test
+    fun `mild calorie deviation stays a non-critical warning`() {
+        val errors = listOf("Mon calorie sum 2000 kcal outside ±10% of target 2200 kcal")
+        val critical = AiQualityErrorPolicy.criticalErrors(errors)
+        val warnings = AiQualityErrorPolicy.warningErrors(errors)
+        assertTrue(critical.isEmpty(), "mild (±10-20%) calorie deviation should stay non-critical, got critical=$critical")
+        assertTrue(warnings.isNotEmpty(), "mild calorie deviation should still surface as a warning")
+    }
+
+    // ── BUG: deload signal didn't reach the AI-written RPE ─────────────────────
+
+    @Test
+    fun `forced deload clamps AI-written RPE down to the deload ceiling`() {
+        val profile = profile(
+            experienceLevel = 4,
+            trainingFocus = "STRENGTH",
+            splitPreference = "AUTO",
+            weeklySchedule = mapOf("Mon" to true, "Tue" to true, "Wed" to true, "Fri" to true, "Sat" to true),
+            recentWorkouts = listOf(
+                AiRecentWorkout(date = "2026-06-20", completionRate = 0.65, completedItems = 13, plannedItems = 20, totalVolumeKg = 4200.0, averageRpe = 8.9),
+                AiRecentWorkout(date = "2026-06-27", completionRate = 0.68, completedItems = 14, plannedItems = 20, totalVolumeKg = 4300.0, averageRpe = 9.1)
+            )
+        )
+        // AI ignores the deload guidance in the prompt and writes its usual high RPE anyway —
+        // this is exactly what production logs showed (flat RPE 8.5 across a 5-day week despite
+        // a clear 2-week deload signal).
+        val aiPlan = AiTrainingResponse(
+            weekIndex = 0,
+            workouts = listOf(
+                AiWorkout(id = "w1", label = "Push", date = "2026-06-29", sets = listOf(
+                    AiSet(exerciseId = "bench", reps = 6, weightKg = 55.0, rpe = 8.5)
+                ))
+            )
+        )
+        val normalized = normalizeTrainingPlan(aiPlan, profile)
+        val actualRpe = normalized.workouts.first().sets.first().rpe
+        assertTrue(
+            actualRpe != null && actualRpe <= 6.5,
+            "forced deload should clamp RPE down to ~6.5, but AI's 8.5 passed through unclamped (got $actualRpe)"
+        )
+    }
+
+    @Test
+    fun `without a deload signal AI RPE is not clamped down`() {
+        val profile = profile(
+            experienceLevel = 4,
+            trainingFocus = "STRENGTH",
+            splitPreference = "AUTO",
+            weeklySchedule = mapOf("Mon" to true, "Wed" to true, "Fri" to true),
+            recentWorkouts = listOf(
+                AiRecentWorkout(date = "2026-06-27", completionRate = 0.95, completedItems = 19, plannedItems = 20, totalVolumeKg = 4300.0, averageRpe = 7.2)
+            )
+        )
+        val aiPlan = AiTrainingResponse(
+            weekIndex = 0,
+            workouts = listOf(
+                AiWorkout(id = "w1", label = "Push", date = "2026-06-29", sets = listOf(
+                    AiSet(exerciseId = "bench", reps = 6, weightKg = 55.0, rpe = 8.5)
+                ))
+            )
+        )
+        val normalized = normalizeTrainingPlan(aiPlan, profile)
+        val actualRpe = normalized.workouts.first().sets.first().rpe
+        assertEquals(8.5, actualRpe, "with good recent performance (no deload signal), AI's RPE should pass through unclamped")
+    }
+
+    // ── BUG: fallback template silently violated vegan restrictions (honey) ────
+
+    @Test
+    fun `fallback template strips honey for a vegan profile`() {
+        // Reproduces the exact production bug: the hardcoded fallback template (used when the
+        // LLM exhausts its retry budget) included honey in two meals, and honey had no
+        // FoodRestrictionTag at all — so a vegan profile's fallback plan silently violated
+        // their diet with no error, no warning, nothing.
+        val meals = listOf(
+            AiMeal(
+                name = "Овсянка с ягодами",
+                ingredients = listOf("овсяные хлопья", "молоко", "ягоды", "мёд"),
+                kcal = 420,
+                macros = Macros(35, 12, 55, 420)
+            ),
+            AiMeal(
+                name = "Греческий йогурт с орехами",
+                ingredients = listOf("греческий йогурт", "грецкие орехи", "мёд"),
+                kcal = 420,
+                macros = Macros(25, 18, 35, 420)
+            )
+        )
+        val veganProfile = profile(dietaryPreferences = listOf("vegan"))
+        val sanitized = sanitizeTemplateMealsForRestrictions(meals, veganProfile, java.util.Locale("ru"))
+
+        val allText = sanitized.joinToString(" ") { it.name + " " + it.ingredients.joinToString(" ") }
+        assertTrue(!allText.contains("мёд"), "sanitized fallback template must not contain honey for a vegan, got: $allText")
+        assertTrue(!allText.contains("молок"), "sanitized fallback template must not contain dairy for a vegan, got: $allText")
+        assertTrue(!allText.contains("йогурт"), "sanitized fallback template must not contain yogurt for a vegan, got: $allText")
     }
 }

@@ -170,6 +170,10 @@ internal fun buildBundlePrompt(
         appendLine("  Daily calories: ${targets.kcal} kcal")
         appendLine("  Protein: ${targets.proteinG} g/day  |  Fat: ${targets.fatG} g/day  |  Carbs: ${targets.carbsG} g/day")
         appendLine("  The sum of all meals for every day MUST be within ±5% of these targets.")
+        appendLine("  CRITICAL: chronically UNDER-shooting the calorie target is a common failure mode, especially for")
+        appendLine("  low-bodyweight or budget-constrained profiles — do NOT default to small \"safe-looking\" portions.")
+        appendLine("  Before finalizing each day, ADD UP the kcal of all meals and compare to ${targets.kcal}. If the sum")
+        appendLine("  is more than 5% away, increase/decrease portion sizes (not just ingredient variety) until it matches.")
         appendLine("- ${buildBudgetNutritionGuidance(request.profile.budgetLevel ?: 2)}")
         val dietaryRules = buildDietaryStyleRules(request.profile.dietaryPreferences)
         if (dietaryRules.isNotBlank()) {
