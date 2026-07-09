@@ -2,41 +2,49 @@ package com.vtempe.server.features.ai.data.service
 
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
 import com.vtempe.server.shared.dto.advice.AiAdviceResponse
+import com.vtempe.server.shared.dto.nutrition.AiMeal
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
+import com.vtempe.server.shared.dto.nutrition.Macros
 import com.vtempe.server.shared.dto.training.AiSet
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlin.math.roundToInt
 
 internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
     val today = LocalDate.now(ZoneOffset.UTC)
     fun set(id: String, reps: Int, weight: Double?, rpe: Double?) =
         AiSet(id, reps, weight, rpe)
 
-    val workouts = List(3) { day ->
+    // Content here is a placeholder — normalizeTrainingPlan always overrides exerciseId/
+    // sets/rpe from the skeleton when a profile is present. What actually matters is
+    // generating one entry per scheduled training day, so the skeleton has as many slots
+    // to fill as the user actually asked for (was hardcoded to 3, ignoring weeklySchedule).
+    val templates = listOf(
+        listOf(
+            set("pattern:knee_dominant", 6, 60.0, 7.0),
+            set("pattern:horizontal_push", 8, 45.0, 7.0),
+            set("pattern:horizontal_pull", 10, 40.0, 7.0)
+        ),
+        listOf(
+            set("pattern:hinge", 4, 90.0, 7.5),
+            set("pattern:vertical_push", 8, 30.0, 7.0),
+            set("pattern:vertical_pull", 6, null, 7.0)
+        ),
+        listOf(
+            set("pattern:single_leg", 10, 25.0, 7.0),
+            set("pattern:horizontal_push", 12, 20.0, 7.0),
+            set("pattern:core", 45, null, 6.5)
+        )
+    )
+    val dayCount = req.profile.weeklySchedule.count { it.value }.coerceIn(1, 6)
+    val workouts = List(dayCount) { day ->
         val id = "w_${req.weekIndex}_${day + 1}"
         val date = today.plusDays(day.toLong()).toString()
-        val sets = when (day) {
-            0 -> listOf(
-                set("pattern:knee_dominant", 6, 60.0, 7.0),
-                set("pattern:horizontal_push", 8, 45.0, 7.0),
-                set("pattern:horizontal_pull", 10, 40.0, 7.0)
-            )
-            1 -> listOf(
-                set("pattern:hinge", 4, 90.0, 7.5),
-                set("pattern:vertical_push", 8, 30.0, 7.0),
-                set("pattern:vertical_pull", 6, null, 7.0)
-            )
-            else -> listOf(
-                set("pattern:single_leg", 10, 25.0, 7.0),
-                set("pattern:horizontal_push", 12, 20.0, 7.0),
-                set("pattern:core", 45, null, 6.5)
-            )
-        }
-        AiWorkout(id = id, date = date, sets = sets)
+        AiWorkout(id = id, date = date, sets = templates[day % templates.size])
     }
     return normalizeTrainingPlan(
         plan = AiTrainingResponse(req.weekIndex, workouts),
@@ -48,14 +56,41 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
 internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
     val locale = safeLocale(req.locale ?: req.profile.locale)
     val meals = templateMeals(locale, req.profile)
+    val targetKcal = computeTargetNutrition(req.profile).kcal
+    val fullDayMeals = scaleMealsToTarget(meals, targetKcal)
+    val shortDayMeals = scaleMealsToTarget(meals.take(3), targetKcal)
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val planMeals = days.associateWith { day -> if (day == "Sun") meals.take(3) else meals }
+    val planMeals = days.associateWith { day -> if (day == "Sun") shortDayMeals else fullDayMeals }
     val shopping = meals.flatMap { it.ingredients }
         .map(::sanitizeText)
         .filter { it.isNotEmpty() }
         .distinct()
         .sorted()
     return AiNutritionResponse(req.weekIndex, planMeals, shopping)
+}
+
+/** Scales a fixed meal template's kcal/macros to hit [targetKcal] — ingredient names stay
+ *  generic (no gram quantities to rewrite), only the numbers are proportionally adjusted. */
+private fun scaleMealsToTarget(meals: List<AiMeal>, targetKcal: Int): List<AiMeal> {
+    val currentTotal = meals.sumOf { it.kcal }
+    if (currentTotal <= 0 || targetKcal <= 0) return meals
+    val factor = targetKcal.toDouble() / currentTotal
+    return meals.map { meal ->
+        val scaledKcal = (meal.kcal * factor).roundToInt()
+        AiMeal(
+            name = meal.name,
+            ingredients = meal.ingredients,
+            kcal = scaledKcal,
+            macros = Macros(
+                proteinGrams = (meal.macros.proteinGrams * factor).roundToInt(),
+                fatGrams = (meal.macros.fatGrams * factor).roundToInt(),
+                carbsGrams = (meal.macros.carbsGrams * factor).roundToInt(),
+                kcal = scaledKcal
+            ),
+            allergenTags = meal.allergenTags,
+            recipe = meal.recipe
+        )
+    }
 }
 
 internal fun fallbackAdvice(req: AiAdviceRequest): AiAdviceResponse {

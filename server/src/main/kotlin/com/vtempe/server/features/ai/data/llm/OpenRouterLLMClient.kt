@@ -21,7 +21,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
+import java.net.InetSocketAddress
 import java.net.Proxy
+import java.net.URI
 import org.slf4j.LoggerFactory
 
 private const val REQUEST_TIMEOUT_MS = 180_000L
@@ -62,7 +64,7 @@ class OpenRouterLLMClient(
 
     private val http = HttpClient(OkHttp) {
         engine {
-            config { proxy(Proxy.NO_PROXY) }
+            config { proxy(resolveSystemProxy()) }
         }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         install(HttpTimeout) {
@@ -208,6 +210,28 @@ class OpenRouterLLMClient(
     }
 
     companion object {
+        /**
+         * Prod (Cloud Run) has no HTTP_PROXY/HTTPS_PROXY set, so this resolves to
+         * Proxy.NO_PROXY there — unchanged behavior. Local dev machines behind a
+         * VPN/proxy (common when OpenRouter blocks direct connections from certain
+         * regions/IPs) get routed through it automatically instead of being forced
+         * to bypass it.
+         */
+        private fun resolveSystemProxy(): Proxy {
+            val raw = System.getenv("HTTPS_PROXY") ?: System.getenv("https_proxy")
+                ?: System.getenv("HTTP_PROXY") ?: System.getenv("http_proxy")
+                ?: return Proxy.NO_PROXY
+            return runCatching {
+                val uri = if ("://" in raw) URI(raw) else URI("http://$raw")
+                val host = uri.host ?: return Proxy.NO_PROXY
+                val port = uri.port.takeIf { it != -1 } ?: 80
+                Proxy(Proxy.Type.HTTP, InetSocketAddress(host, port))
+            }.getOrElse {
+                logger.warn("Ignoring malformed proxy env var '{}': {}", raw, it.message)
+                Proxy.NO_PROXY
+            }
+        }
+
         private const val DEFAULT_MODEL = "openrouter/auto"
         private const val DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
         private const val DEFAULT_TEMPERATURE = 0.35

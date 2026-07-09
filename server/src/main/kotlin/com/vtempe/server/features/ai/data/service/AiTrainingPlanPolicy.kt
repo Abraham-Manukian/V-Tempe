@@ -14,16 +14,37 @@ import java.time.temporal.TemporalAdjusters
 private const val MaxWorkoutsPerPlan = 7
 private const val MaxSetsPerWorkout = 6
 
-// Exercises measured in seconds — AI should put seconds in the `reps` field (e.g. reps=30 = 30s hold).
+// Exercises measured in seconds — the `reps` field holds a seconds count (e.g. reps=30 = 30s
+// hold). AI-written values are wildly inconsistent for these (we've seen "8" and "45" for the
+// same exercise across runs), so normalizeTrainingPlan() below clamps reps into SECONDS_RANGE
+// instead of trusting whatever the AI wrote.
 internal val durationSecondsExerciseIds = setOf(
-    "plank", "side_plank", "wall_sit", "l_sit", "hollow_body", "hollow_hold",
-    "bike", "stationary_bike", "cycling", "mountain_climber", "mountain_climbers"
+    "plank", "side_plank", "wall_sit", "wall_sit_march", "l_sit", "hollow_body", "hollow_hold",
+    "hollow_rock", "plank_shoulder_tap", "plank_up_down", "plank_reach", "side_plank_hip_dip",
+    "chin_up_hold", "mountain_climber", "mountain_climbers", "flutter_kick",
+    "stretching", "hip_flexor_stretch", "world_greatest_stretch", "downward_dog",
+    "cobra_stretch", "childs_pose", "thoracic_rotation", "pigeon_stretch", "shoulder_dislocate",
+    "neck_stretch", "ankle_mobility", "hip_circle", "leg_swing",
+    "squat_thrust", "tuck_jump", "bear_crawl", "inchworm", "lateral_shuffle", "butt_kick",
+    "jumping_jack_squat"
 )
+private val SECONDS_RANGE = 20..60
 
-// Exercises measured in minutes — AI should put minutes in the `reps` field.
+// Exercises measured in minutes — the `reps` field holds a minutes count.
 internal val durationMinutesExerciseIds = setOf(
-    "run", "running", "jog", "jogging", "treadmill"
+    "run", "running", "jog", "jogging", "treadmill",
+    "bike", "stationary_bike", "cycling", "rowing_machine"
 )
+private val MINUTES_RANGE = 5..30
+
+/** The AI writes wildly inconsistent numbers for duration-based exercises (e.g. "8" or "45"
+ *  for the same plank slot across runs) since nothing tells it what unit `reps` represents for
+ *  a given exercise. Clamp into a sane range per exercise instead of trusting the raw value. */
+internal fun clampRepsForUnit(exerciseId: String, reps: Int): Int = when (exerciseId) {
+    in durationSecondsExerciseIds -> reps.coerceIn(SECONDS_RANGE)
+    in durationMinutesExerciseIds -> reps.coerceIn(MINUTES_RANGE)
+    else -> reps
+}
 
 // Exercises where external weight should always be null (no barbell/dumbbell added)
 // Advanced users with a weight belt are the exception, but we keep weight null by default.
@@ -36,7 +57,17 @@ private val bodweightOnlyExerciseIds = setOf(
     "l_sit", "hollow_body", "hollow_hold",
     "wall_sit", "lunge", "reverse_lunge", "walking_lunge", "split_squat",
     "sumo_squat", "glute_bridge", "glute_bridge_hold", "nordic_curl", "step_up",
-    "bear_crawl", "crab_walk", "inchworm"
+    "bear_crawl", "crab_walk", "inchworm",
+    "towel_row", "doorway_row", "table_row", "prone_y_raise", "prone_w_raise",
+    "scapular_pullup", "neutral_grip_pullup", "negative_pullup",
+    "bench_dip", "diamond_pushup_knee", "wall_tricep_extension", "wall_walk",
+    "pike_pushup_elevated", "knee_pushup", "pseudo_planche_pushup", "archer_pushup",
+    "clap_pushup", "close_grip_pushup_feet_elevated",
+    "single_leg_glute_bridge", "bodyweight_good_morning", "hip_hinge_wall", "prone_leg_curl",
+    "bodyweight_squat", "prisoner_squat", "cossack_squat", "calf_raise",
+    "glute_kickback", "fire_hydrant", "jump_lunge",
+    "reverse_crunch", "heel_touch", "plank_shoulder_tap", "bird_dog", "plank_up_down",
+    "side_plank_hip_dip", "hollow_rock", "plank_reach"
 )
 
 internal fun normalizeTrainingPlan(
@@ -62,6 +93,14 @@ internal fun normalizeTrainingPlan(
     }
     val skeletonLabels = skeletonData?.map { it.label } ?: emptyList()
     val skeletonExercises = skeletonData?.map { it.exerciseIds } ?: emptyList()
+    // Resistance bands don't have a literal kg value — if that's genuinely all the equipment
+    // the user has (no dumbbells/barbell/kettlebell/machines/cables), a "weightKg" the AI
+    // invents (e.g. lateral_raise@2kg) is fiction, not a real plate. Null it out like bodyweight
+    // exercises so the UI shows "—" for the user to fill in their own band's resistance level.
+    val bandsOnlyEquipment = profile?.let {
+        val normalized = trainingPlanResolver.normalizeEquipment(it.equipment)
+        normalized.isNotEmpty() && normalized.all { tag -> tag == "bands" || tag == "mat" }
+    } ?: false
 
     val workouts = plan.workouts
         .take(MaxWorkoutsPerPlan)
@@ -81,9 +120,9 @@ internal fun normalizeTrainingPlan(
                     val aiSet = workout.sets.getOrNull(slotIndex)
                     val aiExerciseMatches = aiSet != null &&
                         normalizeExerciseToken(aiSet.exerciseId) == exerciseId
-                    val reps = aiSet?.reps?.coerceAtLeast(1) ?: 8
+                    val reps = clampRepsForUnit(exerciseId, aiSet?.reps?.coerceAtLeast(1) ?: 8)
                     val weight = when {
-                        exerciseId in bodweightOnlyExerciseIds -> null
+                        exerciseId in bodweightOnlyExerciseIds || bandsOnlyEquipment -> null
                         // In skeleton path we override the exercise ID ourselves, so AI's weight
                         // is always the intended slot weight — use it regardless of exercise match.
                         else -> aiSet?.weightKg?.takeIf { it >= 0.0 }
@@ -100,7 +139,9 @@ internal fun normalizeTrainingPlan(
                 }.take(MaxSetsPerWorkout)
             } else {
                 // No skeleton available — fall back to resolver-based flow.
-                val usedExerciseIds = mutableSetOf<String>()
+                val usedExerciseIds = com.vtempe.server.features.ai.data.service.split.InjuryFilter
+                    .bannedExerciseIds(profile?.injuries.orEmpty())
+                    .toMutableSet()
                 workout.sets
                     .mapIndexedNotNull { setIndex, set ->
                         val canonical = trainingPlanResolver.resolveExerciseId(
@@ -112,8 +153,8 @@ internal fun normalizeTrainingPlan(
                             rotationSeed = (index * 31) + setIndex
                         ) ?: return@mapIndexedNotNull null
                         usedExerciseIds += canonical
-                        val reps = set.reps.coerceAtLeast(1)
-                        val weight = if (canonical in bodweightOnlyExerciseIds) null
+                        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1))
+                        val weight = if (canonical in bodweightOnlyExerciseIds || bandsOnlyEquipment) null
                                      else set.weightKg?.takeIf { it >= 0.0 }
                         val rpe = set.rpe?.takeIf { it > 0.0 }
                         AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe)
@@ -162,6 +203,14 @@ private fun computeSkeletonData(
     val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         .filter { profile.weeklySchedule[it] == true }
     if (trainingDays.isEmpty()) return emptyList()
+    val forceDeload = shouldForceDeload(profile.recentWorkouts)
+    // Deload weeks must actually reduce compound stress, not just RPE. A split like 5-day
+    // PPL intentionally repeats a "Legs" session (Grgic 2018: ≥2x/week per muscle is fine in
+    // a normal week), but during deload that means the exact same heavy squat+deadlift twice
+    // — the RPE cap alone doesn't fix that. Track which exerciseIds got used under each label
+    // so a same-label repeat during deload is forced to pick different (lighter/varied)
+    // exercises instead of literally repeating the first occurrence.
+    val usedByLabelThisWeek = mutableMapOf<String, MutableSet<String>>()
     return runCatching {
         TrainingSplitPlanner.build(
             trainingDays        = trainingDays,
@@ -175,11 +224,20 @@ private fun computeSkeletonData(
             injuries            = profile.injuries,
             sessionDurationMins = profile.sessionDurationMins,
             weekIndex           = weekIndex,
-            forceDeload         = shouldForceDeload(profile.recentWorkouts),
+            forceDeload         = forceDeload,
             hasHistory          = profile.recentWorkouts.isNotEmpty()
         ).mapIndexed { si, skeleton ->
             val label = skeleton.label.trimDayPrefix()
-            val usedInSession = mutableSetOf<String>()
+            // Body-part injury bans are handled by InjuryFilter.applyTo() rebuilding the
+            // skeleton's slots. Free-text bans that name a specific exercise/equipment
+            // ("нельзя брусья") don't map to a MovementPattern, so seed the resolver's
+            // used-id exclusion set with them directly.
+            val usedInSession = com.vtempe.server.features.ai.data.service.split.InjuryFilter
+                .bannedExerciseIds(profile.injuries)
+                .toMutableSet()
+            if (forceDeload) {
+                usedInSession += usedByLabelThisWeek[label].orEmpty()
+            }
             val exerciseIds = mutableListOf<String>()
             val setsCounts = mutableListOf<Int>()
             val rpeTargets = mutableListOf<Float>()
@@ -200,6 +258,9 @@ private fun computeSkeletonData(
                     setsCounts += slot.sets
                     rpeTargets += slot.rpeTarget
                 }
+            }
+            if (forceDeload) {
+                usedByLabelThisWeek.getOrPut(label) { mutableSetOf() } += exerciseIds
             }
             SkeletonSessionData(label, exerciseIds.toList(), setsCounts.toList(), rpeTargets.toList())
         }

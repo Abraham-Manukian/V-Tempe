@@ -1,6 +1,9 @@
 package com.vtempe.server
 
 import com.vtempe.server.features.ai.data.service.AiQualityErrorPolicy
+import com.vtempe.server.features.ai.data.service.clampRepsForUnit
+import com.vtempe.server.features.ai.data.service.fallbackNutrition
+import com.vtempe.server.features.ai.data.service.fallbackTraining
 import com.vtempe.server.features.ai.data.service.normalizeTrainingPlan
 import com.vtempe.server.features.ai.data.service.sanitizeTemplateMealsForRestrictions
 import com.vtempe.server.features.ai.data.service.split.InjuryFilter
@@ -11,11 +14,13 @@ import com.vtempe.server.features.ai.data.service.nutrition.ShoppingListNormaliz
 import com.vtempe.server.features.ai.domain.model.MovementPattern
 import com.vtempe.server.features.ai.domain.model.SlotType
 import com.vtempe.server.shared.dto.nutrition.AiMeal
+import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
 import com.vtempe.server.shared.dto.nutrition.Macros
 import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.profile.AiRecentWorkout
 import com.vtempe.server.shared.dto.training.AiSet
+import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -419,5 +424,158 @@ class PersonalizationTest {
         assertTrue(!allText.contains("мёд"), "sanitized fallback template must not contain honey for a vegan, got: $allText")
         assertTrue(!allText.contains("молок"), "sanitized fallback template must not contain dairy for a vegan, got: $allText")
         assertTrue(!allText.contains("йогурт"), "sanitized fallback template must not contain yogurt for a vegan, got: $allText")
+    }
+
+    // ── BUG: fallbackNutrition() ignored the computed calorie target ───────────
+
+    @Test
+    fun `fallback nutrition scales to the computed calorie target instead of a flat number`() {
+        val bulkProfile = profile(goal = "GAIN_MUSCLE", weightKg = 52.0, heightCm = 190, age = 18, experienceLevel = 1)
+        val cutProfile = profile(goal = "LOSE_FAT", weightKg = 104.0, heightCm = 178, age = 34)
+        val bulkPlan = fallbackNutrition(AiNutritionRequest(bulkProfile, weekIndex = 0, locale = "ru"))
+        val cutPlan = fallbackNutrition(AiNutritionRequest(cutProfile, weekIndex = 0, locale = "ru"))
+
+        val bulkMonKcal = bulkPlan.mealsByDay.getValue("Mon").sumOf { it.kcal }
+        val cutMonKcal = cutPlan.mealsByDay.getValue("Mon").sumOf { it.kcal }
+        assertTrue(
+            bulkMonKcal > cutMonKcal,
+            "bulk fallback ($bulkMonKcal) should exceed cut fallback ($cutMonKcal) — both were a flat 1968 before the fix"
+        )
+
+        val target = NutritionTargetCalculator.targetsFor(bulkProfile).kcal
+        for (day in listOf("Mon", "Wed", "Sun")) {
+            val dayKcal = bulkPlan.mealsByDay.getValue(day).sumOf { it.kcal }
+            assertTrue(
+                kotlin.math.abs(dayKcal - target) < target * 0.15,
+                "$day kcal=$dayKcal should land within 15% of target=$target (Sunday used to be a flat 1408 regardless of target)"
+            )
+        }
+    }
+
+    // ── BUG: fallbackTraining() ignored weeklySchedule and hardcoded 3 days ────
+
+    @Test
+    fun `fallback training generates one workout per scheduled day, not a hardcoded 3`() {
+        val sixDayProfile = profile(
+            splitPreference = "PPL",
+            weeklySchedule = mapOf(
+                "Mon" to true, "Tue" to true, "Wed" to true,
+                "Thu" to true, "Fri" to true, "Sat" to true
+            )
+        )
+        val plan = fallbackTraining(AiTrainingRequest(sixDayProfile, weekIndex = 0, locale = "ru"))
+        assertEquals(6, plan.workouts.size, "expected 6 workouts for a 6-day schedule, got ${plan.workouts.size}")
+    }
+
+    // ── BUG: free-text exercise exclusions ("нельзя брусья") were never enforced ─
+
+    @Test
+    fun `InjuryFilter parses free-text exercise-specific bans`() {
+        val banned = InjuryFilter.bannedExerciseIds(
+            listOf("болит плечо, нельзя подтягивания широким хватом, нельзя брусья")
+        )
+        assertTrue("dip" in banned, "banned=$banned should include dip (брусья)")
+        assertTrue("bench_dip" in banned, "banned=$banned should include bench_dip (брусья)")
+        assertTrue("wide_pullup" in banned, "banned=$banned should include wide_pullup (широким хватом)")
+    }
+
+    @Test
+    fun `dip is excluded from a generated plan when the profile says no dip bars`() {
+        val profileNoDipBars = profile(
+            experienceLevel = 3,
+            splitPreference = "AUTO",
+            weeklySchedule = mapOf("Mon" to true, "Wed" to true, "Fri" to true),
+            injuries = listOf("болит плечо, нельзя брусья")
+        ).copy(equipment = listOf("pullup_bar"), trainingMode = "OUTDOOR")
+        val plan = fallbackTraining(AiTrainingRequest(profileNoDipBars, weekIndex = 0, locale = "ru"))
+        val allExerciseIds = plan.workouts.flatMap { it.sets }.map { it.exerciseId }
+        assertTrue("dip" !in allExerciseIds, "dip must not appear when 'нельзя брусья' is in injuries, got: $allExerciseIds")
+        assertTrue("bench_dip" !in allExerciseIds, "bench_dip must not appear when 'нельзя брусья' is in injuries, got: $allExerciseIds")
+    }
+
+    // ── BUG: deload didn't stop the same heavy squat+deadlift repeating 2x/week ─
+
+    @Test
+    fun `deload week does not repeat the identical leg-day compounds twice`() {
+        val deloadProfile = profile(
+            experienceLevel = 4,
+            trainingFocus = "STRENGTH",
+            splitPreference = "AUTO",
+            weeklySchedule = mapOf("Mon" to true, "Tue" to true, "Wed" to true, "Fri" to true, "Sat" to true),
+            recentWorkouts = listOf(
+                AiRecentWorkout(date = "2026-06-20", completionRate = 0.6, completedItems = 12, plannedItems = 20, totalVolumeKg = 3200.0, averageRpe = 9.2),
+                AiRecentWorkout(date = "2026-06-27", completionRate = 0.58, completedItems = 11, plannedItems = 20, totalVolumeKg = 3100.0, averageRpe = 9.4)
+            )
+        )
+        val plan = fallbackTraining(AiTrainingRequest(deloadProfile, weekIndex = 0, locale = "ru"))
+        val legDays = plan.workouts.filter { it.label == "Legs" }
+        assertEquals(2, legDays.size, "expected two Legs sessions in a 5-day PPL week")
+        val ids1 = legDays[0].sets.map { it.exerciseId }.toSet()
+        val ids2 = legDays[1].sets.map { it.exerciseId }.toSet()
+        assertTrue(ids1 != ids2, "deload's two Leg days should not use the identical exercise set, got $ids1 both times")
+    }
+
+    @Test
+    fun `without a deload signal both leg days may repeat the same compounds`() {
+        val normalProfile = profile(
+            experienceLevel = 4,
+            trainingFocus = "STRENGTH",
+            splitPreference = "AUTO",
+            weeklySchedule = mapOf("Mon" to true, "Tue" to true, "Wed" to true, "Fri" to true, "Sat" to true)
+        )
+        val plan = fallbackTraining(AiTrainingRequest(normalProfile, weekIndex = 0, locale = "ru"))
+        val legDays = plan.workouts.filter { it.label == "Legs" }
+        assertEquals(2, legDays.size)
+        assertEquals(
+            legDays[0].sets.map { it.exerciseId }.toSet(),
+            legDays[1].sets.map { it.exerciseId }.toSet(),
+            "outside deload, hitting legs 2x/week with the same compounds is intentional (Grgic 2018)"
+        )
+    }
+
+    // ── BUG: AI wrote nonsensical numbers for duration-based exercises ─────────
+
+    @Test
+    fun `clampRepsForUnit clamps seconds and minutes exercises into a sane range`() {
+        assertEquals(20, clampRepsForUnit("plank", 3), "plank=3 should clamp up to the seconds floor")
+        assertEquals(60, clampRepsForUnit("plank", 500), "plank=500 should clamp down to the seconds ceiling")
+        assertEquals(30, clampRepsForUnit("plank", 30), "plank=30 is already sane and should pass through")
+        assertEquals(5, clampRepsForUnit("run", 1), "run=1 should clamp up to the minutes floor")
+        assertEquals(8, clampRepsForUnit("bench", 8), "non-duration exercises must not be touched")
+    }
+
+    // ── BUG: bands-only equipment still got a fabricated literal weightKg ──────
+
+    @Test
+    fun `bands-only equipment nulls out weightKg even for normally-weighted exercises`() {
+        val bandsProfile = profile(
+            splitPreference = "PPL",
+            weeklySchedule = mapOf("Mon" to true, "Tue" to true, "Wed" to true)
+        ).copy(equipment = listOf("bands", "mat"), trainingMode = "HOME")
+        val plan = fallbackTraining(AiTrainingRequest(bandsProfile, weekIndex = 0, locale = "ru"))
+        val allSets = plan.workouts.flatMap { it.sets }
+        assertTrue(allSets.isNotEmpty(), "expected at least some sets in the bands-only plan")
+        val weighted = allSets.filter { it.weightKg != null }
+        assertTrue(
+            weighted.isEmpty(),
+            "bands-only equipment should never produce a literal weightKg, got: ${weighted.map { it.exerciseId to it.weightKg }}"
+        )
+    }
+
+    @Test
+    fun `real gym equipment still keeps a literal weightKg`() {
+        val gymProfile = profile(weeklySchedule = mapOf("Mon" to true))
+            .copy(equipment = listOf("barbell", "dumbbells", "bench"), trainingMode = "GYM")
+        val aiPlan = AiTrainingResponse(
+            weekIndex = 0,
+            workouts = listOf(
+                AiWorkout(id = "w1", label = "Full Body A", date = "2026-07-06", sets = listOf(
+                    AiSet(exerciseId = "bench", reps = 6, weightKg = 60.0, rpe = 7.0)
+                ))
+            )
+        )
+        val normalized = normalizeTrainingPlan(aiPlan, gymProfile)
+        val firstSet = normalized.workouts.first().sets.first()
+        assertEquals(60.0, firstSet.weightKg, "real gym equipment should keep the AI's literal weight, got ${firstSet.weightKg}")
     }
 }

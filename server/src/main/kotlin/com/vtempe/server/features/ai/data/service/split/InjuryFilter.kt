@@ -27,6 +27,31 @@ internal object InjuryFilter {
     private val NECK_KEYWORDS     = setOf("neck", "шея", "шей", "cervical", "цервикальн")
     private val ANKLE_KEYWORDS    = setOf("ankle", "лодыжка", "лодыж", "голеностоп", "achilles", "ахилл")
 
+    /**
+     * Body-part keywords above ban whole MovementPatterns. Some injury notes instead name a
+     * specific exercise/equipment the user can't use (e.g. "нельзя брусья") — those don't map
+     * to a MovementPattern ban (dip is HORIZONTAL_PUSH/ARM_EXTENSION, patterns that are safe in
+     * general) so they need their own explicit exerciseId exclusion list.
+     */
+    private val EXERCISE_ID_BAN_KEYWORDS: List<Pair<Set<String>, Set<String>>> = listOf(
+        setOf("брусья", "брусьях", "dip bar", "dip bars", "parallel bar", "parallel bars") to
+            setOf("dip", "bench_dip"),
+        setOf("широким хватом", "wide grip", "wide-grip", "wide pullup", "wide pull up", "wide pull-up") to
+            setOf("wide_pullup"),
+    )
+
+    /** ExerciseIds the user explicitly can't do, parsed from free-text injury notes. */
+    fun bannedExerciseIds(injuries: List<String>): Set<String> {
+        val banned = mutableSetOf<String>()
+        for (injury in injuries) {
+            val lower = injury.lowercase()
+            for ((keywords, ids) in EXERCISE_ID_BAN_KEYWORDS) {
+                if (keywords.any { lower.contains(it) }) banned += ids
+            }
+        }
+        return banned
+    }
+
     fun bannedPatterns(injuries: List<String>): Set<MovementPattern> {
         val banned = mutableSetOf<MovementPattern>()
         for (injury in injuries) {
