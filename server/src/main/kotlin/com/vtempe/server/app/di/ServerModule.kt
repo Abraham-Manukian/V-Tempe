@@ -16,6 +16,7 @@ import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmErrorTracker
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmRawStore
 import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
+import com.vtempe.server.features.ai.data.service.BundleCache
 import com.vtempe.server.features.ai.data.resolver.DefaultTrainingPlanResolver
 import com.vtempe.server.features.ai.data.service.AiService
 import com.vtempe.server.features.ai.data.service.ChatService
@@ -201,13 +202,15 @@ val serverModule = module {
     // AiService uses the bootstrap (Claude Sonnet 4.5) client for high-quality plan generation.
     // ChatService uses the paid (Gemini 2.5 Flash) client for fast, cost-effective chat.
     // Both fall back to the free (Llama 3.3 70B) client when rate-limited.
+    single { BundleCache() }
     single {
         AiService(
             paidLlmClient = get(named("llm-bootstrap")),
             freeLlmClient = get(named("llm-free")),
             llmRepairer = get(),
             exerciseCatalog = get(),
-            trainingPlanResolver = get()
+            trainingPlanResolver = get(),
+            bundleCache = get()
         )
     }
     single {

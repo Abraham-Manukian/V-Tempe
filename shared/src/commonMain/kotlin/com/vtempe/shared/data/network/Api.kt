@@ -21,7 +21,6 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.shared.domain.util.DataResult.Reason
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -162,8 +161,3 @@ fun createHttpClient(appToken: String? = null) = HttpClient {
         }
     }
 }
-
-@Serializable
-data class SignupRequest(val email: String, val password: String)
-@Serializable
-data class SignupResponse(val userId: String, val token: String)

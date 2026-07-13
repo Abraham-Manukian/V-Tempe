@@ -18,12 +18,8 @@ import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -33,7 +29,8 @@ class AiService(
     private val freeLlmClient: LLMClient,
     private val llmRepairer: LlmRepairer,
     private val exerciseCatalog: ExerciseCatalog,
-    private val trainingPlanResolver: TrainingPlanResolver
+    private val trainingPlanResolver: TrainingPlanResolver,
+    private val bundleCache: BundleCache = BundleCache()
 ) {
 
     private val logger = LoggerFactory.getLogger(AiService::class.java)
@@ -110,10 +107,10 @@ class AiService(
             profileHash
         )
 
-        val cached = loadCachedBundle(requestId)
+        val cached = bundleCache.loadIfFresh(requestId)
         if (cached != null) return cached
 
-        val pendingState = lockInFlightBundle(requestId)
+        val pendingState = bundleCache.lockInFlight(requestId)
         if (!pendingState.isOwner) {
             return pendingState.deferred.await()
         }
@@ -133,14 +130,7 @@ class AiService(
                 requestId = requestId
             )
             if (decomposed != null) {
-                cacheMutex.withLock {
-                    bundleCache[requestId] = CacheEntry(
-                        bundle = decomposed,
-                        timestamp = System.currentTimeMillis(),
-                        ttlMs = BundleCacheTtlMs
-                    )
-                    inFlightBundles.remove(requestId)?.complete(decomposed)
-                }
+                bundleCache.store(requestId, decomposed, BundleCache.BundleCacheTtlMs)
                 return decomposed
             }
             logger.warn("Decomposed-first bundle generation failed, falling back to monolithic requestId={}", requestId)
@@ -203,14 +193,7 @@ class AiService(
             )
 
             val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
-            cacheMutex.withLock {
-                bundleCache[requestId] = CacheEntry(
-                    bundle = normalized,
-                    timestamp = System.currentTimeMillis(),
-                    ttlMs = BundleCacheTtlMs
-                )
-                inFlightBundles.remove(requestId)?.complete(normalized)
-            }
+            bundleCache.store(requestId, normalized, BundleCache.BundleCacheTtlMs)
             normalized
         } catch (t: Throwable) {
             val decomposed = if (!decomposedAttempted && shouldAttemptDecomposedGeneration(t)) {
@@ -225,14 +208,7 @@ class AiService(
                 null
             }
             if (decomposed != null) {
-                cacheMutex.withLock {
-                    bundleCache[requestId] = CacheEntry(
-                        bundle = decomposed,
-                        timestamp = System.currentTimeMillis(),
-                        ttlMs = BundleCacheTtlMs
-                    )
-                    inFlightBundles.remove(requestId)?.complete(decomposed)
-                }
+                bundleCache.store(requestId, decomposed, BundleCache.BundleCacheTtlMs)
                 return decomposed
             }
 
@@ -248,14 +224,7 @@ class AiService(
             )
             logger.warn("LLM bundle fallback activated for requestId={}", requestId, t)
             AiQualityMetrics.recordFallback(logger, "coach-bundle", t)
-            cacheMutex.withLock {
-                bundleCache[requestId] = CacheEntry(
-                    bundle = fallbackBundle,
-                    timestamp = System.currentTimeMillis(),
-                    ttlMs = FallbackCacheTtlMs
-                )
-                inFlightBundles.remove(requestId)?.complete(fallbackBundle)
-            }
+            bundleCache.store(requestId, fallbackBundle, BundleCache.FallbackCacheTtlMs)
             fallbackBundle
         }
     }
@@ -623,43 +592,6 @@ class AiService(
         }
     }
 
-    private suspend fun loadCachedBundle(requestId: String): AiBootstrapResponse? {
-        val now = System.currentTimeMillis()
-        return cacheMutex.withLock {
-            bundleCache[requestId]?.let { entry ->
-                if (isFresh(entry, now)) {
-                    entry.bundle
-                } else {
-                    bundleCache.remove(requestId)
-                    null
-                }
-            }
-        }
-    }
-
-    private suspend fun lockInFlightBundle(requestId: String): PendingBundle {
-        return cacheMutex.withLock {
-            bundleCache[requestId]?.let { entry ->
-                if (isFresh(entry)) {
-                    return@withLock PendingBundle(
-                        deferred = CompletableDeferred<AiBootstrapResponse>().apply { complete(entry.bundle) },
-                        isOwner = false
-                    )
-                }
-                bundleCache.remove(requestId)
-            }
-
-            val existing = inFlightBundles[requestId]
-            if (existing != null) {
-                PendingBundle(deferred = existing, isOwner = false)
-            } else {
-                val created = CompletableDeferred<AiBootstrapResponse>()
-                inFlightBundles[requestId] = created
-                PendingBundle(deferred = created, isOwner = true)
-            }
-        }
-    }
-
     /**
      * Checks that each exercise in the raw AI response belongs to the expected movement pattern
      * for that skeleton slot. Returns specific, actionable error messages fed back to the LLM
@@ -790,9 +722,6 @@ class AiService(
             message.contains("provider returned error")
     }
 
-    private fun isFresh(entry: CacheEntry, now: Long = System.currentTimeMillis()): Boolean =
-        now - entry.timestamp <= entry.ttlMs
-
     private fun shouldAttemptDecomposedGeneration(error: Throwable): Boolean {
         if (error is RateLimitException) return false
         val message = error.message?.lowercase().orEmpty()
@@ -812,21 +741,5 @@ class AiService(
             ?.equals("true", ignoreCase = true)
             ?: true
         private const val DefaultLocale = "en-US"
-        private const val BundleCacheTtlMs = 30 * 60 * 1000L
-        private const val FallbackCacheTtlMs = 2 * 60 * 1000L
-
-        private val bundleCache = ConcurrentHashMap<String, CacheEntry>()
-        private val cacheMutex = Mutex()
-        private val inFlightBundles = ConcurrentHashMap<String, CompletableDeferred<AiBootstrapResponse>>()
     }
-
-    private data class CacheEntry(
-        val bundle: AiBootstrapResponse,
-        val timestamp: Long,
-        val ttlMs: Long
-    )
-    private data class PendingBundle(
-        val deferred: CompletableDeferred<AiBootstrapResponse>,
-        val isOwner: Boolean
-    )
 }
