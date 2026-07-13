@@ -527,8 +527,7 @@ class AiService(
             appendLine()
             appendLine(trainingResolverDescriptions)
             appendLine("Max $MaxWorkoutsPerPlan workouts, max $MaxSetsPerWorkout sets per workout, no duplicate workout IDs.")
-            appendLine("PROFILE JSON:")
-            append(profileJson)
+            append(untrustedDataBlock("PROFILE JSON", profileJson))
         }
     }
 
@@ -555,7 +554,7 @@ class AiService(
             appendLine("  Daily kcal: ${targets.kcal}  |  Protein: ${targets.proteinG}g  |  Fat: ${targets.fatG}g  |  Carbs: ${targets.carbsG}g")
             appendLine("The sum of all meals every day MUST be within ±5% of these targets.")
             if (profile.dietaryPreferences.isNotEmpty()) {
-                appendLine("PREFERRED FOODS (include these in meals where possible, they are likes — not restrictions): ${profile.dietaryPreferences.joinToString(", ")}")
+                appendLine("PREFERRED FOODS (raw user text, include these in meals where possible, they are likes — not restrictions): ${profile.dietaryPreferences.joinToString(", ") { sanitizeInlineUserText(it) }}")
             }
             appendLine()
             appendLine("Return ONLY this JSON schema:")
@@ -568,8 +567,7 @@ class AiService(
             appendLine("- INGREDIENTS: always include quantity + unit for each ingredient (e.g. \"150г гречки\", \"200мл кефира\", \"2 яйца\"). Never list bare ingredient names without amounts.")
             appendLine("- RECIPE: provide a short 2-4 step cooking instruction in $languageDisplay. Steps concise — one action each. Do NOT include nutritional commentary.")
             appendLine("- Example meal: {\"name\":\"Овсянка\",\"ingredients\":[\"150г овсяных хлопьев\",\"250мл молока\"],\"recipe\":\"1. Залей хлопья молоком. 2. Вари 5 мин.\",\"kcal\":360,\"macros\":{\"proteinGrams\":10,\"fatGrams\":6,\"carbsGrams\":64,\"kcal\":358}}")
-            appendLine("PROFILE JSON:")
-            appendLine(profileJson)
+            append(untrustedDataBlock("PROFILE JSON", profileJson))
             appendLine("weekIndex=$weekIndex")
         }
     }
@@ -587,8 +585,7 @@ class AiService(
             appendLine("Return ONLY this JSON schema:")
             appendLine("{\"messages\": [String], \"disclaimer\": String}")
             appendLine("Provide 5-7 concise, practical tips.")
-            appendLine("PROFILE JSON:")
-            append(profileJson)
+            append(untrustedDataBlock("PROFILE JSON", profileJson))
         }
     }
 

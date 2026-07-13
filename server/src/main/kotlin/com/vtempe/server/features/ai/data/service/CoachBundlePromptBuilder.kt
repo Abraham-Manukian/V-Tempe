@@ -39,8 +39,7 @@ internal fun buildBundlePrompt(
         appendLine("Return ONLY a single JSON object and nothing else (no markdown, introductions, or explanations).")
         appendLine("Do not escape quotes (no \\\" sequences). Output must be valid JSON.")
         appendLine()
-        appendLine("PROFILE CONTEXT (JSON):")
-        appendLine(profileJson)
+        append(untrustedDataBlock("PROFILE CONTEXT (JSON)", profileJson))
         appendLine()
         appendLine("KEY FACTS ABOUT THE ATHLETE:")
         append(preferencesSummary)
@@ -417,37 +416,37 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
     appendLine("- Selected coach visual/persona id: ${profile.coachTrainerId}")
 
     val equipment = when {
-        profile.equipment.isNotEmpty() -> profile.equipment.joinToString(", ")
+        profile.equipment.isNotEmpty() -> profile.equipment.joinToString(", ") { sanitizeInlineUserText(it) }
         profile.trainingMode.lowercase(Locale.US) == "gym" ->
             "full gym: barbell, squat rack, bench press, dumbbells, cables, pullup bar, leg press, cardio machines"
         profile.trainingMode.lowercase(Locale.US) == "home" ->
             "home: dumbbells or resistance bands, pullup bar (optional)"
         else -> "bodyweight only"
     }
-    appendLine("- Available equipment: $equipment")
+    appendLine("- Available equipment (raw user text): $equipment")
 
     if (profile.injuries.isNotEmpty()) {
-        appendLine("- Injuries / limitations: ${profile.injuries.joinToString(", ")}")
+        appendLine("- Injuries / limitations (raw user text): ${profile.injuries.joinToString(", ") { sanitizeInlineUserText(it) }}")
     }
     if (profile.healthNotes.isNotEmpty()) {
-        appendLine("- Contraindications / medical notes: ${profile.healthNotes.joinToString(", ")}")
+        appendLine("- Contraindications / medical notes (raw user text): ${profile.healthNotes.joinToString(", ") { sanitizeInlineUserText(it) }}")
     }
     if (profile.weeklySchedule.isNotEmpty()) {
         val available = profile.weeklySchedule.filterValues { it }.keys
         val unavailable = profile.weeklySchedule.filterValues { !it }.keys
         if (available.isNotEmpty()) {
-            appendLine("- Preferred training days: ${available.joinToString(", ")}")
+            appendLine("- Preferred training days: ${available.joinToString(", ") { sanitizeInlineUserText(it) }}")
         }
         if (unavailable.isNotEmpty()) {
-            appendLine("- Rest / unavailable days: ${unavailable.joinToString(", ")}")
+            appendLine("- Rest / unavailable days: ${unavailable.joinToString(", ") { sanitizeInlineUserText(it) }}")
         }
     }
     if (profile.dietaryPreferences.isNotEmpty()) {
         // These are PREFERRED foods the athlete WANTS in their plan — not restrictions!
-        appendLine("- Preferred foods / dietary style (INCLUDE these where possible): ${profile.dietaryPreferences.joinToString(", ")}")
+        appendLine("- Preferred foods / dietary style (raw user text, INCLUDE these where possible): ${profile.dietaryPreferences.joinToString(", ") { sanitizeInlineUserText(it) }}")
     }
     if (profile.allergies.isNotEmpty()) {
-        appendLine("- Allergies to avoid: ${profile.allergies.joinToString(", ")}")
+        appendLine("- Allergies to avoid (raw user text): ${profile.allergies.joinToString(", ") { sanitizeInlineUserText(it) }}")
     }
     appendLine("- Nutrition budget level (1 low .. 3 high): ${profile.budgetLevel ?: 2}")
     val lifestyleReadable = when (profile.lifestyleActivity.uppercase(Locale.US)) {

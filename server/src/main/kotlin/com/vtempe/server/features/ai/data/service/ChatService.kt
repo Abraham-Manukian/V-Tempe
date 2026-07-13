@@ -147,8 +147,7 @@ class ChatService(
             appendLine("  - 'Monday' or 'Понедельник' → find and modify the workout/meals on the Monday in the current plan.")
             appendLine("  - If the user says 'I don't want X today' — change ONLY today's meals, not any other day.")
             appendLine("  - NEVER change a different day from the one the user mentioned.")
-            appendLine("PROFILE CONTEXT (JSON):")
-            appendLine(profileJson)
+            append(untrustedDataBlock("PROFILE CONTEXT (JSON)", profileJson))
             appendLine()
             appendLine("KEY FACTS:")
             append(profileSummary)
@@ -205,9 +204,12 @@ class ChatService(
             appendLine("- Nutrition updates must strictly obey allergy/intolerance restrictions above.")
             appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (+/- 20 kcal). Fix kcal rather than omitting fields.")
             appendLine("Do not include trailing commas or comments; output must be valid JSON.")
-            appendLine("Latest user message: \"$lastUserMessage\".")
-            appendLine("Conversation so far:")
-            if (history.isNotBlank()) appendLine(history) else appendLine("No previous messages provided.")
+            val chatContent = buildString {
+                appendLine("Latest user message: $lastUserMessage")
+                appendLine("Conversation so far:")
+                append(if (history.isNotBlank()) history else "No previous messages provided.")
+            }
+            append(untrustedDataBlock("USER CHAT MESSAGE + HISTORY", chatContent))
         }
     }
 
@@ -254,16 +256,16 @@ private fun buildChatProfileSummary(profile: AiProfile): String = buildString {
     appendLine("- Experience level (1-5): ${profile.experienceLevel}")
     appendLine("- Training mode preference: ${profile.trainingMode}")
     appendLine("- Selected coach visual/persona id: ${profile.coachTrainerId}")
-    val equipment = if (profile.equipment.isNotEmpty()) profile.equipment.joinToString(", ") else "bodyweight only"
-    appendLine("- Available equipment: $equipment")
-    if (profile.injuries.isNotEmpty()) appendLine("- Injuries / limitations: ${profile.injuries.joinToString(", ")}")
-    if (profile.healthNotes.isNotEmpty()) appendLine("- Contraindications: ${profile.healthNotes.joinToString(", ")}")
+    val equipment = if (profile.equipment.isNotEmpty()) profile.equipment.joinToString(", ") { sanitizeInlineUserText(it) } else "bodyweight only"
+    appendLine("- Available equipment (raw user text): $equipment")
+    if (profile.injuries.isNotEmpty()) appendLine("- Injuries / limitations (raw user text): ${profile.injuries.joinToString(", ") { sanitizeInlineUserText(it) }}")
+    if (profile.healthNotes.isNotEmpty()) appendLine("- Contraindications (raw user text): ${profile.healthNotes.joinToString(", ") { sanitizeInlineUserText(it) }}")
     if (profile.weeklySchedule.isNotEmpty()) {
         val available = profile.weeklySchedule.filterValues { it }.keys
-        if (available.isNotEmpty()) appendLine("- Preferred training days: ${available.joinToString(", ")}")
+        if (available.isNotEmpty()) appendLine("- Preferred training days: ${available.joinToString(", ") { sanitizeInlineUserText(it) }}")
     }
-    if (profile.dietaryPreferences.isNotEmpty()) appendLine("- Dietary preferences: ${profile.dietaryPreferences.joinToString(", ")}")
-    if (profile.allergies.isNotEmpty()) appendLine("- Allergies: ${profile.allergies.joinToString(", ")}")
+    if (profile.dietaryPreferences.isNotEmpty()) appendLine("- Dietary preferences (raw user text): ${profile.dietaryPreferences.joinToString(", ") { sanitizeInlineUserText(it) }}")
+    if (profile.allergies.isNotEmpty()) appendLine("- Allergies (raw user text): ${profile.allergies.joinToString(", ") { sanitizeInlineUserText(it) }}")
     appendLine("- Nutrition budget level (1 low .. 3 high): ${profile.budgetLevel}")
     if (profile.recentWorkouts.isNotEmpty()) {
         appendLine("- Recent workout outcomes to adapt load, volume, and recovery:")
