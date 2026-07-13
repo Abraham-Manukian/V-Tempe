@@ -8,7 +8,7 @@ import java.nio.file.StandardOpenOption
 
 class LlmRawStore(
     private val enabled: Boolean,
-    baseDir: Path = Paths.get("server", "logs", "llm")
+    baseDir: Path = Paths.get("logs", "llm")
 ) {
     private val dir: Path = baseDir
 

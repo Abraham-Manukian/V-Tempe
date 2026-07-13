@@ -11,8 +11,10 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-private const val MaxWorkoutsPerPlan = 7
-private const val MaxSetsPerWorkout = 6
+// internal, not private: the prompt builder in AiService.kt references these directly so the
+// LLM's instructions can never drift from what normalizeTrainingPlan() actually enforces.
+internal const val MaxWorkoutsPerPlan = 7
+internal const val MaxSetsPerWorkout = 6
 
 // Exercises measured in seconds — the `reps` field holds a seconds count (e.g. reps=30 = 30s
 // hold). AI-written values are wildly inconsistent for these (we've seen "8" and "45" for the
@@ -28,14 +30,16 @@ internal val durationSecondsExerciseIds = setOf(
     "squat_thrust", "tuck_jump", "bear_crawl", "inchworm", "lateral_shuffle", "butt_kick",
     "jumping_jack_squat"
 )
-private val SECONDS_RANGE = 20..60
+// internal: referenced from the prompt builder in AiService.kt (see MaxWorkoutsPerPlan comment above).
+internal val SECONDS_RANGE = 20..60
 
 // Exercises measured in minutes — the `reps` field holds a minutes count.
 internal val durationMinutesExerciseIds = setOf(
     "run", "running", "jog", "jogging", "treadmill",
     "bike", "stationary_bike", "cycling", "rowing_machine"
 )
-private val MINUTES_RANGE = 5..30
+// internal: referenced from the prompt builder in AiService.kt (see MaxWorkoutsPerPlan comment above).
+internal val MINUTES_RANGE = 5..30
 
 /** The AI writes wildly inconsistent numbers for duration-based exercises (e.g. "8" or "45"
  *  for the same plank slot across runs) since nothing tells it what unit `reps` represents for

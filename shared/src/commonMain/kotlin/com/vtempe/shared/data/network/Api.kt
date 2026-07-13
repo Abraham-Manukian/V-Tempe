@@ -71,22 +71,27 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         response: HttpResponse
     ): DataResult<Res> {
         val raw = runCatching { response.bodyAsText() }.getOrNull()
-        val sanitized = raw?.let { sanitizePayload(it) }
         return runCatching {
-            val value = when {
-                sanitized != null -> parser.decodeFromString<Res>(sanitized)
-                raw != null -> parser.decodeFromString<Res>(raw)
-                else -> response.body<Res>()
-            }
-            DataResult.Success(value, rawPayload = sanitized ?: raw)
+            val value = if (raw != null) parser.decodeFromString<Res>(raw) else response.body<Res>()
+            DataResult.Success(value, rawPayload = raw)
         }.recover { error ->
             when (error) {
-                is SerializationException -> DataResult.Failure(
-                    reason = Reason.InvalidFormat,
-                    message = error.message,
-                    throwable = error,
-                    rawPayload = raw
-                )
+                is SerializationException -> {
+                    // Primary decode failed — retry once against the payload trimmed to its
+                    // outermost {...}, in case the server wrapped the JSON in stray text.
+                    val sanitized = raw?.let { sanitizePayload(it) }?.takeIf { it != raw }
+                    val repaired = sanitized?.let { runCatching { parser.decodeFromString<Res>(it) } }
+                    if (repaired != null && repaired.isSuccess) {
+                        DataResult.Success(repaired.getOrThrow(), rawPayload = sanitized)
+                    } else {
+                        DataResult.Failure(
+                            reason = Reason.InvalidFormat,
+                            message = error.message,
+                            throwable = error,
+                            rawPayload = raw
+                        )
+                    }
+                }
                 else -> throw error
             }
         }.getOrThrow()

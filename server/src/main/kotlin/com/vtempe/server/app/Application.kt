@@ -9,15 +9,16 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
-import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.uri
 import kotlinx.serialization.json.Json
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
+import java.security.MessageDigest
 import kotlin.time.Duration.Companion.minutes
 
 fun main() {
@@ -33,10 +34,20 @@ fun Application.module() {
         modules(serverModule)
     }
 
-    install(CORS) { anyHost() }
+    // Native mobile clients don't send an Origin header, so there is nothing for CORS to
+    // allowlist — no install(CORS) needed here at all.
+
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; encodeDefaults = true })
     }
+
+    // Cloud Run terminates TLS and proxies requests; without this, ApplicationRequest.origin
+    // (and therefore the rate-limit key below) resolves to the proxy's address for every
+    // caller, collapsing the per-caller limit into one shared bucket.
+    // useLastProxy(): Cloud Run appends the real client IP as the LAST entry in
+    // X-Forwarded-For; the default (first entry) is attacker-controlled and would let a
+    // caller spoof a fresh rate-limit bucket on every request.
+    install(XForwardedHeaders) { useLastProxy() }
 
     // Rate limiting: max 30 AI requests per minute per IP
     install(RateLimit) {
@@ -56,7 +67,10 @@ fun Application.module() {
         val path = call.request.uri
         if (path.startsWith("/ai/") && appSecret != null) {
             val token = call.request.headers["X-App-Token"]
-            if (token != appSecret) {
+            val tokenBytes = token?.toByteArray()
+            val secretBytes = appSecret.toByteArray()
+            val matches = tokenBytes != null && MessageDigest.isEqual(tokenBytes, secretBytes)
+            if (!matches) {
                 call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
                 finish()
             }

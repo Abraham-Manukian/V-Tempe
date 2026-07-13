@@ -1,10 +1,12 @@
 ﻿package com.vtempe.server.config
 
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
 object Env {
+    private val logger = LoggerFactory.getLogger(Env::class.java)
     private val cache: Map<String, String> by lazy { load() }
 
     operator fun get(key: String): String? = System.getenv(key) ?: cache[key]
@@ -12,21 +14,20 @@ object Env {
     private fun load(): Map<String, String> {
         val cwd = Paths.get("").toAbsolutePath().normalize()
         val map = mutableMapOf<String, String>()
+        // Only the two places we actually run from: repo root (local dev, most gradle tasks)
+        // and the server/ module dir (some IDE run configs set cwd there).
         val candidates = listOf(
             cwd.resolve(".env.local"),
             cwd.resolve(".env"),
-            cwd.parent?.resolve(".env.local"),
-            cwd.parent?.resolve(".env"),
             cwd.resolve("server/.env.local"),
-            cwd.resolve("server/.env"),
-            cwd.parent?.resolve("server/.env.local"),
-            cwd.parent?.resolve("server/.env")
-        ).filterNotNull()
+            cwd.resolve("server/.env")
+        )
         candidates.forEach { readFileIfExists(it, map) }
+        // Key names (not values) at debug level only \u2014 never print in prod, and never print values.
         if (map.isEmpty()) {
-            println("[Env] No env files found (cwd=$cwd)")
+            logger.debug("No env files found (cwd={})", cwd)
         } else {
-            println("[Env] Loaded keys: ${map.keys}")
+            logger.debug("Loaded {} env key(s) from local .env file(s)", map.size)
         }
         return map
     }
@@ -53,9 +54,9 @@ object Env {
                         }
                     }
             }
-            println("[Env] Loaded $path")
+            logger.debug("Loaded env file {}", path)
         }.onFailure {
-            System.err.println("[Env] Failed to read $path: ${it.message}")
+            logger.warn("Failed to read env file {}: {}", path, it.message)
         }
     }
 }

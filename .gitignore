@@ -55,3 +55,10 @@ V-Tempe/
 *.log
 temp.txt
 T3.txt
+
+# LLM raw-response telemetry (LlmRawStore) — can contain user health data reflected back
+# by the model (injuries, chat replies). Off by default (LLM_RAW_STORE_ENABLED), but never
+# commit it even when enabled locally for debugging.
+logs/
+server/logs/
+server/server/logs/

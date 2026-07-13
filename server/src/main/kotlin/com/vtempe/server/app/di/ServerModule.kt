@@ -166,14 +166,19 @@ val serverModule = module {
     }
 
     // --- Pipeline parts ---
+    // Raw LLM output telemetry can contain user health data reflected back by the model
+    // (injuries, chat replies). Off by default — opt in locally with LLM_RAW_STORE_ENABLED=true,
+    // never enable it in production.
+    val rawStoreEnabled = Env["LLM_RAW_STORE_ENABLED"]?.equals("true", ignoreCase = true) ?: false
+
     single { ResponseExtractor() }
     single { JsonSanitizer() }
     single { FeedbackComposer() }
-    single { LlmRawStore(enabled = true) }
+    single { LlmRawStore(enabled = rawStoreEnabled) }
     single { LlmErrorTracker() }
 
     single { Decoder(get()) }
-    single { PipelineConfig(maxAttempts = 3, enableRawStore = true) }
+    single { PipelineConfig(maxAttempts = 3, enableRawStore = rawStoreEnabled) }
 
     single {
         LlmPipeline(

@@ -1,6 +1,0 @@
-```json
-{"reply": "Привет! Я понял, ты хочешь адаптировать план под домашние тренировки без зала. Это возможно, но нам нужно будет изменить упражнения, чтобы они соответствовали доступному оборудованию. Я обновлю тренировочный план, чтобы включить упражнения с собственным весом и, возможно, с использованием эластичных лент, если они у тебя есть. План питания и рекомендации по сну останутся прежними, пока ты не попросишь их изменить.",
- "trainingPlan": {"weekIndex": 1, "workouts": [{ "id": "workout_1", "date": "2024-01-29", "sets": [{ "exerciseId": "push_ups", "reps": 10, "weightKg": null, "rpe": 7.0 }, { "exerciseId": "squats", "reps": 12, "weightKg": null, "rpe": 6.0 }, { "exerciseId": "lunges", "reps": 10, "weightKg": null, "rpe": 6.5 }, { "exerciseId": "plank", "reps": 3, "weightKg": null, "rpe": 5.0 }] }, { "id": "workout_2", "date": "2024-02-07", "sets": [{ "exerciseId": "push_ups_diamond", "reps": 8, "weightKg": null, "rpe": 7.5 }, { "exerciseId": "squats_jump", "reps": 10, "weightKg": null, "rpe": 6.5 }, { "exerciseId": "glute_bridges", "reps": 15, "weightKg": null, "rpe": 6.0 }, { "exerciseId": "superman", "reps": 12, "weightKg": null, "rpe": 5.5 }] }] },
- "nutritionPlan": null,
- "sleepAdvice": null}
-```
