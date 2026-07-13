@@ -18,6 +18,7 @@ import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
+import java.security.MessageDigest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
@@ -678,9 +679,14 @@ class AiService(
         return errors.distinct()
     }
 
-    private fun cacheKey(profile: AiProfile, weekIndex: Int, localeTag: String): String {
+    // SHA-256, not String.hashCode() (32-bit — collisions are a real risk at scale and would
+    // hand one user another user's cached training/nutrition plan). internal, not private, so
+    // PersonalizationTest can assert distinct profiles never collide.
+    internal fun cacheKey(profile: AiProfile, weekIndex: Int, localeTag: String): String {
         val fingerprint = json.encodeToString(AiProfile.serializer(), profile)
-        return "${fingerprint.hashCode()}|$weekIndex|$localeTag"
+        val digest = MessageDigest.getInstance("SHA-256").digest(fingerprint.toByteArray(Charsets.UTF_8))
+        val hex = digest.joinToString("") { "%02x".format(it) }
+        return "$hex|$weekIndex|$localeTag"
     }
 
     private suspend fun generateWithFallback(

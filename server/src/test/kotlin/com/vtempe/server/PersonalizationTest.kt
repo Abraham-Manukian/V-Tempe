@@ -1,6 +1,19 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
+import com.vtempe.server.features.ai.data.llm.LlmRepairer
+import com.vtempe.server.features.ai.data.llm.StubLLMClient
+import com.vtempe.server.features.ai.data.llm.decode.Decoder
+import com.vtempe.server.features.ai.data.llm.extract.ResponseExtractor
+import com.vtempe.server.features.ai.data.llm.feedback.FeedbackComposer
+import com.vtempe.server.features.ai.data.llm.pipeline.LlmPipeline
+import com.vtempe.server.features.ai.data.llm.pipeline.PipelineConfig
+import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
+import com.vtempe.server.features.ai.data.llm.telemetry.LlmErrorTracker
+import com.vtempe.server.features.ai.data.llm.telemetry.LlmRawStore
+import com.vtempe.server.features.ai.data.resolver.DefaultTrainingPlanResolver
 import com.vtempe.server.features.ai.data.service.AiQualityErrorPolicy
+import com.vtempe.server.features.ai.data.service.AiService
 import com.vtempe.server.features.ai.data.service.clampRepsForUnit
 import com.vtempe.server.features.ai.data.service.fallbackNutrition
 import com.vtempe.server.features.ai.data.service.fallbackTraining
@@ -23,7 +36,9 @@ import com.vtempe.server.shared.dto.training.AiSet
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -577,5 +592,59 @@ class PersonalizationTest {
         val normalized = normalizeTrainingPlan(aiPlan, gymProfile)
         val firstSet = normalized.workouts.first().sets.first()
         assertEquals(60.0, firstSet.weightKg, "real gym equipment should keep the AI's literal weight, got ${firstSet.weightKg}")
+    }
+
+    // ── cacheKey: SHA-256 collision-resistance (was 32-bit String.hashCode()) ─────
+
+    private fun testAiService(): AiService {
+        val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
+        val pipeline = LlmPipeline(
+            config = PipelineConfig(),
+            extractor = ResponseExtractor(),
+            sanitizer = JsonSanitizer(),
+            decoder = Decoder(json),
+            feedback = FeedbackComposer(),
+            rawStore = LlmRawStore(enabled = false),
+            tracker = LlmErrorTracker()
+        )
+        val exerciseCatalog = BuiltInExerciseCatalog()
+        return AiService(
+            paidLlmClient = StubLLMClient("{}"),
+            freeLlmClient = StubLLMClient("{}"),
+            llmRepairer = LlmRepairer(pipeline),
+            exerciseCatalog = exerciseCatalog,
+            trainingPlanResolver = DefaultTrainingPlanResolver(exerciseCatalog)
+        )
+    }
+
+    @Test
+    fun `cacheKey does not collide for different profiles`() {
+        val service = testAiService()
+        val a = service.cacheKey(profile(weightKg = 70.0), weekIndex = 0, localeTag = "en-US")
+        val b = service.cacheKey(profile(weightKg = 90.0), weekIndex = 0, localeTag = "en-US")
+        assertNotEquals(a, b, "different profiles must never share a cache key")
+    }
+
+    @Test
+    fun `cacheKey does not collide on a known String_hashCode collision pair`() {
+        // "Aa" and "BB" are a textbook java.lang.String#hashCode() collision (both hash to
+        // 2112) — swapping one for the other anywhere inside a longer string leaves the
+        // WHOLE string's polynomial hashCode unchanged too. This is exactly the failure mode
+        // the old `fingerprint.hashCode()` cache key had: two different profiles (different
+        // injuries here) would have produced the identical cache key and one user could get
+        // served another user's cached plan. SHA-256 must not reproduce that collision.
+        val service = testAiService()
+        val a = service.cacheKey(profile(injuries = listOf("Aa")), weekIndex = 0, localeTag = "en-US")
+        val b = service.cacheKey(profile(injuries = listOf("BB")), weekIndex = 0, localeTag = "en-US")
+        assertNotEquals(a, b, "profiles differing only by a known hashCode-colliding substring must not share a cache key")
+    }
+
+    @Test
+    fun `cacheKey is stable for the same profile`() {
+        val service = testAiService()
+        val p = profile(weightKg = 75.0)
+        val a = service.cacheKey(p, weekIndex = 2, localeTag = "ru-RU")
+        val b = service.cacheKey(p, weekIndex = 2, localeTag = "ru-RU")
+        assertEquals(a, b, "identical inputs must produce the identical cache key")
     }
 }

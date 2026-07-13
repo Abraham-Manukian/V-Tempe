@@ -37,13 +37,9 @@
   `onboarding_complete` и `plan_generated` (`OnboardingPresenter.kt`), `chat_message_sent` (`ChatPresenter.kt`).
   Полный список — `AnalyticsEvents` в `shared/.../domain/repository/Repositories.kt`.
 
-- [ ] **Убрать Health Connect alpha**
-  `libs.versions.toml` — `health-connect = "1.1.0-alpha10"`. Google не пропустит релиз в Play Store с alpha-зависимостью.
-  Обновить до стабильной версии или полностью отключить Health Connect до релиза.
+- [x] **Убрать Health Connect alpha** — ✅ была мёртвая запись в каталоге зависимостей (`health-connect = "1.1.0-alpha10"`), нигде не использовалась в коде — удалена из `libs.versions.toml` (2026-07-13). Не блокирует Play Store.
 
-- [ ] **Реализовать ввод данных о сне**
-  Экран Sleep показывает AI-советы, но нет UI для ввода часов сна и его качества пользователем.
-  Без этого "weekly sleep chart" на экране Progress отображает пустые данные.
+- [x] **Реализовать ввод данных о сне** — ✅ реализовано (`SleepPresenter.logSleep` + `SleepStore`); при желании можно добавить onboarding-подсказку, но базовый функционал есть.
 
 - [ ] **Проверить Paywall UI с реальной подпиской**
   После реализации `AndroidPurchasesRepository`: пройти полный flow оплаты на тестовом аккаунте Play Console.

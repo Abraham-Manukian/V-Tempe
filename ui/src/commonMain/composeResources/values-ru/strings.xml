@@ -456,4 +456,9 @@
     <string name="chat_change_nutrition">Питание обновлено</string>
     <string name="chat_change_sleep">Советы по сну обновлены</string>
     <string name="chat_change_tap">Нажмите, чтобы посмотреть</string>
+    <string name="settings_ai_model_title">Модель ИИ</string>
+    <string name="settings_ai_model_paid">Платная (GPT-5 mini)</string>
+    <string name="settings_ai_model_free">Бесплатная (Gemma 3 27B)</string>
+    <string name="settings_ai_model_current_paid">Сейчас: платная модель</string>
+    <string name="settings_ai_model_current_free">Сейчас: бесплатная модель</string>
 </resources>
