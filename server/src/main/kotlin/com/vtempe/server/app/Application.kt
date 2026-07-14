@@ -3,6 +3,10 @@
 import com.vtempe.server.app.di.serverModule
 import com.vtempe.server.config.Env
 import com.vtempe.server.features.ai.api.registerAiRoutes
+import com.vtempe.server.features.auth.UserIdKey
+import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
+import com.vtempe.server.features.entitlement.api.registerEntitlementRoutes
+import com.vtempe.server.features.payments.yookassa.api.registerYooKassaWebhookRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -16,6 +20,7 @@ import io.ktor.server.response.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.uri
 import kotlinx.serialization.json.Json
+import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 import java.security.MessageDigest
@@ -77,10 +82,32 @@ fun Application.module() {
         }
     }
 
+    // Per-user auth for /me/* routes (entitlement, and future per-user data) — a Firebase ID
+    // token in the Authorization header, verified against the project's public keys (see
+    // FirebaseTokenVerifier). This is independent of the /ai/* APP_SECRET check above: APP_SECRET
+    // proves "this is our app build", the Firebase token proves "this is a specific person".
+    val firebaseTokenVerifier: FirebaseTokenVerifier by inject()
+    intercept(ApplicationCallPipeline.Plugins) {
+        val path = call.request.uri
+        if (path.startsWith("/me/")) {
+            val authHeader = call.request.headers["Authorization"]
+            val idToken = authHeader?.removePrefix("Bearer ")?.takeIf { it != authHeader }
+            val userId = idToken?.let { firebaseTokenVerifier.verify(it) }
+            if (userId == null) {
+                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
+                finish()
+            } else {
+                call.attributes.put(UserIdKey, userId)
+            }
+        }
+    }
+
     routing {
         rateLimit(RateLimitName("ai")) {
             registerAiRoutes()
         }
+        registerEntitlementRoutes()
+        registerYooKassaWebhookRoutes()
         get("/health") { call.respondText("OK") }
     }
 }

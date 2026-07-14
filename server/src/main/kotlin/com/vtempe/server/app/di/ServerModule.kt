@@ -32,6 +32,13 @@ import com.vtempe.server.features.ai.domain.usecase.SleepUseCase
 import com.vtempe.server.features.ai.domain.usecase.TrainingUseCase
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
+import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
+import com.vtempe.server.features.entitlement.data.db.DatabaseFactory
+import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementRepository
+import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
+import com.vtempe.server.features.entitlement.data.service.EntitlementService
+import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
+import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -230,6 +237,25 @@ val serverModule = module {
     single<SleepUseCase> { SleepUseCaseImpl(aiService = get()) }
     single<ChatUseCase> { ChatUseCaseImpl(chatService = get()) }
     single<BootstrapUseCase> { BootstrapUseCaseImpl(aiService = get()) }
+
+    // --- Auth / Entitlement (payments feature) ---
+    // FIREBASE_PROJECT_ID unset -> FirebaseTokenVerifier.verify() always returns null, every
+    // /me/* request is rejected as unauthenticated. DATABASE_URL unset -> falls back to an
+    // in-memory entitlement store that never survives a restart. Both degrade the same way
+    // APP_SECRET being unset does: the app still boots, the feature is just inert until the
+    // owner configures it (see docs in FirebaseTokenVerifier/DatabaseFactory).
+    single { FirebaseTokenVerifier(projectId = Env["FIREBASE_PROJECT_ID"]?.takeIf { it.isNotBlank() }) }
+    single<EntitlementRepository> {
+        val database = DatabaseFactory.connectOrNull()
+        if (database != null) ExposedEntitlementRepository(database) else InMemoryEntitlementRepository()
+    }
+    single { EntitlementService(repository = get()) }
+    single {
+        YooKassaClient(
+            shopId = Env["YOOKASSA_SHOP_ID"]?.takeIf { it.isNotBlank() },
+            secretKey = Env["YOOKASSA_SECRET_KEY"]?.takeIf { it.isNotBlank() }
+        )
+    }
 }
 
 private fun parseModelList(raw: String?): List<String> = raw

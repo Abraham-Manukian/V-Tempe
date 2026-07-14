@@ -29,6 +29,11 @@ kotlinStdlib = "2.0.21"
 kotlinTest = "2.0.21"
 runner = "1.5.2"
 core = "1.5.0"
+exposed = "0.56.0"
+postgresql = "42.7.4"
+hikaricp = "5.1.0"
+auth0JavaJwt = "4.4.0"
+auth0JwksRsa = "0.22.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -69,6 +74,18 @@ logback-classic = { group = "ch.qos.logback", name = "logback-classic", version 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+
+# DB (server — entitlement/payments persistence)
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
+postgresql-driver = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+
+# JWT verification (server — Firebase ID token auth, no Firebase Admin SDK needed)
+auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0JavaJwt" }
+auth0-jwks-rsa = { module = "com.auth0:jwks-rsa", version.ref = "auth0JwksRsa" }
 
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
