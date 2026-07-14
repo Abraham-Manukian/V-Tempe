@@ -62,9 +62,9 @@
   `AiFallbackFactory.kt` (уже источник багов — `ae5b6b9`, `85edb5a`). Частично лечится через `normalizeTrainingPlan`/`computeTargetNutrition`, но `fallbackTraining` держит свой хардкод шаблон с магическими весами.
   Фикс: строить `WorkoutSkeleton` через тот же `TrainingSplitPlanner`, а не отдельный шаблон — фолбек должен отличаться только отсутствием вызова LLM.
 
-- [ ] 🟠 **A5 — `AiService.kt` (832 строки) — God object**
+- [x] 🟠 **A5 — `AiService.kt` (832 строки) — God object** *(исправлено 2026-07-13)*
   Кэш + оркестрация + промпт-билдеры + валидация в одном классе; free/paid fallback-политика (`shouldFallbackToFree` и т.д.) буквально скопирована в `ChatService.kt:219-247`.
-  Фикс: вынести `BundleCache` (см. N1), общий `LlmClientRouter`, промпт-билдеры — в отдельные файлы.
+  Сделано: `BundleCache` вынесен (см. N1), промпт-билдеры → `SectionPromptBuilders.kt`, валидация бандла → `BundleValidation.kt`, LLM-роутинг (`generateWithFallback`, тоже дублировался в `ChatService.kt`) → общий `LlmClientRouter.kt`. `AiService.kt`: 832 → 511 строк. Три отдельных коммита, каждый проверен компиляцией/тестами и ревью Fable 5.
 
 - [x] 🔵 **A6 — мёртвый код в DI + брошенные `SignupRequest`/`SignupResponse`** *(исправлено 2026-07-13)*
   `KoinModule.kt` (незарегистрированные репозитории, уже в RELEASE_CHECKLIST.md), `Api.kt:161-164` — DTO для auth-флоу, которого нигде больше нет (намёк на брошенную идею per-user auth — корень S2/S3).
