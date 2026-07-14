@@ -36,6 +36,7 @@ class AiService(
 ) {
 
     private val logger = LoggerFactory.getLogger(AiService::class.java)
+    private val llmRouter = LlmClientRouter(paidLlmClient, freeLlmClient)
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -163,7 +164,7 @@ class AiService(
                 operation = "coach-bundle",
                 requestId = requestId,
                 basePrompt = prompt,
-                callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "coach-bundle", requestId) },
+                callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "coach-bundle", requestId) },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
                     // Log skeleton compliance violations on the RAW AI response for observability.
@@ -383,7 +384,7 @@ class AiService(
             operation = "training-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "training-section", sectionRequestId) },
+            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "training-section", sectionRequestId) },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
                 val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
@@ -419,7 +420,7 @@ class AiService(
             operation = "nutrition-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "nutrition-section", sectionRequestId) },
+            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "nutrition-section", sectionRequestId) },
             strategy = AiNutritionResponse.serializer(),
             validator = SchemaValidator { plan ->
                 val normalized = normalizeNutritionPlan(plan, locale, profile)
@@ -462,7 +463,7 @@ class AiService(
             operation = "sleep-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> generateWithFallback(profile, currentPrompt, "sleep-section", sectionRequestId) },
+            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "sleep-section", sectionRequestId) },
             strategy = AiAdviceResponse.serializer(),
             validator = SchemaValidator { advice ->
                 val normalized = normalizeAdvice(advice)
@@ -483,30 +484,7 @@ class AiService(
         return "$hex|$weekIndex|$localeTag"
     }
 
-    private suspend fun generateWithFallback(
-        profile: AiProfile,
-        prompt: String,
-        operation: String,
-        requestId: String
-    ): String {
-        val mode = profile.llmMode?.trim()?.lowercase()
-        if (mode == "free") return freeLlmClient.generateJson(prompt)
-
-        return runCatching {
-            paidLlmClient.generateJson(prompt)
-        }.recoverCatching { ex ->
-            if (!shouldFallbackToFree(ex)) throw ex
-            logger.warn(
-                "LLM {} switching to free client requestId={} reason={}",
-                operation,
-                requestId,
-                ex.message ?: ex::class.simpleName
-            )
-            freeLlmClient.generateJson(prompt)
-        }.getOrThrow()
-    }
-
-    // shouldFallbackToFree(): shared with ChatService, see LlmFallbackPolicy.kt.
+    // generateWithFallback(): shared with ChatService, see LlmClientRouter.kt.
 
     private fun shouldAttemptDecomposedGeneration(error: Throwable): Boolean = when (error) {
         is LlmException.RateLimited, is LlmException.Auth, is LlmException.PaymentRequired -> false

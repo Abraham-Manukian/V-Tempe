@@ -35,6 +35,7 @@ class ChatService(
     private val trainingPlanResolver: TrainingPlanResolver
 ) {
     private val logger = LoggerFactory.getLogger(ChatService::class.java)
+    private val llmRouter = LlmClientRouter(paidLlmClient, freeLlmClient)
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -53,7 +54,7 @@ class ChatService(
                 operation = "chat",
                 requestId = requestId,
                 basePrompt = prompt,
-                callModel = { currentPrompt -> generateWithFallback(req.profile, currentPrompt, requestId) },
+                callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, req.profile, currentPrompt, "chat", requestId) },
                 strategy = AiChatResponse.serializer(),
                 validator = SchemaValidator { resp ->
                     val normalized = normalizeChatResponse(resp, locale, req.profile, trainingPlanResolver)
@@ -224,26 +225,11 @@ class ChatService(
         }
     }
 
+    // generateWithFallback(): shared with AiService, see LlmClientRouter.kt.
+
     companion object {
         private val LlmTimeoutMs = Env["AI_CHAT_TIMEOUT_MS"]?.toLongOrNull()?.coerceAtLeast(15_000L) ?: 120_000L
         private const val DefaultLocale = "en-US"
-    }
-
-    private suspend fun generateWithFallback(profile: AiProfile, prompt: String, requestId: String): String {
-        val mode = profile.llmMode?.trim()?.lowercase()
-        if (mode == "free") return freeLlmClient.generateJson(prompt)
-
-        return runCatching {
-            paidLlmClient.generateJson(prompt)
-        }.recoverCatching { ex ->
-            if (!shouldFallbackToFree(ex)) throw ex
-            logger.warn(
-                "LLM chat switching to free client requestId={} reason={}",
-                requestId,
-                ex.message ?: ex::class.simpleName
-            )
-            freeLlmClient.generateJson(prompt)
-        }.getOrThrow()
     }
 
     // shouldFallbackToFree(): shared with AiService, see LlmFallbackPolicy.kt.
