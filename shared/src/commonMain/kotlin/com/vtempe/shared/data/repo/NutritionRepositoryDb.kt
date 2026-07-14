@@ -3,6 +3,7 @@
 import com.vtempe.shared.data.network.dto.NutritionPlanDto
 import com.vtempe.shared.db.AppDatabase
 import com.vtempe.shared.domain.model.Goal
+import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
@@ -321,21 +322,50 @@ class NutritionRepositoryDb(
         return List(count) { index -> base + if (index < remainder) 1 else 0 }
     }
 
+    // Mirrors the richer formula in server's CoachBundlePromptBuilder.computeTargetNutrition —
+    // same Mifflin-St Jeor BMR + lifestyle/training-day activity factor + goal adjustment +
+    // evidence-based macro ranges (Morton 2018, ISSN 2017), so a user who falls back to this
+    // offline plan (no network) gets the same calorie/macro target as the online path would
+    // compute, not a silently different number from a flat activity=1.4 shortcut.
+    // Recent-weight-trend adjustment is server-only (needs the AI request's recentWeights
+    // history, not available in this offline repo layer).
     private fun tdeeKcal(p: Profile): Int {
-        val s = if (p.sex == Sex.MALE) 5 else -161
-        val bmr = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age + s
-        val activity = 1.4
-        val goalAdj = when (p.goal) {
-            Goal.LOSE_FAT -> 0.85
-            Goal.GAIN_MUSCLE -> 1.1
-            Goal.MAINTAIN -> 1.0
+        val s = if (p.sex == Sex.MALE) 5.0 else -161.0
+        val bmr = 10.0 * p.weightKg + 6.25 * p.heightCm - 5.0 * p.age + s
+
+        val lifestyleBase = when (p.lifestyleActivity) {
+            LifestyleActivity.LIGHT -> 1.30
+            LifestyleActivity.ACTIVE -> 1.45
+            LifestyleActivity.VERY_ACTIVE -> 1.60
+            LifestyleActivity.SEDENTARY -> 1.20
         }
-        return (bmr * activity * goalAdj).toInt()
+        val trainingDays = p.weeklySchedule.count { it.value }
+        val trainingBonus = when {
+            trainingDays == 0 -> 0.00
+            trainingDays <= 2 -> 0.10
+            trainingDays <= 4 -> 0.15
+            else -> 0.20
+        }
+        val activityFactor = (lifestyleBase + trainingBonus).coerceAtMost(1.90)
+        val tdee = bmr * activityFactor
+
+        val calorieFactor = when (p.goal) {
+            Goal.LOSE_FAT -> 0.85
+            Goal.GAIN_MUSCLE -> 1.10
+            Goal.MAINTAIN -> 1.00
+        }
+        return (tdee * calorieFactor).coerceAtLeast(bmr).toInt()
     }
 
     private fun macrosFor(p: Profile, kcal: Int): Macros {
-        val protein = (1.8 * p.weightKg).toInt()
-        val fat = max(0.8 * p.weightKg, 40.0).toInt()
+        val proteinMultiplier = when (p.goal) {
+            Goal.GAIN_MUSCLE -> 1.8
+            Goal.LOSE_FAT -> 1.6
+            Goal.MAINTAIN -> 1.7
+        }
+        val protein = (p.weightKg * proteinMultiplier).toInt()
+            .coerceIn((p.weightKg * 1.4).toInt(), (p.weightKg * 2.2).toInt())
+        val fat = max(0.9 * p.weightKg, 40.0).toInt()
         val proteinKcal = protein * 4
         val fatKcal = fat * 9
         val carbsKcal = (kcal - proteinKcal - fatKcal).coerceAtLeast(0)
