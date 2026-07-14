@@ -14,7 +14,6 @@ import com.vtempe.server.shared.dto.bootstrap.AiBootstrapRequest
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapResponse
 import com.vtempe.server.shared.dto.nutrition.AiNutritionResponse
 import com.vtempe.server.shared.dto.profile.AiProfile
-import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
@@ -172,7 +171,7 @@ class AiService(
                     // correct exercises as safety net, so we never throw away valid AI weights/reps
                     // just because the AI picked the wrong exercise pattern.
                     val skeletonViolations = bundle.trainingPlan?.let {
-                        validateSkeletonCompliance(it, profile, weekIndex)
+                        validateSkeletonCompliance(exerciseCatalog, trainingPlanResolver, it, profile, weekIndex)
                     }.orEmpty()
                     if (skeletonViolations.isNotEmpty()) {
                         logger.info(
@@ -184,7 +183,7 @@ class AiService(
                     }
 
                     val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
-                    val errors = validateBundle(normalizedCandidate, profile, locale)
+                    val errors = validateBundle(exerciseCatalog, normalizedCandidate, profile, locale)
                     val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                     if (criticalErrors.isNotEmpty()) {
                         AiQualityMetrics.recordValidation(logger, "coach-bundle", requestId, criticalErrors)
@@ -337,7 +336,7 @@ class AiService(
                     trainingPlanResolver,
                     enforcedWeekIndex = weekIndex
                 )
-                val errors = validateBundle(bundle, profile, locale)
+                val errors = validateBundle(exerciseCatalog, bundle, profile, locale)
                 val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                 if (criticalErrors.isNotEmpty()) {
                     AiQualityMetrics.recordValidation(logger, "coach-bundle-decomposed", requestId, criticalErrors)
@@ -472,95 +471,6 @@ class AiService(
             extractionMode = ExtractionMode.FirstJsonObject
         )
         return normalizeAdvice(generated)
-    }
-
-    /**
-     * Checks that each exercise in the raw AI response belongs to the expected movement pattern
-     * for that skeleton slot. Returns specific, actionable error messages fed back to the LLM
-     * so it can self-correct. Normalization still acts as a safety net after all retries.
-     */
-    private fun validateSkeletonCompliance(
-        plan: AiTrainingResponse,
-        profile: AiProfile,
-        weekIndex: Int
-    ): List<String> {
-        val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-            .filter { profile.weeklySchedule[it] == true }
-        if (trainingDays.isEmpty()) return emptyList()
-        val skeletons = runCatching {
-            TrainingSplitPlanner.build(
-                trainingDays        = trainingDays,
-                focusRaw            = profile.trainingFocus,
-                goalRaw             = profile.goal,
-                splitPreferenceRaw  = profile.splitPreference,
-                experienceLevel     = profile.experienceLevel,
-                age                 = profile.age,
-                sexRaw              = profile.sex,
-                lifestyleRaw        = profile.lifestyleActivity,
-                injuries            = profile.injuries,
-                sessionDurationMins = profile.sessionDurationMins,
-                weekIndex           = weekIndex
-            )
-        }.getOrDefault(emptyList())
-        if (skeletons.isEmpty()) return emptyList()
-
-        val mode = trainingPlanResolver.resolveMode(profile.trainingMode, profile.equipment)
-        val equipment = trainingPlanResolver.normalizeEquipment(profile.equipment)
-        val errors = mutableListOf<String>()
-
-        plan.workouts.forEachIndexed { wi, workout ->
-            val skeleton = skeletons.getOrNull(wi) ?: return@forEachIndexed
-            val sessionLabel = skeleton.label.let {
-                val dash = it.indexOf(" — "); if (dash >= 0) it.substring(dash + 3) else it
-            }
-            workout.sets.forEachIndexed { si, set ->
-                val expectedSlot = skeleton.slots.getOrNull(si) ?: return@forEachIndexed
-                val token = normalizeExerciseToken(set.exerciseId)
-                // Pattern tokens (pattern:*) are allowed — resolver picks the exercise
-                if (token.startsWith("pattern:")) return@forEachIndexed
-                val catalogItem = exerciseCatalog.findByIdOrAlias(token) ?: return@forEachIndexed
-                if (catalogItem.primaryPattern != expectedSlot.pattern) {
-                    val examples = exerciseCatalog.candidatesFor(expectedSlot.pattern, mode, equipment)
-                        .take(3).joinToString(", ") { it.id }
-                    errors += "workout[$wi] ($sessionLabel) slot ${si + 1}: " +
-                        "expected ${expectedSlot.pattern.id} (${expectedSlot.pattern.promptDescription}) " +
-                        "but got '${catalogItem.id}' which is ${catalogItem.primaryPattern.id}. " +
-                        "Use one of: $examples"
-                }
-            }
-        }
-        return errors
-    }
-
-    private fun validateBundle(
-        bundle: AiBootstrapResponse,
-        profile: AiProfile,
-        locale: java.util.Locale
-    ): List<String> {
-        val errors = mutableListOf<String>()
-
-        val training = bundle.trainingPlan
-        if (training == null) {
-            errors += "trainingPlan was null"
-        } else {
-            validateTrainingPlan(training, exerciseCatalog, profile.injuries)?.let { errors += "trainingPlan: $it" }
-        }
-
-        val nutrition = bundle.nutritionPlan
-        if (nutrition == null) {
-            errors += "nutritionPlan was null"
-        } else {
-            errors += validateNutritionPlan(nutrition, profile, locale).map { "nutritionPlan: $it" }
-        }
-
-        val advice = bundle.sleepAdvice
-        if (advice == null) {
-            errors += "sleepAdvice was null"
-        } else {
-            validateSleepAdvice(advice)?.let { errors += "sleepAdvice: $it" }
-        }
-
-        return errors.distinct()
     }
 
     // SHA-256, not String.hashCode() (32-bit — collisions are a real risk at scale and would
