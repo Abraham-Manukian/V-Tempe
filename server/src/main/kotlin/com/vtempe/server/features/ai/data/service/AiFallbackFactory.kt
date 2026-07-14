@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
 import com.vtempe.server.shared.dto.advice.AiAdviceResponse
 import com.vtempe.server.shared.dto.nutrition.AiMeal
@@ -16,35 +17,47 @@ import kotlin.math.roundToInt
 
 internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
     val today = LocalDate.now(ZoneOffset.UTC)
-    fun set(id: String, reps: Int, weight: Double?, rpe: Double?) =
-        AiSet(id, reps, weight, rpe)
 
-    // Content here is a placeholder — normalizeTrainingPlan always overrides exerciseId/
-    // sets/rpe from the skeleton when a profile is present. What actually matters is
-    // generating one entry per scheduled training day, so the skeleton has as many slots
-    // to fill as the user actually asked for (was hardcoded to 3, ignoring weeklySchedule).
-    val templates = listOf(
-        listOf(
-            set("pattern:knee_dominant", 6, 60.0, 7.0),
-            set("pattern:horizontal_push", 8, 45.0, 7.0),
-            set("pattern:horizontal_pull", 10, 40.0, 7.0)
-        ),
-        listOf(
-            set("pattern:hinge", 4, 90.0, 7.5),
-            set("pattern:vertical_push", 8, 30.0, 7.0),
-            set("pattern:vertical_pull", 6, null, 7.0)
-        ),
-        listOf(
-            set("pattern:single_leg", 10, 25.0, 7.0),
-            set("pattern:horizontal_push", 12, 20.0, 7.0),
-            set("pattern:core", 45, null, 6.5)
-        )
+    // The AiSet values below are placeholders — normalizeTrainingPlan always overrides
+    // exerciseId/sets/rpe from the skeleton it independently recomputes when a profile is
+    // present (see computeSkeletonData in AiTrainingPlanPolicy.kt). What actually matters here
+    // is building that skeleton through the SAME TrainingSplitPlanner the LLM path uses (A4) —
+    // a separate hardcoded template drifted from real split/slot counts (e.g. a 5-day PPL
+    // split has more slots per day than a fixed 3-slot template) and seeded weightKg with
+    // numbers unrelated to the user's experience/equipment. The fallback should differ from
+    // the normal path only in not calling an LLM at all.
+    val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        .filter { req.profile.weeklySchedule[it] == true }
+        .ifEmpty { listOf("Mon", "Wed", "Fri") }
+    val skeletons = TrainingSplitPlanner.build(
+        trainingDays        = trainingDays,
+        focusRaw            = req.profile.trainingFocus,
+        goalRaw             = req.profile.goal,
+        splitPreferenceRaw  = req.profile.splitPreference,
+        experienceLevel     = req.profile.experienceLevel,
+        age                 = req.profile.age,
+        sexRaw              = req.profile.sex,
+        lifestyleRaw        = req.profile.lifestyleActivity,
+        injuries            = req.profile.injuries,
+        sessionDurationMins = req.profile.sessionDurationMins,
+        weekIndex           = req.weekIndex,
+        forceDeload         = shouldForceDeload(req.profile.recentWorkouts),
+        hasHistory          = req.profile.recentWorkouts.isNotEmpty()
     )
-    val dayCount = req.profile.weeklySchedule.count { it.value }.coerceIn(1, 6)
-    val workouts = List(dayCount) { day ->
+    val workouts = skeletons.mapIndexed { day, skeleton ->
         val id = "w_${req.weekIndex}_${day + 1}"
         val date = today.plusDays(day.toLong()).toString()
-        AiWorkout(id = id, date = date, sets = templates[day % templates.size])
+        val sets = skeleton.slots.map { slot ->
+            // No LLM to ask for a realistic weight — leave it null (UI shows "—") rather than
+            // inventing a number unrelated to this user's experience/equipment.
+            AiSet(
+                exerciseId = slot.pattern.token,
+                reps = (slot.repMin + slot.repMax) / 2,
+                weightKg = null,
+                rpe = slot.rpeTarget.toDouble()
+            )
+        }
+        AiWorkout(id = id, date = date, sets = sets)
     }
     return normalizeTrainingPlan(
         plan = AiTrainingResponse(req.weekIndex, workouts),
