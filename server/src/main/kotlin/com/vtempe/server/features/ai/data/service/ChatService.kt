@@ -19,6 +19,8 @@ import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import com.vtempe.server.shared.dto.profile.AiProfile
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -75,9 +77,14 @@ class ChatService(
         }
 
         normalizeChatResponse(response, locale, req.profile, trainingPlanResolver)
-    }.getOrElse {
-        logger.warn("LLM chat fallback triggered", it)
-        AiQualityMetrics.recordFallback(logger, "chat", it)
+    }.getOrElse { error ->
+        if (error is CancellationException && error !is TimeoutCancellationException) throw error
+        if (!isExpectedLlmFailure(error)) {
+            logger.error("Unexpected error in LLM chat — not falling back, surfacing as failure", error)
+            throw error
+        }
+        logger.warn("LLM chat fallback triggered", error)
+        AiQualityMetrics.recordFallback(logger, "chat", error)
         AiChatResponse(
             reply = fallbackChatMessage(safeLocale(req.locale ?: req.profile.locale)),
             actions = emptyList(),
@@ -89,8 +96,13 @@ class ChatService(
 
     suspend fun bootstrap(req: AiBootstrapRequest): AiBootstrapResponse = runCatching {
         aiService.bundle(req)
-    }.getOrElse {
-        logger.warn("Bootstrap bundle failed", it)
+    }.getOrElse { error ->
+        if (error is CancellationException && error !is TimeoutCancellationException) throw error
+        if (!isExpectedLlmFailure(error)) {
+            logger.error("Unexpected error in bootstrap bundle — not falling back, surfacing as failure", error)
+            throw error
+        }
+        logger.warn("Bootstrap bundle failed", error)
         AiBootstrapResponse(
             trainingPlan = aiService.training(AiTrainingRequest(req.profile, req.weekIndex, req.locale)),
             nutritionPlan = aiService.nutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale)),

@@ -19,6 +19,8 @@ import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
@@ -85,9 +87,17 @@ class AiService(
         block: suspend () -> T
     ): T = runCatching {
         withTimeout(LlmTimeoutMs) { block() }
-    }.getOrElse {
-        logger.warn("LLM operation fallback triggered for {}", operation, it)
-        AiQualityMetrics.recordFallback(logger, operation, it)
+    }.getOrElse { error ->
+        // Real coroutine cancellation (client disconnected, request scope torn down) must
+        // propagate, never get swallowed into a fallback response — only the timeout we set
+        // ourselves above counts as an expected, recoverable failure.
+        if (error is CancellationException && error !is TimeoutCancellationException) throw error
+        if (!isExpectedLlmFailure(error)) {
+            logger.error("Unexpected error in LLM operation {} — not falling back, surfacing as failure", operation, error)
+            throw error
+        }
+        logger.warn("LLM operation fallback triggered for {}", operation, error)
+        AiQualityMetrics.recordFallback(logger, operation, error)
         fallback()
     }
 
@@ -197,6 +207,22 @@ class AiService(
             bundleCache.store(requestId, normalized, BundleCache.BundleCacheTtlMs)
             normalized
         } catch (t: Throwable) {
+            // Same narrowing as runWithFallback (see LlmFallbackPolicy.isExpectedLlmFailure) —
+            // this catch is the REAL swallow point for training()/nutrition()/sleep()/bundle():
+            // fetchBundle never lets a caught exception escape past this point (it always
+            // returns a fallback bundle below), so runWithFallback's own narrowing is live
+            // only for whatever throws BEFORE this try block. Without this check here too, a
+            // genuine bug (NPE in normalizeBundle, a broken validator, etc.) would silently
+            // become "the AI must have been slow" for every one of those four entry points.
+            if (t is CancellationException && t !is TimeoutCancellationException) {
+                bundleCache.fail(requestId, t)
+                throw t
+            }
+            if (!isExpectedLlmFailure(t)) {
+                logger.error("Unexpected error generating coach bundle requestId={} — not falling back, surfacing as failure", requestId, t)
+                bundleCache.fail(requestId, t)
+                throw t
+            }
             val decomposed = if (!decomposedAttempted && shouldAttemptDecomposedGeneration(t)) {
                 attemptDecomposedBundle(
                     profile = profile,

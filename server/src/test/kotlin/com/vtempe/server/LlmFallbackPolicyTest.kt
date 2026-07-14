@@ -1,7 +1,13 @@
 package com.vtempe.server
 
 import com.vtempe.server.features.ai.data.llm.LlmException
+import com.vtempe.server.features.ai.data.llm.pipeline.LlmPipelineExhaustedException
+import com.vtempe.server.features.ai.data.service.isExpectedLlmFailure
 import com.vtempe.server.features.ai.data.service.shouldFallbackToFree
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -45,5 +51,35 @@ class LlmFallbackPolicyTest {
     @Test
     fun `an unrelated exception does not trigger fallback`() {
         assertFalse(shouldFallbackToFree(IllegalStateException("schema validation failed")))
+    }
+
+    // ── isExpectedLlmFailure: what runWithFallback/chat/bootstrap treat as "safe to degrade
+    //    to a canned plan" vs "let it surface as a 500" (Wave 1 task 1.4) ──────────────────
+
+    @Test
+    fun `every LlmException subtype is an expected failure`() {
+        assertTrue(isExpectedLlmFailure(LlmException.RateLimited("429")))
+        assertTrue(isExpectedLlmFailure(LlmException.PaymentRequired("402")))
+        assertTrue(isExpectedLlmFailure(LlmException.Auth(401, "unauthorized")))
+        assertTrue(isExpectedLlmFailure(LlmException.Timeout("timed out")))
+        assertTrue(isExpectedLlmFailure(LlmException.Provider(500, "server error")))
+    }
+
+    @Test
+    fun `pipeline retry-budget exhaustion is an expected failure`() {
+        assertTrue(isExpectedLlmFailure(LlmPipelineExhaustedException("LLM training failed after 3 attempts")))
+    }
+
+    @Test
+    fun `our own withTimeout expiring is an expected failure`() = runBlocking {
+        val caught = runCatching { withTimeout(1) { delay(200); "unreachable" } }.exceptionOrNull()
+        assertTrue(caught is TimeoutCancellationException, "expected a real TimeoutCancellationException, got $caught")
+        assertTrue(isExpectedLlmFailure(caught!!))
+    }
+
+    @Test
+    fun `a plain bug is NOT an expected failure and must surface, not silently degrade`() {
+        assertFalse(isExpectedLlmFailure(NullPointerException("oops")))
+        assertFalse(isExpectedLlmFailure(IllegalStateException("trainingPlan missing in bundle")))
     }
 }

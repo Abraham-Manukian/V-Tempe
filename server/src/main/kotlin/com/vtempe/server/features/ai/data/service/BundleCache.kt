@@ -88,4 +88,16 @@ class BundleCache {
             inFlight.remove(requestId)?.complete(bundle)
         }
     }
+
+    /**
+     * The owner MUST call this if it's giving up without calling [store] (e.g. rethrowing an
+     * unexpected error instead of falling back). Without it, the in-flight [CompletableDeferred]
+     * is never completed — every concurrent waiter from [lockInFlight], and every future request
+     * for the same [requestId] until the process restarts, would join it and hang forever.
+     */
+    suspend fun fail(requestId: String, error: Throwable) {
+        mutex.withLock {
+            inFlight.remove(requestId)?.completeExceptionally(error)
+        }
+    }
 }

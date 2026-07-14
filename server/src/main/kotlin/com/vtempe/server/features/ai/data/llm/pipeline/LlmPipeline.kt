@@ -93,7 +93,7 @@ class LlmPipeline(
             fb = feedback.decodeError(msg)
         }
 
-        throw IllegalStateException("LLM $operation failed after ${config.maxAttempts} attempts. lastRaw=${snippet(lastRaw) ?: "<empty>"}")
+        throw LlmPipelineExhaustedException("LLM $operation failed after ${config.maxAttempts} attempts. lastRaw=${snippet(lastRaw) ?: "<empty>"}")
     }
 
     private fun extractCandidate(raw: String, extractionMode: ExtractionMode): ExtractionResult =
