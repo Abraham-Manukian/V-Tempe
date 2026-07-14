@@ -37,6 +37,8 @@ data class HomeState(
     val lastWeightKg: Double? = null,
     /** Briefly true after a weight is saved to show a confirmation. */
     val weightSaved: Boolean = false,
+    /** Non-null when the last data/plan refresh failed. Cleared on the next successful load. */
+    val errorMessage: String? = null,
 )
 
 interface HomePresenter {
@@ -62,6 +64,13 @@ class HomePresenterDelegate(
     private var cachedWorkouts: List<Workout> = emptyList()
     private var cachedPlan: NutritionPlan? = null
 
+    // Tracked per-source so one source recovering can't silently clear an error that's still
+    // live on a different, independent source (e.g. ensureCoachData succeeding right after
+    // observeWorkouts() errored must not hide the workouts error).
+    private var workoutsError = false
+    private var planError = false
+    private var coachDataError = false
+
     init {
         // Populate weight check-in and last known weight up front (no IO needed)
         _state.update {
@@ -74,31 +83,54 @@ class HomePresenterDelegate(
         trainingRepository.observeWorkouts()
             .onEach { workouts ->
                 cachedWorkouts = workouts
-                _state.update { buildHomeState(cachedWorkouts, cachedPlan) }
+                workoutsError = false
+                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
             }
-            .catch { Napier.e("HomePresenter workouts error", it) }
+            .catch { e ->
+                Napier.e("HomePresenter workouts error", e)
+                workoutsError = true
+                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
+            }
             .launchIn(scope)
 
         nutritionRepository.observePlan()
             .onEach { plan ->
                 cachedPlan = plan
-                _state.update { buildHomeState(cachedWorkouts, cachedPlan) }
+                planError = false
+                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
             }
-            .catch { Napier.e("HomePresenter plan error", it) }
+            .catch { e ->
+                Napier.e("HomePresenter plan error", e)
+                planError = true
+                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
+            }
             .launchIn(scope)
 
         scope.launch {
             runCatching { ensureCoachData() }
-                .onFailure { Napier.w("EnsureCoachData failed on Home", it) }
+                .onSuccess { coachDataError = false; _state.update { it.copy(errorMessage = combinedErrorMessage()) } }
+                .onFailure { e ->
+                    Napier.w("EnsureCoachData failed on Home", e)
+                    coachDataError = true
+                    _state.update { it.copy(errorMessage = combinedErrorMessage()) }
+                }
         }
     }
 
     override fun refresh() {
         scope.launch {
             runCatching { ensureCoachData() }
-                .onFailure { Napier.w("EnsureCoachData failed on Home refresh", it) }
+                .onSuccess { coachDataError = false; _state.update { it.copy(errorMessage = combinedErrorMessage()) } }
+                .onFailure { e ->
+                    Napier.w("EnsureCoachData failed on Home refresh", e)
+                    coachDataError = true
+                    _state.update { it.copy(errorMessage = combinedErrorMessage()) }
+                }
         }
     }
+
+    private fun combinedErrorMessage(): String? =
+        if (workoutsError || planError || coachDataError) "load_failed" else null
 
     override fun logWeight(kg: Double) {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date

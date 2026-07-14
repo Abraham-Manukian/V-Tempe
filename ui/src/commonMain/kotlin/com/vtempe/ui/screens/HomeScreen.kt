@@ -77,7 +77,21 @@ fun HomeScreen(
                     end = 20.dp
                 )
             ) {
-                item {
+                if (uiState.errorMessage != null) {
+                    item(key = "error") {
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(animationSpec = tween(300))
+                        ) {
+                            ErrorState(
+                                title = stringResource(Res.string.home_load_error),
+                                subtitle = stringResource(Res.string.home_load_error_hint),
+                                onRetry = { homePresenter.refresh() }
+                            )
+                        }
+                    }
+                }
+                item(key = "overview") {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -94,7 +108,7 @@ fun HomeScreen(
                     }
                 }
                 if (uiState.showWeightCheckin) {
-                    item {
+                    item(key = "weight_checkin") {
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn(animationSpec = tween(320, delayMillis = 50)) + slideInVertically(
@@ -111,7 +125,7 @@ fun HomeScreen(
                         }
                     }
                 }
-                item {
+                item(key = "quick_actions") {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(animationSpec = tween(350, delayMillis = 60)) + slideInVertically(
@@ -122,7 +136,7 @@ fun HomeScreen(
                         QuickActionCard(onNavigate)
                     }
                 }
-                item {
+                item(key = "today_workout") {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(animationSpec = tween(400, delayMillis = 100)) + slideInVertically(
@@ -133,7 +147,7 @@ fun HomeScreen(
                         TodayWorkoutCard(onNavigate)
                     }
                 }
-                item {
+                item(key = "nutrition_summary") {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(tween(450, delayMillis = 140)) + slideInVertically(

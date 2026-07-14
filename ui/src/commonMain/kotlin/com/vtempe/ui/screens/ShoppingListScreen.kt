@@ -62,9 +62,10 @@ fun ShoppingListScreen(
             }
             when (val ui = state.ui) {
                 UiState.Loading -> Text(stringResource(Res.string.loading), color = MaterialTheme.colorScheme.onBackground)
-                is UiState.Error -> Text(
-                    stringResource(Res.string.nutrition_error_title),
-                    color = MaterialTheme.colorScheme.error
+                is UiState.Error -> ErrorState(
+                    title = stringResource(Res.string.nutrition_error_title),
+                    subtitle = stringResource(Res.string.nutrition_error_hint),
+                    onRetry = { presenter.refresh(force = true) }
                 )
                 is UiState.Data -> {
                     val items = ui.value.shoppingList

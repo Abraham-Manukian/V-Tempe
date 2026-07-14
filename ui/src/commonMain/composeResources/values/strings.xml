@@ -311,6 +311,9 @@
     <string name="nutrition_macros_line">Kcal: %1$d  P:%2$d  F:%3$d  C:%4$d</string>
     <string name="nutrition_shopping_bullet">• %1$s</string>
     <string name="action_back">Back</string>
+    <string name="common_retry">Retry</string>
+    <string name="home_load_error">Couldn\'t refresh your plan</string>
+    <string name="home_load_error_hint">Check your connection and try again.</string>
 
     <!-- Sleep -->
     <string name="sleep_title">Sleep tips</string>

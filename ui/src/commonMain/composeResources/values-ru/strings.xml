@@ -461,4 +461,7 @@
     <string name="settings_ai_model_free">Бесплатная (Gemma 3 27B)</string>
     <string name="settings_ai_model_current_paid">Сейчас: платная модель</string>
     <string name="settings_ai_model_current_free">Сейчас: бесплатная модель</string>
+    <string name="common_retry">Повторить</string>
+    <string name="home_load_error">Не удалось обновить план</string>
+    <string name="home_load_error_hint">Проверьте соединение и попробуйте ещё раз.</string>
 </resources>

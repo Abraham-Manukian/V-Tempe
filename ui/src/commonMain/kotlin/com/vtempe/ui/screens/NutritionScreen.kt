@@ -73,12 +73,18 @@ fun NutritionScreen(
                         topPadding = topBarHeight,
                         title = stringResource(Res.string.nutrition_loading_title),
                     )
-                    is UiState.Error -> NutritionLoadingState(
-                        topPadding = topBarHeight,
-                        title = stringResource(Res.string.nutrition_error_title),
-                        subtitle = stringResource(Res.string.nutrition_error_hint),
-                        isError = true,
-                    )
+                    is UiState.Error -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = topBarHeight + 16.dp, start = 20.dp, end = 20.dp),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        ErrorState(
+                            title = stringResource(Res.string.nutrition_error_title),
+                            subtitle = stringResource(Res.string.nutrition_error_hint),
+                            onRetry = { presenter.refresh(force = true) }
+                        )
+                    }
                     is UiState.Data -> NutritionContent(
                         tab = tab,
                         onTabSelect = { tab = it },
@@ -107,8 +113,6 @@ fun NutritionScreen(
 private fun NutritionLoadingState(
     topPadding: Dp,
     title: String,
-    subtitle: String? = null,
-    isError: Boolean = false,
 ) {
     Box(
         modifier = Modifier
@@ -132,16 +136,7 @@ private fun NutritionLoadingState(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (subtitle != null) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    )
-                }
-                if (!isError) {
-                    repeat(4) { Skeleton(height = 14.dp) }
-                }
+                repeat(4) { Skeleton(height = 14.dp) }
             }
         }
     }
