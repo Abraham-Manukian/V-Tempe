@@ -24,7 +24,7 @@ class RetryingLLMClient(
                 val retryable = isRetryable(ex)
                 if (attempt >= attempts || !retryable) throw ex
 
-                val hintedDelay = (ex as? RateLimitException)
+                val hintedDelay = (ex as? LlmException.RateLimited)
                     ?.retryAfterMillis
                     ?.takeIf { it > 0 }
                     ?.coerceAtMost(maxDelayMs)
@@ -46,28 +46,28 @@ class RetryingLLMClient(
         throw lastError ?: IllegalStateException("LLM request failed after $attempts attempt(s)")
     }
 
-    private fun isRetryable(error: Throwable): Boolean {
-        if (error is RateLimitException) return true
-        return errorChain(error).any { cause ->
-            val message = cause.message?.lowercase().orEmpty()
-            if (message.contains("timed out") || message.contains("timeout")) return@any true
-            val status = parseOpenRouterStatus(cause.message)
-            status != null && status in RETRYABLE_HTTP_STATUSES
+    private fun isRetryable(error: Throwable): Boolean = errorChain(error).any { cause ->
+        when (cause) {
+            is LlmException.RateLimited, is LlmException.Timeout -> true
+            is LlmException.Auth, is LlmException.PaymentRequired -> false
+            // Unlike OpenRouterLLMClient.shouldTryNextModel (which can still usefully try a
+            // DIFFERENT model on a null-status provider error), retrying the SAME request here
+            // can't fix a deterministic relayed failure like "model not found" — only retry
+            // when we actually know the status and it's one of the transient ones.
+            is LlmException.Provider -> cause.status in RETRYABLE_HTTP_STATUSES
+            else -> {
+                // Legacy fallback for anything not covered by LlmException.
+                val message = cause.message?.lowercase().orEmpty()
+                message.contains("timed out") || message.contains("timeout")
+            }
         }
     }
 
     private fun errorChain(error: Throwable): Sequence<Throwable> =
         generateSequence(error) { it.cause }
 
-    private fun parseOpenRouterStatus(message: String?): Int? {
-        if (message.isNullOrBlank()) return null
-        val match = OPENROUTER_HTTP_REGEX.find(message) ?: return null
-        return match.groupValues.getOrNull(1)?.toIntOrNull()
-    }
-
     companion object {
         private val logger = LoggerFactory.getLogger(RetryingLLMClient::class.java)
-        private val OPENROUTER_HTTP_REGEX = Regex("""OpenRouter\s+(?:HTTP|error)\s+(\d{3})""", RegexOption.IGNORE_CASE)
         private val RETRYABLE_HTTP_STATUSES = setOf(408, 409, 425, 429, 500, 502, 503, 504)
     }
 }

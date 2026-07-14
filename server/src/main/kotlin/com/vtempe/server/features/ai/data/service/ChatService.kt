@@ -2,7 +2,6 @@ package com.vtempe.server.features.ai.data.service
 
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
-import com.vtempe.server.features.ai.data.llm.RateLimitException
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
 import com.vtempe.server.features.ai.domain.model.TrainingMode
@@ -235,18 +234,7 @@ class ChatService(
         }.getOrThrow()
     }
 
-    private fun shouldFallbackToFree(error: Throwable): Boolean {
-        if (error is RateLimitException) return true
-        val message = error.message?.lowercase().orEmpty()
-        if (message.contains(" 429") || message.contains("rate limit")) return true
-        if (message.contains(" 402") || message.contains("insufficient credits") || message.contains("payment required")) return true
-        if (message.contains(" 401") || message.contains("unauthorized")) return true
-        if (message.contains(" 403") || message.contains("forbidden")) return true
-        return message.contains("timed out") ||
-            message.contains("timeout") ||
-            message.contains("connection reset") ||
-            message.contains("provider returned error")
-    }
+    // shouldFallbackToFree(): shared with AiService, see LlmFallbackPolicy.kt.
 }
 
 private fun buildChatProfileSummary(profile: AiProfile): String = buildString {

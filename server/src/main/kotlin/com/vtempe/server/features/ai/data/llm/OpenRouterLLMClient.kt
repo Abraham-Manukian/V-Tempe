@@ -130,17 +130,14 @@ class OpenRouterLLMClient(
         } catch (ex: ResponseException) {
             throw mapResponseException(ex)
         } catch (ex: HttpRequestTimeoutException) {
-            throw IllegalStateException("OpenRouter request timed out: ${ex.message}", ex)
+            throw LlmException.Timeout("OpenRouter request timed out: ${ex.message}", ex)
         }
 
         response.error?.let { err ->
             val code = err.codeAsString ?: "unknown"
             val status = err.codeAsString?.toIntOrNull()
             val message = "OpenRouter error $code: ${err.message}"
-            if (status == HttpStatusCode.TooManyRequests.value) {
-                throw RateLimitException(message)
-            }
-            throw IllegalStateException(message)
+            throw mapStatusToException(status, message)
         }
         return response
     }
@@ -155,30 +152,32 @@ class OpenRouterLLMClient(
         return candidates.toList()
     }
 
-    private fun shouldTryNextModel(error: Throwable): Boolean {
-        val message = error.message?.lowercase().orEmpty()
-        val status = parseStatusCode(message)
-        if (
-            status == HttpStatusCode.Unauthorized.value ||
-            status == HttpStatusCode.PaymentRequired.value ||
-            status == HttpStatusCode.Forbidden.value
-        ) {
-            return false
+    private fun shouldTryNextModel(error: Throwable): Boolean = when (error) {
+        is LlmException.Auth, is LlmException.PaymentRequired -> false
+        is LlmException.RateLimited, is LlmException.Timeout -> true
+        is LlmException.Provider -> error.status == null || error.status in RETRYABLE_OR_MODEL_ERRORS
+        else -> {
+            // Legacy fallback for anything not covered by LlmException (e.g. the plain
+            // IllegalStateException `error(...)` throws below for an empty/missing choices
+            // field) — every OpenRouter HTTP/response-body failure path is typed above.
+            val message = error.message?.lowercase().orEmpty()
+            message.contains("provider returned error") ||
+                message.contains("model not found") ||
+                message.contains("unsupported model") ||
+                message.contains("timed out") ||
+                message.contains("timeout") ||
+                message.contains("connection reset")
         }
-        if (status != null && status in RETRYABLE_OR_MODEL_ERRORS) return true
-        return message.contains("provider returned error") ||
-            message.contains("model not found") ||
-            message.contains("unsupported model") ||
-            message.contains("timed out") ||
-            message.contains("timeout") ||
-            message.contains("connection reset")
     }
 
-    private fun parseStatusCode(message: String): Int? {
-        val match = OPENROUTER_STATUS_REGEX.find(message) ?: return null
-        return match.groupValues.getOrNull(1)?.toIntOrNull()
+    private fun mapStatusToException(status: Int?, message: String): LlmException = when (status) {
+        HttpStatusCode.TooManyRequests.value -> LlmException.RateLimited(message)
+        HttpStatusCode.PaymentRequired.value -> LlmException.PaymentRequired(message)
+        HttpStatusCode.Unauthorized.value, HttpStatusCode.Forbidden.value -> LlmException.Auth(status, message)
+        else -> LlmException.Provider(status, message)
     }
-    private suspend fun mapResponseException(ex: ResponseException): Throwable {
+
+    private suspend fun mapResponseException(ex: ResponseException): LlmException {
         val status = ex.response.status
         val bodyText = runCatching { ex.response.bodyAsText() }.getOrNull()?.takeIf { it.isNotBlank() }
         val message = buildString {
@@ -192,12 +191,15 @@ class OpenRouterLLMClient(
                     append(it)
                 }
             }
-        }
-        return if (status == HttpStatusCode.TooManyRequests) {
-            val retryAfter = parseRetryAfterMillis(ex.response.headers[HttpHeaders.RetryAfter])
-            RateLimitException(message, retryAfter, ex)
-        } else {
-            IllegalStateException(message.ifBlank { "OpenRouter HTTP ${status.value}" }, ex)
+        }.ifBlank { "OpenRouter HTTP ${status.value}" }
+        return when (status) {
+            HttpStatusCode.TooManyRequests -> {
+                val retryAfter = parseRetryAfterMillis(ex.response.headers[HttpHeaders.RetryAfter])
+                LlmException.RateLimited(message, retryAfter, ex)
+            }
+            HttpStatusCode.PaymentRequired -> LlmException.PaymentRequired(message, ex)
+            HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden -> LlmException.Auth(status.value, message, ex)
+            else -> LlmException.Provider(status.value, message, ex)
         }
     }
 
@@ -240,8 +242,6 @@ class OpenRouterLLMClient(
         private const val SYSTEM_PROMPT =
             "You must reply with a single valid JSON object that exactly matches the user's schema. " +
             "Do not add explanations, markdown, apologies, or text outside the JSON object."
-        private val OPENROUTER_STATUS_REGEX =
-            Regex("""openrouter\s+(?:http|error)\s+(\d{3})""", RegexOption.IGNORE_CASE)
         private val RETRYABLE_OR_MODEL_ERRORS = setOf(400, 404, 408, 409, 422, 425, 429, 500, 502, 503, 504)
         private val logger = LoggerFactory.getLogger(OpenRouterLLMClient::class.java)
     }
