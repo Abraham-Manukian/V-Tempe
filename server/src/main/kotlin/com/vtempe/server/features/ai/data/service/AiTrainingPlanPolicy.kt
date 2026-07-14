@@ -1,6 +1,7 @@
 package com.vtempe.server.features.ai.data.service
 
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
+import com.vtempe.server.features.ai.domain.model.DurationUnit
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.profile.AiProfile
@@ -16,63 +17,33 @@ import java.time.temporal.TemporalAdjusters
 internal const val MaxWorkoutsPerPlan = 7
 internal const val MaxSetsPerWorkout = 6
 
-// Exercises measured in seconds — the `reps` field holds a seconds count (e.g. reps=30 = 30s
-// hold). AI-written values are wildly inconsistent for these (we've seen "8" and "45" for the
-// same exercise across runs), so normalizeTrainingPlan() below clamps reps into SECONDS_RANGE
-// instead of trusting whatever the AI wrote.
-internal val durationSecondsExerciseIds = setOf(
-    "plank", "side_plank", "wall_sit", "wall_sit_march", "l_sit", "hollow_body", "hollow_hold",
-    "hollow_rock", "plank_shoulder_tap", "plank_up_down", "plank_reach", "side_plank_hip_dip",
-    "chin_up_hold", "mountain_climber", "mountain_climbers", "flutter_kick",
-    "stretching", "hip_flexor_stretch", "world_greatest_stretch", "downward_dog",
-    "cobra_stretch", "childs_pose", "thoracic_rotation", "pigeon_stretch", "shoulder_dislocate",
-    "neck_stretch", "ankle_mobility", "hip_circle", "leg_swing",
-    "squat_thrust", "tuck_jump", "bear_crawl", "inchworm", "lateral_shuffle", "butt_kick",
-    "jumping_jack_squat"
-)
 // internal: referenced from the prompt builder in AiService.kt (see MaxWorkoutsPerPlan comment above).
 internal val SECONDS_RANGE = 20..60
-
-// Exercises measured in minutes — the `reps` field holds a minutes count.
-internal val durationMinutesExerciseIds = setOf(
-    "run", "running", "jog", "jogging", "treadmill",
-    "bike", "stationary_bike", "cycling", "rowing_machine"
-)
 // internal: referenced from the prompt builder in AiService.kt (see MaxWorkoutsPerPlan comment above).
 internal val MINUTES_RANGE = 5..30
 
 /** The AI writes wildly inconsistent numbers for duration-based exercises (e.g. "8" or "45"
  *  for the same plank slot across runs) since nothing tells it what unit `reps` represents for
- *  a given exercise. Clamp into a sane range per exercise instead of trusting the raw value. */
-internal fun clampRepsForUnit(exerciseId: String, reps: Int): Int = when (exerciseId) {
-    in durationSecondsExerciseIds -> reps.coerceIn(SECONDS_RANGE)
-    in durationMinutesExerciseIds -> reps.coerceIn(MINUTES_RANGE)
+ *  a given exercise. Clamp into a sane range per exercise instead of trusting the raw value.
+ *  Unit-per-exercise comes from the catalog's `durationUnit` field (item A2 — this used to be 2
+ *  separate hardcoded ID sets here that drifted from the catalog over time). */
+internal fun clampRepsForUnit(
+    exerciseId: String,
+    reps: Int,
+    catalog: ExerciseCatalog = builtInExerciseCatalog
+): Int = when (catalog.findByIdOrAlias(exerciseId)?.durationUnit) {
+    DurationUnit.SECONDS -> reps.coerceIn(SECONDS_RANGE)
+    DurationUnit.MINUTES -> reps.coerceIn(MINUTES_RANGE)
     else -> reps
 }
 
-// Exercises where external weight should always be null (no barbell/dumbbell added)
-// Advanced users with a weight belt are the exception, but we keep weight null by default.
-private val bodweightOnlyExerciseIds = setOf(
-    "pullup", "chin_up", "wide_pullup", "assisted_pullup", "muscle_up",
-    "pushup", "diamond_pushup", "wide_pushup", "decline_pushup", "incline_pushup", "pike_pushup",
-    "dip", "inverted_row", "handstand_pushup",
-    "plank", "side_plank", "mountain_climber", "burpee", "jumping_jack", "jump_squat",
-    "toes_to_bar", "hanging_knee_raise", "hanging_leg_raise",
-    "l_sit", "hollow_body", "hollow_hold",
-    "wall_sit", "lunge", "reverse_lunge", "walking_lunge", "split_squat",
-    "sumo_squat", "glute_bridge", "glute_bridge_hold", "nordic_curl", "step_up",
-    "bear_crawl", "crab_walk", "inchworm",
-    "towel_row", "doorway_row", "table_row", "prone_y_raise", "prone_w_raise",
-    "scapular_pullup", "neutral_grip_pullup", "negative_pullup",
-    "bench_dip", "diamond_pushup_knee", "wall_tricep_extension", "wall_walk",
-    "pike_pushup_elevated", "knee_pushup", "pseudo_planche_pushup", "archer_pushup",
-    "clap_pushup", "close_grip_pushup_feet_elevated",
-    "single_leg_glute_bridge", "bodyweight_good_morning", "hip_hinge_wall", "prone_leg_curl",
-    "bodyweight_squat", "prisoner_squat", "cossack_squat", "calf_raise",
-    "glute_kickback", "fire_hydrant", "jump_lunge",
-    "reverse_crunch", "heel_touch", "plank_shoulder_tap", "bird_dog", "plank_up_down",
-    "side_plank_hip_dip", "hollow_rock", "plank_reach"
-)
+/** External weight (barbell/dumbbell/etc) should always be null for these — see
+ *  ExerciseCatalogItem.isBodyweightOnly (item A2 — this used to be a separate hardcoded ID set
+ *  here that drifted from the catalog over time). */
+internal fun isBodyweightOnly(
+    exerciseId: String,
+    catalog: ExerciseCatalog = builtInExerciseCatalog
+): Boolean = catalog.findByIdOrAlias(exerciseId)?.isBodyweightOnly ?: false
 
 internal fun normalizeTrainingPlan(
     plan: AiTrainingResponse,
@@ -126,7 +97,7 @@ internal fun normalizeTrainingPlan(
                         normalizeExerciseToken(aiSet.exerciseId) == exerciseId
                     val reps = clampRepsForUnit(exerciseId, aiSet?.reps?.coerceAtLeast(1) ?: 8)
                     val weight = when {
-                        exerciseId in bodweightOnlyExerciseIds || bandsOnlyEquipment -> null
+                        isBodyweightOnly(exerciseId) || bandsOnlyEquipment -> null
                         // In skeleton path we override the exercise ID ourselves, so AI's weight
                         // is always the intended slot weight — use it regardless of exercise match.
                         else -> aiSet?.weightKg?.takeIf { it >= 0.0 }
@@ -158,7 +129,7 @@ internal fun normalizeTrainingPlan(
                         ) ?: return@mapIndexedNotNull null
                         usedExerciseIds += canonical
                         val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1))
-                        val weight = if (canonical in bodweightOnlyExerciseIds || bandsOnlyEquipment) null
+                        val weight = if (isBodyweightOnly(canonical) || bandsOnlyEquipment) null
                                      else set.weightKg?.takeIf { it >= 0.0 }
                         val rpe = set.rpe?.takeIf { it > 0.0 }
                         AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe)

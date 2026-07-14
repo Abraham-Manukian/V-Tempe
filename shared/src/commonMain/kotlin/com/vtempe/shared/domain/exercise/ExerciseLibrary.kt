@@ -852,7 +852,10 @@ object ExerciseLibrary {
             muscleGroups = listOf("legs", "cardiovascular"),
             difficulty = 1,
             visualFamily = ExerciseVisualFamily.CARDIO,
-            calibrationKind = ExerciseCalibrationKind.DURATION_SECONDS,
+            // Fixed 2026-07-14 (A2 cross-check vs server catalog): was DURATION_SECONDS, but a
+            // cardio session is calibrated in minutes, not seconds — matches server's
+            // durationUnit=MINUTES for "bike".
+            calibrationKind = ExerciseCalibrationKind.DURATION_MINUTES,
             calibrationHint = LocalizedText(
                 "Adjust seat so the knee has a slight bend at full pedal extension.",
                 "Отрегулируй сиденье так, чтобы при полном вытяжении педали колено было слегка согнуто."
