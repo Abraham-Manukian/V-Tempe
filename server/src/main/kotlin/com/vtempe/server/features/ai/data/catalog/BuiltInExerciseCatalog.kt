@@ -6,7 +6,9 @@ import com.vtempe.server.features.ai.domain.model.TrainingMode
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 
 /**
- * Master exercise catalog — 107 exercises.
+ * Master exercise catalog — ~188 exercises (the "107" figure in older docs/comments elsewhere
+ * is stale; this file is a strict superset of both client-side catalogs — see
+ * ExerciseCatalogDriftTest for the exact gap).
  *
  * difficulty: 1 = absolute beginner  2 = novice  3 = intermediate
  *             4 = advanced            5 = elite / requires years of practice
