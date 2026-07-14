@@ -14,15 +14,16 @@ import java.io.File
  * out of scope for "just add a test"). This test instead reads all three Kotlin source files as
  * text and diffs the declared exercise IDs.
  *
- * This is a RATCHET, not a red test: the dangerous direction (per the architecture audit, item
- * A1) is the server returning an ID the client has no technique/image for — the user sees a
- * bare label. That gap is captured as KNOWN_SERVER_ONLY_VS_LIBRARY_IDS/
- * KNOWN_SERVER_ONLY_VS_BROWSE_IDS below (the actual drift found 2026-07-13 — the server catalog
- * turned out to have ~188 exercises, not the ~107 its own header comment claims; it's a strict
- * superset of both client catalogs) so CI stays green today, but any NEW id added to the server
- * catalog without also adding it to the client catalogs will fail this test immediately, instead
- * of silently drifting further. Shrinking these sets over time (removing entries as they're
- * backfilled) is exactly the "unification" work item 2.1 defers to a future session.
+ * The server-vs-ExerciseBrowseCatalog check is now a hard ZERO-DRIFT check (item A1, backfilled
+ * 2026-07-14 — both catalogs have exactly the same 188 IDs). The server-vs-ExerciseLibrary
+ * check is still a RATCHET: ExerciseLibrary carries full technique/image content per exercise
+ * (real content-authoring, deliberately out of scope for this pass — see
+ * ARCHITECTURE_SECURITY_BACKLOG.md item A1), so the dangerous direction (server returning an ID
+ * the client has no technique/image for — the user sees a bare label) is captured as
+ * KNOWN_SERVER_ONLY_VS_LIBRARY_IDS below so CI stays green today, but any NEW id added to the
+ * server catalog without also adding it to ExerciseLibrary will fail this test immediately,
+ * instead of silently drifting further. Shrinking that set over time (removing entries as
+ * they're backfilled with real technique content) is the remaining "unification" work.
  */
 class ExerciseCatalogDriftTest {
 
@@ -72,18 +73,23 @@ class ExerciseCatalogDriftTest {
     }
 
     @Test
-    fun `server catalog does not grow further ahead of ExerciseBrowseCatalog (browse screen)`() {
+    fun `server catalog and ExerciseBrowseCatalog (browse screen) have exactly the same exercise IDs`() {
+        // Backfilled 2026-07-14 (item A1) — the browse catalog is now a strict mirror of the
+        // server's 188 IDs, so this is a hard zero-drift check, not a ratchet: any NEW id added
+        // to either catalog without the other must fail immediately.
         val server = serverCatalogIds()
         val browse = browseCatalogIds()
         assertTrue(browse.size > 50, "Sanity check: expected ExerciseBrowseCatalog parse to find 50+ ids, found ${browse.size} — regex likely broken")
 
         val serverOnly = (server - browse).sorted()
-        val newDrift = serverOnly - KNOWN_SERVER_ONLY_VS_BROWSE_IDS
+        val browseOnly = (browse - server).sorted()
         assertTrue(
-            newDrift.isEmpty(),
-            "Server catalog has NEW exercise IDs missing from ExerciseBrowseCatalog: $newDrift. " +
-                "Either add them to ExerciseBrowseCatalog.kt or, if intentional, add them to " +
-                "KNOWN_SERVER_ONLY_VS_BROWSE_IDS in this test with a reason."
+            serverOnly.isEmpty(),
+            "Server catalog has exercise IDs missing from ExerciseBrowseCatalog: $serverOnly. Add them to ExerciseBrowseCatalog.kt."
+        )
+        assertTrue(
+            browseOnly.isEmpty(),
+            "ExerciseBrowseCatalog has exercise IDs that don't exist in the server catalog (typo?): $browseOnly."
         )
     }
 
@@ -111,24 +117,8 @@ class ExerciseCatalogDriftTest {
             "swim", "toes_to_bar", "tricep_kickback", "tricep_pushdown", "upright_row", "v_up",
             "wall_sit", "wide_pullup", "wide_pushup", "world_greatest_stretch"
         )
-        private val KNOWN_SERVER_ONLY_VS_BROWSE_IDS: Set<String> = setOf(
-            "ankle_mobility", "archer_pushup", "bear_crawl", "bench_dip", "bird_dog",
-            "bodyweight_good_morning", "bodyweight_squat", "butt_kick", "calf_raise", "childs_pose",
-            "chin_up_hold", "clap_pushup", "close_grip_pushup_feet_elevated", "cobra_stretch",
-            "cossack_squat", "db_bench_press", "diamond_pushup_knee", "doorway_row", "downward_dog",
-            "fire_hydrant", "flutter_kick", "glute_kickback", "heel_touch", "hip_circle",
-            "hip_hinge_wall", "hollow_rock", "inchworm", "incline_db_press", "jm_press", "jump_lunge",
-            "jumping_jack_squat", "kettlebell_clean", "kettlebell_goblet_squat", "kettlebell_high_pull",
-            "kettlebell_snatch", "knee_pushup", "lateral_shuffle", "leg_swing", "machine_chest_press",
-            "meadows_row", "medicine_ball_slam", "neck_stretch", "negative_pullup", "neutral_grip_pullup",
-            "overhead_dumbbell_extension", "pendlay_row", "pigeon_stretch", "pike_pushup_elevated",
-            "plank_reach", "plank_shoulder_tap", "plank_up_down", "preacher_curl", "prisoner_squat",
-            "prone_leg_curl", "prone_w_raise", "prone_y_raise", "pseudo_planche_pushup", "renegade_row",
-            "reverse_crunch", "reverse_fly", "scapular_pullup", "seal_row", "shadow_boxing",
-            "shoulder_dislocate", "side_plank_hip_dip", "single_leg_glute_bridge", "sled_push",
-            "spider_curl", "split_squat", "squat_thrust", "straight_arm_pulldown", "superman_row",
-            "svend_press", "table_row", "thoracic_rotation", "towel_row", "tuck_jump", "turkish_getup",
-            "wall_sit_march", "wall_tricep_extension", "wall_walk", "zottman_curl"
-        )
+        // KNOWN_SERVER_ONLY_VS_BROWSE_IDS removed 2026-07-14: item A1 backfilled all 82 of
+        // these into ExerciseBrowseCatalog.kt, so the browse-catalog test above is now a hard
+        // zero-drift check instead of a ratchet.
     }
 }

@@ -1,7 +1,9 @@
 package com.vtempe.shared.domain.exercise
 
 /**
- * Lightweight client-side catalog of all 107 exercises for the browse/library screen.
+ * Lightweight client-side catalog of all 188 exercises for the browse/library screen — a strict
+ * mirror of the server's BuiltInExerciseCatalog id set (item A1, backfilled 2026-07-14; see
+ * ExerciseCatalogDriftTest for the enforced zero-drift check).
  *
  * Mirrors the server's BuiltInExerciseCatalog metadata (id, training modes, muscle group,
  * difficulty) but without resolver logic. Used purely for display: filtering by where the
@@ -168,7 +170,111 @@ object ExerciseBrowseCatalog {
         BrowseExercise("foam_rolling", "Foam Rolling", "Раскатка на ролике", MuscleGroup.MOBILITY, setOf(H, G), 1),
         BrowseExercise("hip_flexor_stretch", "Hip Flexor Stretch", "Растяжка сгибателей бедра", MuscleGroup.MOBILITY, setOf(H, G, O), 1),
         BrowseExercise("world_greatest_stretch", "World's Greatest Stretch", "Лучшая растяжка", MuscleGroup.MOBILITY, setOf(H, G, O), 2),
-        BrowseExercise("cat_cow", "Cat-Cow", "Кошка-корова", MuscleGroup.MOBILITY, setOf(H, G), 1)
+        BrowseExercise("cat_cow", "Cat-Cow", "Кошка-корова", MuscleGroup.MOBILITY, setOf(H, G), 1),
+
+        // ── A1 BACKFILL 2026-07-14 — server IDs missing from browse catalog ──
+        // (see ExerciseCatalogDriftTest.KNOWN_SERVER_ONLY_VS_BROWSE_IDS, now empty)
+        // LEGS
+        BrowseExercise("bodyweight_squat", "Bodyweight Squat", "Приседания без веса", MuscleGroup.LEGS, setOf(G, H, O), 1),
+        BrowseExercise("calf_raise", "Calf Raise", "Подъёмы на носки", MuscleGroup.LEGS, setOf(G, H, O), 1),
+        BrowseExercise("cossack_squat", "Cossack Squat", "Казачий присед", MuscleGroup.LEGS, setOf(G, H, O), 3),
+        BrowseExercise("jump_lunge", "Jump Lunge", "Выпады в прыжке", MuscleGroup.LEGS, setOf(G, H, O), 3),
+        BrowseExercise("kettlebell_goblet_squat", "Kettlebell Goblet Squat", "Гоблет-присед с гирей", MuscleGroup.LEGS, setOf(G, H, O), 2),
+        BrowseExercise("prisoner_squat", "Prisoner Squat", "Присед с руками за головой", MuscleGroup.LEGS, setOf(G, H, O), 1),
+        BrowseExercise("split_squat", "Split Squat", "Сплит-присед", MuscleGroup.LEGS, setOf(G, H, O), 2),
+        BrowseExercise("wall_sit_march", "Wall Sit March", "Стульчик у стены с шагами", MuscleGroup.LEGS, setOf(G, H, O), 2),
+
+        // GLUTES
+        BrowseExercise("bodyweight_good_morning", "Bodyweight Good Morning", "Наклоны со своим весом", MuscleGroup.GLUTES, setOf(G, H, O), 1),
+        BrowseExercise("fire_hydrant", "Fire Hydrant", "Отведение бедра на четвереньках", MuscleGroup.GLUTES, setOf(G, H, O), 1),
+        BrowseExercise("glute_kickback", "Glute Kickback", "Отведение ноги назад", MuscleGroup.GLUTES, setOf(G, H, O), 1),
+        BrowseExercise("hip_hinge_wall", "Wall Hip Hinge", "Наклон таза у стены", MuscleGroup.GLUTES, setOf(G, H, O), 1),
+        BrowseExercise("kettlebell_clean", "Kettlebell Clean", "Взятие гири на грудь", MuscleGroup.GLUTES, setOf(G, H, O), 3),
+        BrowseExercise("kettlebell_snatch", "Kettlebell Snatch", "Рывок гири", MuscleGroup.GLUTES, setOf(G, O), 4),
+        BrowseExercise("prone_leg_curl", "Prone Leg Curl", "Сгибание ног лёжа на полу", MuscleGroup.GLUTES, setOf(G, H, O), 1),
+        BrowseExercise("single_leg_glute_bridge", "Single-Leg Glute Bridge", "Ягодичный мостик на одной ноге", MuscleGroup.GLUTES, setOf(G, H, O), 2),
+
+        // CHEST
+        BrowseExercise("archer_pushup", "Archer Push-Up", "Отжимания «лучник»", MuscleGroup.CHEST, setOf(G, H, O), 4),
+        BrowseExercise("clap_pushup", "Clap Push-Up", "Отжимания с хлопком", MuscleGroup.CHEST, setOf(G, H, O), 4),
+        BrowseExercise("db_bench_press", "Dumbbell Bench Press", "Жим гантелей лёжа", MuscleGroup.CHEST, setOf(G, H), 2),
+        BrowseExercise("incline_db_press", "Incline Dumbbell Press", "Жим гантелей на наклонной", MuscleGroup.CHEST, setOf(G, H), 2),
+        BrowseExercise("knee_pushup", "Knee Push-Up", "Отжимания с колен", MuscleGroup.CHEST, setOf(G, H, O), 1),
+        BrowseExercise("machine_chest_press", "Machine Chest Press", "Жим в тренажёре", MuscleGroup.CHEST, setOf(G), 1),
+        BrowseExercise("pseudo_planche_pushup", "Pseudo Planche Push-Up", "Отжимания с наклоном вперёд", MuscleGroup.CHEST, setOf(G, H, O), 4),
+        BrowseExercise("svend_press", "Svend Press", "Жим Свенда", MuscleGroup.CHEST, setOf(G, H), 1),
+
+        // SHOULDERS
+        BrowseExercise("pike_pushup_elevated", "Elevated Pike Push-Up", "Отжимания «домиком» с возвышения", MuscleGroup.SHOULDERS, setOf(G, H, O), 3),
+        BrowseExercise("wall_walk", "Wall Walk", "Прогулка по стене", MuscleGroup.SHOULDERS, setOf(G, H, O), 4),
+
+        // BACK
+        BrowseExercise("doorway_row", "Doorway Row", "Тяга в дверном проёме", MuscleGroup.BACK, setOf(G, H, O), 1),
+        BrowseExercise("kettlebell_high_pull", "Kettlebell High Pull", "Высокая тяга гири", MuscleGroup.BACK, setOf(G, H, O), 3),
+        BrowseExercise("meadows_row", "Meadows Row", "Тяга Мидоуза", MuscleGroup.BACK, setOf(G), 3),
+        BrowseExercise("negative_pullup", "Negative Pull-Up", "Негативные подтягивания", MuscleGroup.BACK, setOf(G, H, O), 2),
+        BrowseExercise("neutral_grip_pullup", "Neutral-Grip Pull-Up", "Подтягивания нейтральным хватом", MuscleGroup.BACK, setOf(G, H, O), 3),
+        BrowseExercise("pendlay_row", "Pendlay Row", "Тяга Пендлея", MuscleGroup.BACK, setOf(G), 3),
+        BrowseExercise("prone_w_raise", "Prone W-Raise", "Разведение рук лёжа буквой W", MuscleGroup.BACK, setOf(G, H, O), 1),
+        BrowseExercise("prone_y_raise", "Prone Y-Raise", "Разведение рук лёжа буквой Y", MuscleGroup.BACK, setOf(G, H, O), 1),
+        BrowseExercise("renegade_row", "Renegade Row", "Тяга в планке с гантелями", MuscleGroup.BACK, setOf(G, H), 3),
+        BrowseExercise("reverse_fly", "Reverse Fly", "Разведение рук в наклоне", MuscleGroup.BACK, setOf(G, H), 1),
+        BrowseExercise("scapular_pullup", "Scapular Pull-Up", "Лопаточные подтягивания", MuscleGroup.BACK, setOf(G, H, O), 2),
+        BrowseExercise("seal_row", "Seal Row", "Тяга лёжа на скамье", MuscleGroup.BACK, setOf(G), 2),
+        BrowseExercise("straight_arm_pulldown", "Straight-Arm Pulldown", "Тяга прямыми руками сверху", MuscleGroup.BACK, setOf(G), 2),
+        BrowseExercise("superman_row", "Superman Row", "Тяга в супермене", MuscleGroup.BACK, setOf(G, H, O), 1),
+        BrowseExercise("table_row", "Table Row", "Тяга под столом", MuscleGroup.BACK, setOf(G, H, O), 2),
+        BrowseExercise("towel_row", "Towel Row", "Тяга с полотенцем", MuscleGroup.BACK, setOf(G, H, O), 2),
+
+        // BICEPS
+        BrowseExercise("chin_up_hold", "Chin-Up Hold", "Удержание в подтягивании", MuscleGroup.BICEPS, setOf(G, H, O), 2),
+        BrowseExercise("preacher_curl", "Preacher Curl", "Сгибания на скамье Скотта", MuscleGroup.BICEPS, setOf(G), 2),
+        BrowseExercise("spider_curl", "Spider Curl", "Сгибания «паук»", MuscleGroup.BICEPS, setOf(G), 2),
+        BrowseExercise("zottman_curl", "Zottman Curl", "Сгибания Зоттмана", MuscleGroup.BICEPS, setOf(G, H), 2),
+
+        // TRICEPS
+        BrowseExercise("bench_dip", "Bench Dip", "Обратные отжимания от скамьи", MuscleGroup.TRICEPS, setOf(G, H, O), 1),
+        BrowseExercise("close_grip_pushup_feet_elevated", "Feet-Elevated Close-Grip Push-Up", "Узкие отжимания с ногами на возвышении", MuscleGroup.TRICEPS, setOf(G, H, O), 3),
+        BrowseExercise("diamond_pushup_knee", "Knee Diamond Push-Up", "Алмазные отжимания с колен", MuscleGroup.TRICEPS, setOf(G, H, O), 1),
+        BrowseExercise("jm_press", "JM Press", "Жим JM", MuscleGroup.TRICEPS, setOf(G), 3),
+        BrowseExercise("overhead_dumbbell_extension", "Overhead Dumbbell Extension", "Разгибание гантели над головой", MuscleGroup.TRICEPS, setOf(G, H), 2),
+        BrowseExercise("wall_tricep_extension", "Wall Tricep Extension", "Разгибание трицепса у стены", MuscleGroup.TRICEPS, setOf(G, H, O), 1),
+
+        // CORE
+        BrowseExercise("bird_dog", "Bird Dog", "Птица-собака", MuscleGroup.CORE, setOf(G, H, O), 1),
+        BrowseExercise("flutter_kick", "Flutter Kick", "Ножницы ногами", MuscleGroup.CORE, setOf(G, H, O), 2),
+        BrowseExercise("heel_touch", "Heel Touch", "Касания пяток", MuscleGroup.CORE, setOf(G, H, O), 1),
+        BrowseExercise("hollow_rock", "Hollow Rock", "Раскачка в лодочке", MuscleGroup.CORE, setOf(G, H, O), 3),
+        BrowseExercise("plank_reach", "Plank Arm Reach", "Планка с вытягиванием руки", MuscleGroup.CORE, setOf(G, H, O), 2),
+        BrowseExercise("plank_shoulder_tap", "Plank Shoulder Tap", "Планка с касанием плеч", MuscleGroup.CORE, setOf(G, H, O), 2),
+        BrowseExercise("plank_up_down", "Up-Down Plank", "Планка вверх-вниз", MuscleGroup.CORE, setOf(G, H, O), 2),
+        BrowseExercise("reverse_crunch", "Reverse Crunch", "Обратные скручивания", MuscleGroup.CORE, setOf(G, H, O), 2),
+        BrowseExercise("side_plank_hip_dip", "Side Plank Hip Dip", "Боковая планка с опусканием таза", MuscleGroup.CORE, setOf(G, H, O), 3),
+        BrowseExercise("turkish_getup", "Turkish Get-Up", "Турецкий подъём", MuscleGroup.CORE, setOf(G, H, O), 4),
+
+        // CARDIO
+        BrowseExercise("bear_crawl", "Bear Crawl", "Медвежья походка", MuscleGroup.CARDIO, setOf(G, H, O), 2),
+        BrowseExercise("butt_kick", "Butt Kick", "Захлёст голени", MuscleGroup.CARDIO, setOf(G, H, O), 1),
+        BrowseExercise("inchworm", "Inchworm", "Гусеница", MuscleGroup.CARDIO, setOf(G, H, O), 2),
+        BrowseExercise("jumping_jack_squat", "Jumping Jack Squat", "Джампинг джек с приседом", MuscleGroup.CARDIO, setOf(G, H, O), 2),
+        BrowseExercise("lateral_shuffle", "Lateral Shuffle", "Боковые перебежки", MuscleGroup.CARDIO, setOf(G, H, O), 1),
+        BrowseExercise("medicine_ball_slam", "Medicine Ball Slam", "Бросок медбола об пол", MuscleGroup.CARDIO, setOf(G, H, O), 2),
+        BrowseExercise("shadow_boxing", "Shadow Boxing", "Бой с тенью", MuscleGroup.CARDIO, setOf(G, H, O), 1),
+        BrowseExercise("sled_push", "Sled Push", "Толкание саней", MuscleGroup.CARDIO, setOf(G, O), 3),
+        BrowseExercise("squat_thrust", "Squat Thrust", "Присед с выпрыгиванием в упор", MuscleGroup.CARDIO, setOf(G, H, O), 2),
+        BrowseExercise("tuck_jump", "Tuck Jump", "Прыжок с подтягиванием колен", MuscleGroup.CARDIO, setOf(G, H, O), 3),
+
+        // MOBILITY (backfill)
+        BrowseExercise("ankle_mobility", "Ankle Mobility Drill", "Мобилизация голеностопа", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("childs_pose", "Child's Pose", "Поза ребёнка", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("cobra_stretch", "Cobra Stretch", "Растяжка «кобра»", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("downward_dog", "Downward Dog", "Собака мордой вниз", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("hip_circle", "Hip Circle", "Круги тазом", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("leg_swing", "Leg Swing", "Махи ногой", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("neck_stretch", "Neck Stretch", "Растяжка шеи", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("pigeon_stretch", "Pigeon Stretch", "Растяжка «голубь»", MuscleGroup.MOBILITY, setOf(G, H, O), 2),
+        BrowseExercise("shoulder_dislocate", "Shoulder Dislocate", "Выкруты в плечах", MuscleGroup.MOBILITY, setOf(G, H, O), 1),
+        BrowseExercise("thoracic_rotation", "Thoracic Rotation", "Ротация грудного отдела", MuscleGroup.MOBILITY, setOf(G, H, O), 1)
     )
 
     fun byMode(mode: TrainMode?): List<BrowseExercise> =
