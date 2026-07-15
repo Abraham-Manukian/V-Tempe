@@ -33,6 +33,13 @@ server/.env.local
 
 vtempe-release.jks
 
+# Firebase config — contains this project's client API key. Not a secret Google requires you to
+# keep confidential (it's restricted by package name/SHA-1 in the Firebase console, not by
+# secrecy), but this repo is public and there's no reason to publish it either — each dev
+# downloads their own copy from https://console.firebase.google.com (Project settings > your
+# Android app > google-services.json).
+app-android/google-services.json
+
 # iOS secrets — add API_BASE_URL and APP_TOKEN manually via Xcode Info tab
 iosApp/Vtempe/Vtempe/Info.plist
 
