@@ -34,6 +34,7 @@ postgresql = "42.7.4"
 hikaricp = "5.1.0"
 auth0JavaJwt = "4.4.0"
 auth0JwksRsa = "0.22.1"
+cloudSqlSocketFactory = "1.19.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -82,6 +83,10 @@ exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "e
 exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
 postgresql-driver = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+# Lets DATABASE_URL use ?cloudSqlInstance=...&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+# to connect to Cloud SQL via IAM + mutual TLS instead of a public IP / authorized-networks
+# allowlist. See docs/... (Cloud SQL setup notes) for the full DATABASE_URL shape.
+cloud-sql-postgres-socket-factory = { module = "com.google.cloud.sql:postgres-socket-factory", version.ref = "cloudSqlSocketFactory" }
 
 # JWT verification (server — Firebase ID token auth, no Firebase Admin SDK needed)
 auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0JavaJwt" }

@@ -15,9 +15,18 @@ import org.slf4j.LoggerFactory
  * [com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository] when this
  * returns null; entitlement checks are simply never granted until DATABASE_URL is set.
  *
- * DATABASE_URL is a plain JDBC URL (jdbc:postgresql://host:port/db), not a Postgres connection
- * string — Cloud SQL via the Cloud SQL Auth Proxy / Unix socket also works with the standard
- * JDBC socketFactory query param, see Cloud SQL docs when provisioning.
+ * DATABASE_URL is a plain JDBC URL, not a Postgres connection string. Two supported shapes:
+ *
+ * - Direct TCP (public IP, dev/testing only): `jdbc:postgresql://HOST:5432/DBNAME`
+ * - Cloud SQL via the Java Connector (recommended for production — no public IP, IAM + mutual
+ *   TLS instead of an IP allowlist; requires the `com.google.cloud.sql:postgres-socket-factory`
+ *   dependency, already on the classpath, and the Cloud Run service's runtime service account
+ *   to have the `roles/cloudsql.client` IAM role):
+ *   `jdbc:postgresql:///DBNAME?cloudSqlInstance=PROJECT_ID:REGION:INSTANCE_ID&socketFactory=com.google.cloud.sql.postgres.SocketFactory`
+ *   (note the empty host — `postgresql:///`, not `postgresql://host/` — the socket factory
+ *   replaces normal TCP networking entirely).
+ *
+ * DATABASE_USER / DATABASE_PASSWORD are always separate secrets (never embedded in the URL).
  */
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)

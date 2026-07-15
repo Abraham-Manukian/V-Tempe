@@ -26,6 +26,9 @@ dependencies {
     implementation(libs.exposed.java.time)
     implementation(libs.postgresql.driver)
     implementation(libs.hikaricp)
+    // Enables DATABASE_URL to use ?cloudSqlInstance=...&socketFactory=... to reach Cloud SQL
+    // via IAM + mutual TLS instead of a public IP — see DatabaseFactory.kt kdoc.
+    implementation(libs.cloud.sql.postgres.socket.factory)
 
     implementation(libs.auth0.java.jwt)
     implementation(libs.auth0.jwks.rsa)
