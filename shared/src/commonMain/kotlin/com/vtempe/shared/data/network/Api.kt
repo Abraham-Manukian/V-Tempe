@@ -3,6 +3,7 @@ package com.vtempe.shared.data.network
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
@@ -17,7 +18,9 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.shared.domain.util.DataResult.Reason
@@ -143,7 +146,17 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
     }
 }
 
-fun createHttpClient(appToken: String? = null) = HttpClient {
+/**
+ * @param bearerTokenProvider Supplies a fresh Firebase ID token per request (the provider owns
+ *   caching/refresh — typically [com.vtempe.shared.domain.repository.AuthRepository.idToken]).
+ *   Only attached to requests under /me or /ai. Deliberately NOT Ktor's built-in `Auth`
+ *   plugin — that plugin caches the token itself, which fights Firebase's own hourly refresh;
+ *   here the provider is re-invoked on every matching request instead.
+ */
+fun createHttpClient(
+    appToken: String? = null,
+    bearerTokenProvider: (suspend () -> String?)? = null
+) = HttpClient {
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true })
     }
@@ -159,5 +172,26 @@ fun createHttpClient(appToken: String? = null) = HttpClient {
         defaultRequest {
             header("X-App-Token", appToken)
         }
+    }
+    if (bearerTokenProvider != null) {
+        install(createClientPlugin("BearerAuth") {
+            onRequest { request, _ ->
+                val path = request.url.encodedPath
+                if ((path.startsWith("/me/") || path.startsWith("/ai/")) &&
+                    request.headers[HttpHeaders.Authorization] == null
+                ) {
+                    // Never let a missing/failed token block the request — an anonymous call
+                    // still goes out, and the server's own 401 is the real error signal.
+                    // Cancellation is the one exception: a cancelled coroutine must not go on to
+                    // send a request at all, so it's rethrown rather than swallowed here.
+                    val token = runCatching { bearerTokenProvider() }
+                        .onFailure { if (it is CancellationException) throw it }
+                        .getOrNull()
+                    if (token != null) {
+                        request.headers.append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                }
+            }
+        })
     }
 }

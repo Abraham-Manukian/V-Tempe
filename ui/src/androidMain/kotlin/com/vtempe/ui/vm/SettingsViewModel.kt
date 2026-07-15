@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -22,6 +23,7 @@ class SettingsViewModel(
     ensureCoachData: EnsureCoachData,
     resetCoachData: ResetCoachData,
     syncAnalyticsProfile: SyncAnalyticsProfile,
+    authRepository: AuthRepository,
 ) : ViewModel(), SettingsPresenter {
 
     private val delegate = SettingsPresenterDelegate(
@@ -30,6 +32,7 @@ class SettingsViewModel(
         ensureCoachData = ensureCoachData,
         resetCoachData = resetCoachData,
         syncAnalyticsProfile = syncAnalyticsProfile,
+        authRepository = authRepository,
         scope = viewModelScope,
         applyLocale = { tag ->
             if (tag.isNullOrBlank()) {

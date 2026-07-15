@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -21,6 +22,7 @@ private class IosSettingsPresenter(
     ensureCoachData: EnsureCoachData,
     resetCoachData: ResetCoachData,
     syncAnalyticsProfile: SyncAnalyticsProfile,
+    authRepository: AuthRepository,
 ) : SettingsPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -31,6 +33,7 @@ private class IosSettingsPresenter(
         ensureCoachData = ensureCoachData,
         resetCoachData = resetCoachData,
         syncAnalyticsProfile = syncAnalyticsProfile,
+        authRepository = authRepository,
         scope = scope
     )
     override val state get() = delegate.state
@@ -53,7 +56,8 @@ actual fun rememberSettingsPresenter(): SettingsPresenter {
             preferencesRepository = koin.get(),
             ensureCoachData = koin.get(),
             resetCoachData = koin.get(),
-            syncAnalyticsProfile = koin.get()
+            syncAnalyticsProfile = koin.get(),
+            authRepository = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

@@ -11,6 +11,7 @@ sealed class Destination {
     object Paywall : Destination()
     object Settings : Destination()
     object EditProfile : Destination()
+    object Auth : Destination()
     object Chat : Destination()
     object ShoppingList : Destination()
     object ExerciseLibrary : Destination()

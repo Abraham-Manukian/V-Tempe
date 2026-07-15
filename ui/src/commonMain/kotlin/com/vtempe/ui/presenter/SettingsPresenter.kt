@@ -2,6 +2,8 @@ package com.vtempe.ui.presenter
 
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.repository.AuthRepository
+import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -19,7 +21,8 @@ data class SettingsState(
     val profile: Profile? = null,
     val saving: Boolean = false,
     val aiModelMode: AiModelMode = AiModelMode.PAID,
-    val analyticsConsent: Boolean = false
+    val analyticsConsent: Boolean = false,
+    val authUser: AuthUser? = null
 )
 
 interface SettingsPresenter {
@@ -39,6 +42,7 @@ class SettingsPresenterDelegate(
     private val ensureCoachData: EnsureCoachData,
     private val resetCoachData: ResetCoachData,
     private val syncAnalyticsProfile: SyncAnalyticsProfile,
+    private val authRepository: AuthRepository,
     private val scope: CoroutineScope,
     /** Platform hook: Android calls AppCompatDelegate, iOS is no-op. */
     private val applyLocale: (tag: String?) -> Unit = {}
@@ -54,7 +58,8 @@ class SettingsPresenterDelegate(
             val profile = runCatching { profileRepository.getProfile() }.getOrNull()
             val mode = runCatching { preferencesRepository.getAiModelMode() }.getOrDefault(AiModelMode.PAID)
             val consent = runCatching { preferencesRepository.getAnalyticsConsent() }.getOrDefault(false)
-            _state.update { it.copy(profile = profile, aiModelMode = mode, analyticsConsent = consent) }
+            val authUser = authRepository.authState.value
+            _state.update { it.copy(profile = profile, aiModelMode = mode, analyticsConsent = consent, authUser = authUser) }
         }
     }
 

@@ -1,9 +1,12 @@
 ﻿package com.vtempe.di
 
 import com.vtempe.analytics.createAnalyticsRepository
+import com.vtempe.auth.createAuthRepository
 import com.vtempe.billing.AndroidPurchasesRepository
 import com.vtempe.shared.domain.repository.AnalyticsRepository
+import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PurchasesRepository
+import com.vtempe.ui.vm.AuthViewModel
 import com.vtempe.ui.vm.ChatViewModel
 import com.vtempe.ui.vm.HomeViewModel
 import com.vtempe.ui.vm.NutritionViewModel
@@ -25,6 +28,7 @@ object AppModule {
         // Android-specific DI overrides
         single<PurchasesRepository> { AndroidPurchasesRepository(androidContext()) }
         single<AnalyticsRepository> { createAnalyticsRepository(androidContext()) }
+        single<AuthRepository> { createAuthRepository() }
 
         // SQLDelight database
         single<SqlDriver> { AndroidSqliteDriver(AppDatabase.Schema, androidContext(), "app_v2.db") }
@@ -38,7 +42,8 @@ object AppModule {
         viewModel { SleepViewModel(get(), get(), get()) }
         viewModel { ProgressViewModel(get(), get(), get()) }
         viewModel { PaywallViewModel(get()) }
-        viewModel { SettingsViewModel(get(), get(), get(), get(), get()) }
+        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
+        viewModel { AuthViewModel(get(), get()) }
     }
 }

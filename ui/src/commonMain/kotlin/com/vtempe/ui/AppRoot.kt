@@ -201,8 +201,12 @@ private fun AppNavigationHost(
         is Destination.Sleep -> SleepScreen()
         is Destination.Progress -> ProgressScreen()
         is Destination.Paywall -> PaywallScreen()
-        is Destination.Settings -> SettingsScreen(onEditProfile = { onNavigate(Destination.EditProfile) })
+        is Destination.Settings -> SettingsScreen(
+            onEditProfile = { onNavigate(Destination.EditProfile) },
+            onAccount = { onNavigate(Destination.Auth) }
+        )
         is Destination.EditProfile -> EditProfileScreen(onDone = { onNavigate(Destination.Settings) })
+        is Destination.Auth -> AuthScreen()
         is Destination.Chat -> ChatScreen(
             initialPrompt = pendingChatPrompt,
             onPromptConsumed = onPromptConsumed,
@@ -284,6 +288,7 @@ private fun TopBar(
         is Destination.ShoppingList  -> stringResource(Res.string.nutrition_tab_shopping)
         is Destination.NutritionDetail -> stringResource(Res.string.nutrition_detail_title)
         is Destination.ExerciseLibrary -> stringResource(Res.string.exlib_title)
+        is Destination.Auth -> stringResource(Res.string.auth_title)
         else                         -> stringResource(Res.string.app_name)
     }
 

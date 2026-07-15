@@ -3,6 +3,7 @@
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface ProfileRepository {
     suspend fun getProfile(): Profile?
@@ -57,6 +58,48 @@ interface AdviceRepository {
 
 interface PurchasesRepository {
     suspend fun isSubscriptionActive(): Boolean
+}
+
+data class AuthUser(val uid: String, val email: String?)
+
+/** Machine-readable reason, so the UI layer can show a LOCALIZED message via string resources —
+ *  [message] is an English fallback only (logs, non-UI contexts), never shown to the user
+ *  directly (this is an RU-first app). */
+enum class AuthErrorCode { INVALID_CREDENTIALS, WEAK_PASSWORD, EMAIL_IN_USE, NETWORK, UNAVAILABLE, UNKNOWN }
+
+class AuthException(
+    val code: AuthErrorCode,
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause)
+
+/**
+ * Firebase-backed account auth — separate from [PurchasesRepository] (store billing) and
+ * [ProfileRepository] (fitness profile data). Platforms without a wired Firebase project (iOS,
+ * or Android builds without google-services.json) get [com.vtempe.shared.data.stub.StubAuthRepository].
+ */
+interface AuthRepository {
+    /** null = signed out. Emits on every sign-in/sign-out. */
+    val authState: StateFlow<AuthUser?>
+
+    /** Throws [AuthException] on failure. */
+    suspend fun signUp(email: String, password: String): AuthUser
+
+    /** Throws [AuthException] on failure. */
+    suspend fun signIn(email: String, password: String): AuthUser
+
+    suspend fun signOut()
+
+    /** A fresh Firebase ID token for `Authorization: Bearer` auth, or null when signed out or
+     *  unavailable. Implementations own caching/refresh internally (the Firebase SDK already
+     *  does this — callers should call this once per request, not cache it themselves). */
+    suspend fun idToken(): String?
+}
+
+/** Wire shape for `GET /me/entitlement` — field names must match the server's
+ *  `EntitlementResponse` exactly. */
+interface EntitlementRepository {
+    suspend fun fetchEntitlement(): DataResult<com.vtempe.shared.data.network.dto.EntitlementDto>
 }
 
 interface SyncRepository {

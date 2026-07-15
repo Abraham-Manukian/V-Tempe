@@ -382,6 +382,27 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_system">System</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_account_sign_in">Sign in</string>
+
+    <!-- Auth -->
+    <string name="auth_title">Account</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_sign_up">Sign up</string>
+    <string name="auth_switch_to_sign_in">Already have an account? Sign in</string>
+    <string name="auth_switch_to_sign_up">No account yet? Sign up</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_error_invalid_credentials">Invalid email or password</string>
+    <string name="auth_error_weak_password">Password is too weak</string>
+    <string name="auth_error_email_in_use">An account with this email already exists</string>
+    <string name="auth_error_network">Network error, please try again</string>
+    <string name="auth_error_unavailable">Sign-in isn\'t available in this build yet</string>
+    <string name="auth_error_generic">Something went wrong, please try again</string>
+    <string name="entitlement_active_until">Subscription active until %1$s</string>
+    <string name="entitlement_active_until_unknown">Subscription active</string>
+    <string name="entitlement_none">No active subscription</string>
 
     <!-- Paywall -->
     <string name="paywall_title">Pro version</string>

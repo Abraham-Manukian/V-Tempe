@@ -365,6 +365,27 @@
     <string name="settings_theme_light">Светлая</string>
     <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_theme_system">Системная</string>
+    <string name="settings_account">Аккаунт</string>
+    <string name="settings_account_sign_in">Войти</string>
+
+    <!-- Auth -->
+    <string name="auth_title">Аккаунт</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_sign_in">Войти</string>
+    <string name="auth_sign_up">Зарегистрироваться</string>
+    <string name="auth_switch_to_sign_in">Уже есть аккаунт? Войти</string>
+    <string name="auth_switch_to_sign_up">Ещё нет аккаунта? Зарегистрироваться</string>
+    <string name="auth_sign_out">Выйти</string>
+    <string name="auth_error_invalid_credentials">Неверный email или пароль</string>
+    <string name="auth_error_weak_password">Пароль слишком простой</string>
+    <string name="auth_error_email_in_use">Аккаунт с этим email уже существует</string>
+    <string name="auth_error_network">Ошибка сети, попробуйте ещё раз</string>
+    <string name="auth_error_unavailable">Вход пока недоступен в этой сборке</string>
+    <string name="auth_error_generic">Что-то пошло не так, попробуйте ещё раз</string>
+    <string name="entitlement_active_until">Подписка активна до %1$s</string>
+    <string name="entitlement_active_until_unknown">Подписка активна</string>
+    <string name="entitlement_none">Нет активной подписки</string>
     <string name="settings_weight_label">Вес</string>
     <string name="settings_weight_value">%1$.1f кг</string>
     <string name="settings_height_label">Рост</string>

@@ -70,6 +70,7 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(
     onEditProfile: () -> Unit = {},
+    onAccount: () -> Unit = {},
     presenter: SettingsPresenter = rememberSettingsPresenter(),
     platformActions: SettingsPlatformActions = rememberSettingsPlatformActions()
 ) {
@@ -163,6 +164,17 @@ fun SettingsScreen(
                         ) { Text(stringResource(Res.string.settings_edit_profile)) }
                     }
                 }
+            }
+
+            PreferenceCard(
+                title = stringResource(Res.string.settings_account),
+                onClick = onAccount
+            ) {
+                Text(
+                    state.authUser?.email ?: stringResource(Res.string.settings_account_sign_in),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             }
 
             PreferenceCard(
