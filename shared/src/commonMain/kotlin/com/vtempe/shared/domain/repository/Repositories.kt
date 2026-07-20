@@ -88,6 +88,16 @@ interface AuthRepository {
     /** Throws [AuthException] on failure. */
     suspend fun signIn(email: String, password: String): AuthUser
 
+    /** Exchanges a Google ID token (obtained on-device via Credential Manager) for a Firebase
+     *  session. Throws [AuthException] on failure. */
+    suspend fun signInWithGoogle(idToken: String): AuthUser
+
+    /** Exchanges an Apple identity token (obtained on-device via AuthenticationServices) for a
+     *  Firebase session. [rawNonce] is the unhashed nonce that was SHA-256-hashed into the
+     *  original Apple authorization request — required so Firebase can verify the token wasn't
+     *  replayed. Throws [AuthException] on failure. */
+    suspend fun signInWithApple(idToken: String, rawNonce: String): AuthUser
+
     suspend fun signOut()
 
     /** A fresh Firebase ID token for `Authorization: Bearer` auth, or null when signed out or

@@ -82,7 +82,7 @@ fun AppRoot() {
         var isActiveWorkout by remember { mutableStateOf(false) }
         val isTabRoute = currentDest.isBottomNav
         val showTopBar = currentDest !is Destination.Onboarding &&
-                currentDest !is Destination.Splash && !isActiveWorkout
+                currentDest !is Destination.Splash && currentDest !is Destination.Welcome && !isActiveWorkout
 
         LaunchedEffect(currentDest) {
             if (currentDest !is Destination.Workout) isActiveWorkout = false
@@ -182,6 +182,10 @@ private fun AppNavigationHost(
 ) {
     when (current) {
         is Destination.Splash -> SplashScreen(onReady = onNavigate)
+        is Destination.Welcome -> AuthScreen(
+            onAuthenticated = { onNavigate(Destination.Onboarding) },
+            onSkip = { onNavigate(Destination.Onboarding) }
+        )
         is Destination.Onboarding -> OnboardingScreen(onDone = { onNavigate(Destination.Home) })
         is Destination.Home -> HomeScreen(onNavigate = onNavigate)
         is Destination.Workout -> WorkoutScreen(

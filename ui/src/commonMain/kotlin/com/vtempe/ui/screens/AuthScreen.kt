@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,13 +31,30 @@ import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
 
+/** Platform-specific social sign-in entry point — Android shows "Continue with Google" via
+ *  Credential Manager, iOS shows "Continue with Apple" via AuthenticationServices. Each actual
+ *  obtains its own platform credential and hands the resulting token to [presenter]. */
+@Composable
+expect fun SocialSignInButtons(presenter: AuthPresenter)
+
 @Composable
 fun AuthScreen(
-    presenter: AuthPresenter = rememberAuthPresenter()
+    presenter: AuthPresenter = rememberAuthPresenter(),
+    /** Fires whenever [presenter] reports a signed-in user — on first entering this screen
+     *  already-signed-in, and after a fresh sign-in. Used by the pre-onboarding
+     *  [com.vtempe.ui.navigation.Destination.Welcome] screen to advance to onboarding either
+     *  way; left null for the plain account-settings screen. */
+    onAuthenticated: (() -> Unit)? = null,
+    /** Shows a "continue without an account" link when non-null. */
+    onSkip: (() -> Unit)? = null
 ) {
     val state by presenter.state.collectAsState()
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
+
+    LaunchedEffect(state.user != null) {
+        if (state.user != null) onAuthenticated?.invoke()
+    }
 
     BrandScreen(Modifier.fillMaxSize()) {
         Column(
@@ -48,7 +66,7 @@ fun AuthScreen(
         ) {
             Spacer(Modifier.height(topBarHeight + 16.dp))
             if (state.user == null) {
-                SignedOutContent(state, presenter)
+                SignedOutContent(state, presenter, onSkip)
             } else {
                 SignedInContent(state, presenter)
             }
@@ -60,7 +78,8 @@ fun AuthScreen(
 @Composable
 private fun SignedOutContent(
     state: com.vtempe.ui.presenter.AuthUiState,
-    presenter: AuthPresenter
+    presenter: AuthPresenter,
+    onSkip: (() -> Unit)? = null
 ) {
     var isSignUpMode by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
@@ -75,6 +94,22 @@ private fun SignedOutContent(
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold
     )
+
+    SocialSignInButtons(presenter)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+            stringResource(Res.string.auth_or_divider),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f))
+    }
 
     OutlinedTextField(
         value = email,
@@ -122,6 +157,12 @@ private fun SignedOutContent(
 
     TextButton(onClick = { isSignUpMode = !isSignUpMode }) {
         Text(stringResource(if (isSignUpMode) Res.string.auth_switch_to_sign_in else Res.string.auth_switch_to_sign_up))
+    }
+
+    if (onSkip != null) {
+        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.auth_skip))
+        }
     }
 }
 

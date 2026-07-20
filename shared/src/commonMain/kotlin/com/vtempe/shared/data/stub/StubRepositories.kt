@@ -75,6 +75,12 @@ class StubAuthRepository : AuthRepository {
     override suspend fun signIn(email: String, password: String): AuthUser =
         throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
 
+    override suspend fun signInWithGoogle(idToken: String): AuthUser =
+        throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
+
+    override suspend fun signInWithApple(idToken: String, rawNonce: String): AuthUser =
+        throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
+
     override suspend fun signOut() = Unit
 
     override suspend fun idToken(): String? = null

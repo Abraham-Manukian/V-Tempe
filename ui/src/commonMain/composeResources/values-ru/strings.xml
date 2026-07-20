@@ -383,6 +383,10 @@
     <string name="auth_error_network">Ошибка сети, попробуйте ещё раз</string>
     <string name="auth_error_unavailable">Вход пока недоступен в этой сборке</string>
     <string name="auth_error_generic">Что-то пошло не так, попробуйте ещё раз</string>
+    <string name="auth_continue_with_google">Продолжить через Google</string>
+    <string name="auth_continue_with_apple">Продолжить через Apple</string>
+    <string name="auth_or_divider">или</string>
+    <string name="auth_skip">Продолжить без аккаунта</string>
     <string name="entitlement_active_until">Подписка активна до %1$s</string>
     <string name="entitlement_active_until_unknown">Подписка активна</string>
     <string name="entitlement_none">Нет активной подписки</string>

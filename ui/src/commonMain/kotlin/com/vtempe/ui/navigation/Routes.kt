@@ -2,6 +2,9 @@
 
 sealed class Destination {
     object Splash : Destination()
+    /** Shown once, before onboarding, to first-time users only — social sign-in (Google on
+     *  Android, Apple on iOS) or skip. Not shown again once a profile exists. */
+    object Welcome : Destination()
     object Onboarding : Destination()
     object Home : Destination()
     object Workout : Destination()

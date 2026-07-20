@@ -13,5 +13,5 @@ actual suspend fun determineStartDestination(): Destination {
         profileRepository?.getProfile() != null
     }.getOrDefault(false)
 
-    return if (hasProfile) Destination.Home else Destination.Onboarding
+    return if (hasProfile) Destination.Home else Destination.Welcome
 }

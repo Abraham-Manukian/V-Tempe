@@ -1,11 +1,13 @@
 ﻿package com.vtempe.di
 
+import com.vtempe.BuildConfig
 import com.vtempe.analytics.createAnalyticsRepository
 import com.vtempe.auth.createAuthRepository
 import com.vtempe.billing.AndroidPurchasesRepository
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PurchasesRepository
+import org.koin.core.qualifier.named
 import com.vtempe.ui.vm.AuthViewModel
 import com.vtempe.ui.vm.ChatViewModel
 import com.vtempe.ui.vm.HomeViewModel
@@ -29,6 +31,7 @@ object AppModule {
         single<PurchasesRepository> { AndroidPurchasesRepository(androidContext()) }
         single<AnalyticsRepository> { createAnalyticsRepository(androidContext()) }
         single<AuthRepository> { createAuthRepository() }
+        single(named("googleWebClientId")) { BuildConfig.GOOGLE_WEB_CLIENT_ID }
 
         // SQLDelight database
         single<SqlDriver> { AndroidSqliteDriver(AppDatabase.Schema, androidContext(), "app_v2.db") }

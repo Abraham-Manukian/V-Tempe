@@ -34,10 +34,16 @@ interface AuthPresenter {
     val state: StateFlow<AuthUiState>
     fun signIn(email: String, password: String)
     fun signUp(email: String, password: String)
+    fun signInWithGoogle(idToken: String)
+    fun signInWithApple(idToken: String, rawNonce: String)
     fun signOut()
     /** Re-reads auth state (implicit via [AuthRepository.authState]) and, when signed in,
      *  re-fetches the entitlement. */
     fun refresh()
+    /** For platform-side failures that never reach [AuthRepository] — e.g. the user's Google/
+     *  Apple credential picker itself failed or has nothing to offer. Cancellation isn't an
+     *  error and should NOT call this. */
+    fun reportError(code: AuthErrorCode)
 }
 
 class AuthPresenterDelegate(
@@ -65,6 +71,15 @@ class AuthPresenterDelegate(
     override fun signIn(email: String, password: String) = authenticate { authRepository.signIn(email, password) }
 
     override fun signUp(email: String, password: String) = authenticate { authRepository.signUp(email, password) }
+
+    override fun signInWithGoogle(idToken: String) = authenticate { authRepository.signInWithGoogle(idToken) }
+
+    override fun signInWithApple(idToken: String, rawNonce: String) =
+        authenticate { authRepository.signInWithApple(idToken, rawNonce) }
+
+    override fun reportError(code: AuthErrorCode) {
+        _state.update { it.copy(loading = false, errorCode = code) }
+    }
 
     override fun signOut() {
         scope.launch {

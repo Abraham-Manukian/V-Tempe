@@ -50,6 +50,9 @@ kotlin {
                 implementation(libs.androidx.activity.compose)
                 implementation("androidx.compose.material:material-icons-extended:1.7.1")
                 implementation(libs.material)
+                implementation(libs.androidx.credentials)
+                implementation(libs.androidx.credentials.play.services.auth)
+                implementation(libs.googleid)
             }
             kotlin.srcDirs("build/generated/compose/resourceGenerator/kotlin/androidMainResourceAccessors")
         }

@@ -400,6 +400,10 @@
     <string name="auth_error_network">Network error, please try again</string>
     <string name="auth_error_unavailable">Sign-in isn\'t available in this build yet</string>
     <string name="auth_error_generic">Something went wrong, please try again</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_continue_with_apple">Continue with Apple</string>
+    <string name="auth_or_divider">or</string>
+    <string name="auth_skip">Continue without an account</string>
     <string name="entitlement_active_until">Subscription active until %1$s</string>
     <string name="entitlement_active_until_unknown">Subscription active</string>
     <string name="entitlement_none">No active subscription</string>

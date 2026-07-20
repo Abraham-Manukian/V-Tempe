@@ -7,6 +7,8 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.vtempe.shared.domain.repository.AuthErrorCode
@@ -46,6 +48,22 @@ class FirebaseAuthRepository : AuthRepository {
         runCatching {
             auth.signInWithEmailAndPassword(email, password).await().user.toAuthUser()
                 ?: error("Firebase returned no user after sign-in")
+        }.getOrElse { throw it.toAuthException() }
+
+    override suspend fun signInWithGoogle(idToken: String): AuthUser =
+        runCatching {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            auth.signInWithCredential(credential).await().user.toAuthUser()
+                ?: error("Firebase returned no user after Google sign-in")
+        }.getOrElse { throw it.toAuthException() }
+
+    override suspend fun signInWithApple(idToken: String, rawNonce: String): AuthUser =
+        runCatching {
+            val credential = OAuthProvider.newCredentialBuilder("apple.com")
+                .setIdTokenWithRawNonce(idToken, rawNonce)
+                .build()
+            auth.signInWithCredential(credential).await().user.toAuthUser()
+                ?: error("Firebase returned no user after Apple sign-in")
         }.getOrElse { throw it.toAuthException() }
 
     override suspend fun signOut() {

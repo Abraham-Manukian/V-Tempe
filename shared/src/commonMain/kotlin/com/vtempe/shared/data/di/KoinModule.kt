@@ -110,6 +110,12 @@ object DI {
         single<AuthRepository> { StubAuthRepository() }
         single<EntitlementRepository> { NetworkEntitlementRepository(get()) }
 
+        // Google OAuth "web" client id, needed by Credential Manager's GetGoogleIdOption on
+        // Android. Empty here; overridden with the real value (read from google-services.json
+        // via BuildConfig) in Android's AppModule.kt. iOS doesn't use this — it authenticates
+        // with Apple, not Google.
+        single(named("googleWebClientId")) { "" }
+
         // App-level coroutine scope — lives as long as the process, used for background prefetch.
         // Background prefetch must NOT be tied to any single screen's lifecycle.
         single(named("appScope")) {

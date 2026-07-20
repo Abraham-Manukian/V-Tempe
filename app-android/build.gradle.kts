@@ -23,6 +23,12 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 val appToken: String = localProps.getProperty("APP_TOKEN", "")
+// The Google OAuth "web" client id from google-services.json (client_type 3 under the app's
+// oauth_client entries) — needed by Credential Manager's GetGoogleIdOption to request a Google
+// ID token. Not itself secret (OAuth client ids are public identifiers), but it's per-project
+// and google-services.json is gitignored, so it's read from local.properties like the other
+// per-developer values here rather than hardcoded.
+val googleWebClientId: String = localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")
 val keystorePath: String = localProps.getProperty("KEYSTORE_PATH", "")
 val keystorePass: String = localProps.getProperty("KEYSTORE_PASS", "")
 val releaseKeyAlias: String = localProps.getProperty("KEY_ALIAS", "")
@@ -51,6 +57,7 @@ android {
         versionName = "1.0"
         buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-eoofh53gda-ew.a.run.app\"")
         buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     buildTypes {
