@@ -2,6 +2,7 @@ package com.vtempe.shared.data.repo
 
 import com.russhwolf.settings.Settings
 import com.vtempe.shared.domain.model.WeightEntry
+import com.vtempe.shared.domain.repository.SyncDomain
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -16,7 +17,11 @@ import kotlinx.serialization.json.Json
  * Persists per-date body weight (kg) to Settings.
  * Also tracks whether the weekly check-in has been shown.
  */
-class WeightStore(private val settings: Settings) {
+class WeightStore(
+    private val settings: Settings,
+    /** See WorkoutProgressStore's kdoc on the same parameter — same lazy-DI reasoning. */
+    private val onLocalChange: (SyncDomain) -> Unit = {}
+) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val serializer = MapSerializer(String.serializer(), Double.serializer())
@@ -32,6 +37,15 @@ class WeightStore(private val settings: Settings) {
         settings.putString(KEY, json.encodeToString(serializer, trimmed))
         // Mark that the check-in has been done this week so we don't nag again
         settings.putString(KEY_LAST_CHECKIN, mondayOfCurrentWeek())
+        onLocalChange(SyncDomain.WEIGHT)
+    }
+
+    /** Current local state as the raw JSON string already persisted to [settings]. */
+    fun rawSnapshot(): String? = settings.getStringOrNull(KEY)
+
+    /** Overwrites local state with a snapshot pulled from the server. */
+    fun restoreRaw(rawJson: String) {
+        settings.putString(KEY, rawJson)
     }
 
     /** Latest recorded weight, or null if never logged. */

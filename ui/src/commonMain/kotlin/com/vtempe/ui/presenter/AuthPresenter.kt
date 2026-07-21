@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.SyncRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
@@ -49,6 +50,7 @@ interface AuthPresenter {
 class AuthPresenterDelegate(
     private val authRepository: AuthRepository,
     private val entitlementRepository: EntitlementRepository,
+    private val syncRepository: SyncRepository,
     private val scope: CoroutineScope
 ) : AuthPresenter {
 
@@ -93,7 +95,14 @@ class AuthPresenterDelegate(
         scope.launch {
             // authRepository.authState's listener updates `user` on success — no need to set it here.
             runCatching { action() }
-                .onSuccess { _state.update { it.copy(loading = false) } }
+                .onSuccess {
+                    _state.update { it.copy(loading = false) }
+                    // Only on an explicit, successful sign-in — not on the app cold-starting into
+                    // an already-signed-in session (that flow never calls authenticate() at all).
+                    // Pulling on every app open would risk clobbering local edits made since the
+                    // last successful push with a stale server snapshot.
+                    scope.launch { syncRepository.pullAll() }
+                }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     val code = (error as? AuthException)?.code ?: AuthErrorCode.UNKNOWN

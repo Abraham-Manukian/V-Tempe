@@ -2,6 +2,7 @@ package com.vtempe.shared.data.repo
 
 import com.russhwolf.settings.Settings
 import com.vtempe.shared.domain.model.SleepEntry
+import com.vtempe.shared.domain.repository.SyncDomain
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -11,7 +12,11 @@ import kotlinx.serialization.json.Json
  * Persists per-date sleep durations (minutes) to Settings.
  * Keeps the last 14 days; older entries are pruned automatically.
  */
-class SleepStore(private val settings: Settings) {
+class SleepStore(
+    private val settings: Settings,
+    /** See WorkoutProgressStore's kdoc on the same parameter — same lazy-DI reasoning. */
+    private val onLocalChange: (SyncDomain) -> Unit = {}
+) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val serializer = MapSerializer(String.serializer(), Int.serializer())
@@ -26,6 +31,15 @@ class SleepStore(private val settings: Settings) {
             .take(14)
             .associate { it.key to it.value }
         settings.putString(KEY, json.encodeToString(serializer, trimmed))
+        onLocalChange(SyncDomain.SLEEP)
+    }
+
+    /** Current local state as the raw JSON string already persisted to [settings]. */
+    fun rawSnapshot(): String? = settings.getStringOrNull(KEY)
+
+    /** Overwrites local state with a snapshot pulled from the server. */
+    fun restoreRaw(rawJson: String) {
+        settings.putString(KEY, rawJson)
     }
 
     /** Minutes logged for [date], or 0 if not recorded. */

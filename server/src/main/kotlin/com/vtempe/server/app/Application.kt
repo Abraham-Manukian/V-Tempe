@@ -7,6 +7,7 @@ import com.vtempe.server.features.auth.UserIdKey
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
 import com.vtempe.server.features.entitlement.api.registerEntitlementRoutes
 import com.vtempe.server.features.payments.yookassa.api.registerYooKassaWebhookRoutes
+import com.vtempe.server.features.sync.api.registerSyncRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -107,6 +108,7 @@ fun Application.module() {
             registerAiRoutes()
         }
         registerEntitlementRoutes()
+        registerSyncRoutes()
         registerYooKassaWebhookRoutes()
         get("/health") { call.respondText("OK") }
     }

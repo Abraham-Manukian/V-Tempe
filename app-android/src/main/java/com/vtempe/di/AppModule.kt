@@ -47,6 +47,6 @@ object AppModule {
         viewModel { PaywallViewModel(get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
-        viewModel { AuthViewModel(get(), get()) }
+        viewModel { AuthViewModel(get(), get(), get()) }
     }
 }

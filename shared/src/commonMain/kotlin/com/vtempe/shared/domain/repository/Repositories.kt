@@ -112,8 +112,37 @@ interface EntitlementRepository {
     suspend fun fetchEntitlement(): DataResult<com.vtempe.shared.data.network.dto.EntitlementDto>
 }
 
+/** Keep in sync with the server's ALLOWED_SYNC_DOMAINS (server/.../features/sync/data/service/SyncService.kt). */
+enum class SyncDomain(val wireKey: String) {
+    PROFILE("profile"),
+    WORKOUT_PROGRESS("workoutProgress"),
+    SLEEP("sleep"),
+    WEIGHT("weight")
+}
+
+/**
+ * Cross-device backup of local progress (profile, workout completions, sleep, weight) — separate
+ * from [EntitlementRepository] (subscription status, already server-side by uid) and from
+ * [TrainingRepository]/[NutritionRepository] (AI-generated plans, regenerable, not synced).
+ *
+ * Each domain is pushed as an opaque JSON snapshot of its entire current local state — last
+ * write wins, no field-level merge. [WorkoutProgressStore][com.vtempe.shared.data.repo.WorkoutProgressStore],
+ * [SleepStore][com.vtempe.shared.data.repo.SleepStore] and [WeightStore][com.vtempe.shared.data.repo.WeightStore]
+ * already persist their state as one JSON blob locally, so their push is literally that blob;
+ * [ProfileRepository] is serialized from [com.vtempe.shared.domain.model.Profile] instead, since
+ * it isn't Settings-backed.
+ */
 interface SyncRepository {
-    suspend fun syncAll(): Boolean
+    /** Pushes the current local snapshot of [domain] to the server. Fire-and-forget: call after
+     *  every local write. Failures (offline, signed out, server error) are swallowed — the next
+     *  successful push naturally carries the latest state, so there's nothing to retry. */
+    suspend fun pushDomain(domain: SyncDomain)
+
+    /** Pulls every domain from the server and restores it into local storage, overwriting
+     *  whatever's there. Call once right after a fresh sign-in (not on every app launch of an
+     *  already-signed-in session — that could clobber local edits made before they've had a
+     *  chance to push). */
+    suspend fun pullAll()
 }
 
 /**

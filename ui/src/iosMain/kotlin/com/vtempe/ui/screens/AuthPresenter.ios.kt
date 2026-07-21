@@ -7,6 +7,7 @@ import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.SyncRepository
 import com.vtempe.ui.presenter.AuthPresenter
 import com.vtempe.ui.presenter.AuthPresenterDelegate
 import com.vtempe.ui.presenter.AuthUiState
@@ -17,13 +18,15 @@ import kotlinx.coroutines.flow.StateFlow
 
 private class IosAuthPresenter(
     authRepository: AuthRepository,
-    entitlementRepository: EntitlementRepository
+    entitlementRepository: EntitlementRepository,
+    syncRepository: SyncRepository
 ) : AuthPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
     private val delegate = AuthPresenterDelegate(
         authRepository = authRepository,
         entitlementRepository = entitlementRepository,
+        syncRepository = syncRepository,
         scope = scope
     )
     override val state: StateFlow<AuthUiState> get() = delegate.state
@@ -43,7 +46,8 @@ actual fun rememberAuthPresenter(): AuthPresenter {
         val koin = requireNotNull(KoinProvider.koin) { "Koin is not started" }
         IosAuthPresenter(
             authRepository = koin.get(),
-            entitlementRepository = koin.get()
+            entitlementRepository = koin.get(),
+            syncRepository = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

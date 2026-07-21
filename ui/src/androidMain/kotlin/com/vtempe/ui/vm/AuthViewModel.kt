@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.SyncRepository
 import com.vtempe.ui.presenter.AuthPresenter
 import com.vtempe.ui.presenter.AuthPresenterDelegate
 import com.vtempe.ui.presenter.AuthUiState
@@ -12,12 +13,14 @@ import kotlinx.coroutines.flow.StateFlow
 
 class AuthViewModel(
     authRepository: AuthRepository,
-    entitlementRepository: EntitlementRepository
+    entitlementRepository: EntitlementRepository,
+    syncRepository: SyncRepository
 ) : ViewModel(), AuthPresenter {
 
     private val delegate = AuthPresenterDelegate(
         authRepository = authRepository,
         entitlementRepository = entitlementRepository,
+        syncRepository = syncRepository,
         scope = viewModelScope
     )
 

@@ -39,6 +39,10 @@ import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepos
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
 import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
+import com.vtempe.server.features.sync.data.repo.ExposedSyncBlobRepository
+import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
+import com.vtempe.server.features.sync.data.service.SyncService
+import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -250,6 +254,13 @@ val serverModule = module {
         if (database != null) ExposedEntitlementRepository(database) else InMemoryEntitlementRepository()
     }
     single { EntitlementService(repository = get()) }
+    // DatabaseFactory.connectOrNull() memoizes its result, so this shares the same connection
+    // pool as EntitlementRepository above rather than opening a second one.
+    single<SyncBlobRepository> {
+        val database = DatabaseFactory.connectOrNull()
+        if (database != null) ExposedSyncBlobRepository(database) else InMemorySyncBlobRepository()
+    }
+    single { SyncService(repository = get()) }
     single {
         YooKassaClient(
             shopId = Env["YOOKASSA_SHOP_ID"]?.takeIf { it.isNotBlank() },

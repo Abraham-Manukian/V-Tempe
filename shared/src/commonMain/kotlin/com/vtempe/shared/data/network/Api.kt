@@ -14,6 +14,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -21,6 +22,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.shared.domain.util.DataResult.Reason
@@ -59,6 +61,17 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         }.getOrElse { throwable -> return mapApiThrowable(throwable) }
         return parseApiResponse<Res>(response)
     }
+
+    /** For PUT endpoints that respond 204 No Content on success — there's no body to decode, so
+     *  this just reports whether the call succeeded, unlike [postResult]/[getResult]. */
+    suspend inline fun <reified Req : Any> putNoContent(path: String, body: Req): Boolean =
+        runCatching {
+            httpClient.put("$baseUrl$path") {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }.status.isSuccess()
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrDefault(false)
 
     suspend inline fun <reified Res : Any> getResult(path: String): DataResult<Res> {
         val response = runCatching {

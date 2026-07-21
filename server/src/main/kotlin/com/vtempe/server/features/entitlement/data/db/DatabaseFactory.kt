@@ -1,6 +1,7 @@
 package com.vtempe.server.features.entitlement.data.db
 
 import com.vtempe.server.config.Env
+import com.vtempe.server.features.sync.data.db.SyncBlobs
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
@@ -31,10 +32,20 @@ import org.slf4j.LoggerFactory
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)
 
+    // Memoized: multiple DI singles (EntitlementRepository, SyncBlobRepository, ...) each call
+    // connectOrNull() independently, and without caching that would open a separate HikariCP
+    // pool — and re-run the schema check — per caller instead of sharing one connection.
+    @Volatile private var attempted = false
+    @Volatile private var cached: Database? = null
+
+    @Synchronized
     fun connectOrNull(): Database? {
+        if (attempted) return cached
+        attempted = true
+
         val url = Env["DATABASE_URL"]?.takeIf { it.isNotBlank() }
         if (url == null) {
-            logger.warn("DATABASE_URL is not set — entitlement checks will deny everyone until it's configured")
+            logger.warn("DATABASE_URL is not set — entitlement/sync will be inert until it's configured")
             return null
         }
         val hikariConfig = HikariConfig().apply {
@@ -46,9 +57,10 @@ object DatabaseFactory {
         }
         val database = Database.connect(HikariDataSource(hikariConfig))
         transaction(database) {
-            SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments)
+            SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments, SyncBlobs)
         }
-        logger.info("Connected to database and verified entitlement/payments schema")
+        logger.info("Connected to database and verified entitlement/payments/sync schema")
+        cached = database
         return database
     }
 }

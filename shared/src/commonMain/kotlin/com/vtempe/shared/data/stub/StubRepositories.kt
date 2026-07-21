@@ -9,7 +9,6 @@ import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PurchasesRepository
-import com.vtempe.shared.domain.repository.SyncRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +20,6 @@ import kotlinx.coroutines.flow.map
  * Offline-first stubs used until real platform implementations are wired in.
  *
  * PurchasesRepository  → replace with AndroidPurchasesRepository / SKProductsStore
- * SyncRepository       → replace with real backend sync when ready
  * AdviceRepository     → replace with NetworkAdviceRepository when advice endpoint ships
  * AuthRepository       → replace with FirebaseAuthRepository in Android's AppModule.kt;
  *                         iOS keeps this stub until Firebase iOS is wired.
@@ -58,10 +56,6 @@ class StubAdviceRepository : AdviceRepository {
  */
 class StubPurchasesRepository : PurchasesRepository {
     override suspend fun isSubscriptionActive(): Boolean = true
-}
-
-class StubSyncRepository : SyncRepository {
-    override suspend fun syncAll(): Boolean = true
 }
 
 /** Used on iOS (Firebase iOS not wired yet) and Android builds without google-services.json —

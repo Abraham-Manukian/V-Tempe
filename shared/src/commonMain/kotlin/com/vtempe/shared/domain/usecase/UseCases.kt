@@ -191,12 +191,6 @@ class ResetCoachData(
     }
 }
 
-class SyncWithBackend(
-    private val syncRepository: SyncRepository
-) {
-    suspend operator fun invoke(): Boolean = syncRepository.syncAll()
-}
-
 class ValidateSubscription(
     private val purchasesRepository: PurchasesRepository
 ) {

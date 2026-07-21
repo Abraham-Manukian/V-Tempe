@@ -3,9 +3,12 @@
 import com.vtempe.shared.db.AppDatabase
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.repository.SyncDomain
 
 class ProfileRepositoryDb(
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    /** See WorkoutProgressStore's kdoc on the same parameter — same lazy-DI reasoning. */
+    private val onLocalChange: (SyncDomain) -> Unit = {}
 ) : ProfileRepository {
     override suspend fun getProfile(): Profile? {
         val row = db.profileQueries.selectProfile().executeAsOneOrNull() ?: return null
@@ -38,6 +41,19 @@ class ProfileRepositoryDb(
     }
 
     override suspend fun upsertProfile(profile: Profile) {
+        writeProfile(profile)
+        onLocalChange(SyncDomain.PROFILE)
+    }
+
+    /** Same write as [upsertProfile], but skips [onLocalChange] — for
+     *  [com.vtempe.shared.data.repo.NetworkSyncRepository] restoring a pulled snapshot, which
+     *  must not re-trigger a push of the very data it just received. Not part of
+     *  [ProfileRepository]: only the sync system needs this distinction. */
+    suspend fun restoreProfile(profile: Profile) {
+        writeProfile(profile)
+    }
+
+    private fun writeProfile(profile: Profile) {
         db.profileQueries.upsertProfile(
             id = profile.id,
             age = profile.age.toLong(),
