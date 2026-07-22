@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
+import com.vtempe.core.designsystem.components.GlassPanel
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.util.kmpFormat
@@ -92,76 +93,86 @@ private fun SignedOutContent(
     Text(
         text = stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in),
         style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        color = AiPalette.OnGradient
     )
 
-    SocialSignInButtons(presenter)
+    // The email/password form and its buttons need normal (light-surface) Material contrast —
+    // OutlinedTextField/OutlinedButton default colors are tuned for a white background, and
+    // become nearly invisible directly on the brand gradient (green-on-green). GlassPanel gives
+    // them a near-opaque light card to sit on instead.
+    GlassPanel(modifier = Modifier.fillMaxWidth(), blurred = false) {
+        SocialSignInButtons(presenter)
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        HorizontalDivider(modifier = Modifier.weight(1f))
-        Text(
-            stringResource(Res.string.auth_or_divider),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        HorizontalDivider(modifier = Modifier.weight(1f))
-    }
-
-    OutlinedTextField(
-        value = email,
-        onValueChange = { email = it },
-        label = { Text(stringResource(Res.string.auth_email)) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        modifier = Modifier.fillMaxWidth()
-    )
-    OutlinedTextField(
-        value = password,
-        onValueChange = { password = it },
-        label = { Text(stringResource(Res.string.auth_password)) },
-        singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    state.errorCode?.let { code ->
-        Text(
-            stringResource(code.toStringRes()),
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall
-        )
-    }
-
-    Button(
-        onClick = {
-            if (isSignUpMode) presenter.signUp(email, password) else presenter.signIn(email, password)
-        },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = canSubmit,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = AiPalette.DeepAccent,
-            contentColor = AiPalette.OnDeepAccent
-        )
-    ) {
-        if (state.loading) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AiPalette.OnDeepAccent)
-        } else {
-            Text(stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in), fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f))
+            Text(
+                stringResource(Res.string.auth_or_divider),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f))
         }
-    }
 
-    TextButton(onClick = { isSignUpMode = !isSignUpMode }) {
-        Text(stringResource(if (isSignUpMode) Res.string.auth_switch_to_sign_in else Res.string.auth_switch_to_sign_up))
-    }
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text(stringResource(Res.string.auth_email)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text(stringResource(Res.string.auth_password)) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
 
-    if (onSkip != null) {
-        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(Res.string.auth_skip))
+        state.errorCode?.let { code ->
+            Text(
+                stringResource(code.toStringRes()),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Button(
+            onClick = {
+                if (isSignUpMode) presenter.signUp(email, password) else presenter.signIn(email, password)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = canSubmit,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AiPalette.DeepAccent,
+                contentColor = AiPalette.OnDeepAccent
+            )
+        ) {
+            if (state.loading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AiPalette.OnDeepAccent)
+            } else {
+                Text(stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in), fontWeight = FontWeight.Bold)
+            }
+        }
+
+        TextButton(
+            onClick = { isSignUpMode = !isSignUpMode },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(if (isSignUpMode) Res.string.auth_switch_to_sign_in else Res.string.auth_switch_to_sign_up))
+        }
+
+        if (onSkip != null) {
+            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.auth_skip))
+            }
         }
     }
 }
