@@ -1,7 +1,13 @@
 package com.vtempe.ui.screens
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,7 +17,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -36,6 +45,9 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
 
+    // Google's own brand guidelines call for a plain white button with the "G" mark — matches
+    // what users already recognize from every other app's sign-in screen, and (unlike an
+    // OutlinedButton tinted to the app's brand colour) stays legible on any background.
     OutlinedButton(
         onClick = {
             scope.launch {
@@ -46,9 +58,20 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !loading
+        enabled = !loading,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White,
+            contentColor = Color(0xFF1F1F1F)
+        ),
+        border = BorderStroke(1.dp, Color(0xFFDADCE0))
     ) {
-        Text(stringResource(Res.string.auth_continue_with_google))
+        if (loading) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF1F1F1F), strokeWidth = 2.dp)
+        } else {
+            GoogleLogo()
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(Res.string.auth_continue_with_google), fontWeight = FontWeight.Medium)
+        }
     }
 }
 

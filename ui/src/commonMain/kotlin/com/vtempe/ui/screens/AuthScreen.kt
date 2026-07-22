@@ -7,26 +7,37 @@ import com.vtempe.ui.presenter.AuthPresenter
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
-import com.vtempe.core.designsystem.components.GlassPanel
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.util.kmpFormat
@@ -85,6 +96,7 @@ private fun SignedOutContent(
     var isSignUpMode by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val emailValid = email.contains("@") && email.isNotBlank()
     val passwordValid = password.length >= 6
@@ -98,80 +110,105 @@ private fun SignedOutContent(
     )
 
     // The email/password form and its buttons need normal (light-surface) Material contrast —
-    // OutlinedTextField/OutlinedButton default colors are tuned for a white background, and
-    // become nearly invisible directly on the brand gradient (green-on-green). GlassPanel gives
-    // them a near-opaque light card to sit on instead.
-    GlassPanel(modifier = Modifier.fillMaxWidth(), blurred = false) {
-        SocialSignInButtons(presenter)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+    // OutlinedTextField/OutlinedButton default colors are tuned for a light background, and
+    // become nearly invisible directly on the brand gradient (green-on-green). A plain white
+    // card with a soft shadow gives them one to sit on instead.
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = Color.White,
+        shadowElevation = 12.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            HorizontalDivider(modifier = Modifier.weight(1f))
-            Text(
-                stringResource(Res.string.auth_or_divider),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            HorizontalDivider(modifier = Modifier.weight(1f))
-        }
+            SocialSignInButtons(presenter)
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text(stringResource(Res.string.auth_email)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(stringResource(Res.string.auth_password)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        state.errorCode?.let { code ->
-            Text(
-                stringResource(code.toStringRes()),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Button(
-            onClick = {
-                if (isSignUpMode) presenter.signUp(email, password) else presenter.signIn(email, password)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AiPalette.DeepAccent,
-                contentColor = AiPalette.OnDeepAccent
-            )
-        ) {
-            if (state.loading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AiPalette.OnDeepAccent)
-            } else {
-                Text(stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in), fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    stringResource(Res.string.auth_or_divider),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
             }
-        }
 
-        TextButton(
-            onClick = { isSignUpMode = !isSignUpMode },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(if (isSignUpMode) Res.string.auth_switch_to_sign_in else Res.string.auth_switch_to_sign_up))
-        }
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text(stringResource(Res.string.auth_email)) },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AiPalette.DeepAccent),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(Res.string.auth_password)) },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null
+                        )
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AiPalette.DeepAccent),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        if (onSkip != null) {
-            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.auth_skip))
+            state.errorCode?.let { code ->
+                Text(
+                    stringResource(code.toStringRes()),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Button(
+                onClick = {
+                    if (isSignUpMode) presenter.signUp(email, password) else presenter.signIn(email, password)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                enabled = canSubmit,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AiPalette.DeepAccent,
+                    contentColor = AiPalette.OnDeepAccent
+                )
+            ) {
+                if (state.loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AiPalette.OnDeepAccent)
+                } else {
+                    Text(stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in), fontWeight = FontWeight.Bold)
+                }
+            }
+
+            TextButton(
+                onClick = { isSignUpMode = !isSignUpMode },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(if (isSignUpMode) Res.string.auth_switch_to_sign_in else Res.string.auth_switch_to_sign_up))
+            }
+
+            if (onSkip != null) {
+                TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(Res.string.auth_skip))
+                }
             }
         }
     }
