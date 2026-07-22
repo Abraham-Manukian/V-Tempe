@@ -82,10 +82,16 @@ internal fun normalizeNutritionPlan(
             }
         }
         val ruLocale = locale.language.equals("ru", ignoreCase = true)
-        val cyrillicDetected = cleanedMeals.any { meal ->
-            hasCyrillic(meal.name) || meal.ingredients.any(::hasCyrillic)
+        // Per-meal check, not per-day: the LLM sometimes answers in a mix of languages (one
+        // Cyrillic meal keeps the whole day from being flagged), leaving stray English meals
+        // in an otherwise-Russian plan. Drop any meal that doesn't match the user's locale
+        // instead of only rejecting a day with zero Cyrillic content anywhere in it.
+        val localeMatchedMeals = if (ruLocale) {
+            cleanedMeals.filter { meal -> hasCyrillic(meal.name) || meal.ingredients.any(::hasCyrillic) }
+        } else {
+            cleanedMeals
         }
-        val baseMeals = if (cleanedMeals.isEmpty() || (ruLocale && !cyrillicDetected)) fallbackMeals else cleanedMeals
+        val baseMeals = if (localeMatchedMeals.isEmpty()) fallbackMeals else localeMatchedMeals
         val safeMeals = ensureMinimumMealsPerDay(baseMeals, fallbackMeals, MinMealsPerDay)
         normalizedMealsByDay[dayKey] = safeMeals
     }

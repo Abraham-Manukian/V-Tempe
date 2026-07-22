@@ -37,6 +37,17 @@ object ShoppingListNormalizer {
         "mustard", "sauce", "parsley", "dill", "basil"
     )
 
+    // Prep/state descriptors that shouldn't split an ingredient into separate shopping-list
+    // lines — "chicken breast", "cooked chicken breast", and "chicken breast, diced" are all
+    // the same thing to buy. Stripped before canonicalizing (and from the display name).
+    private val DESCRIPTOR_WORDS = listOf(
+        "cooked", "raw", "frozen", "canned", "diced", "chopped", "sliced", "shredded",
+        "minced", "grated", "boiled", "steamed", "grilled", "roasted", "baked", "peeled",
+        "in juice", "in water", "in syrup", "drained", "fresh", "dried", "whole", "ground",
+        "варен\\w*", "отварн\\w*", "жарен\\w*", "тушен\\w*", "замороженн\\w*", "консервированн\\w*",
+        "нарезанн\\w*", "измельченн\\w*", "тёртый", "тертый", "свеж\\w*", "сушен\\w*", "очищенн\\w*",
+    )
+
     // Units that are interchangeable for summing.
     private val GRAM_UNITS = setOf("г", "гр", "g", "грамм", "грамма", "граммов")
     private val ML_UNITS = setOf("мл", "ml")
@@ -145,9 +156,20 @@ object ShoppingListNormalizer {
         )
     }
 
+    private val DESCRIPTOR_REGEX = Regex(
+        """\b(${DESCRIPTOR_WORDS.joinToString("|")})\b""",
+        RegexOption.IGNORE_CASE
+    )
+
     private fun cleanName(raw: String): String =
-        raw.replace(Regex("""[\d.,]+"""), " ")
+        raw
+            // Parenthetical notes ("(frozen)", "(in juice)") and trailing comma-clauses
+            // ("chicken breast, diced") carry no shopping-list-relevant information.
+            .replace(Regex("""\([^)]*\)"""), " ")
+            .substringBefore(',')
+            .replace(Regex("""[\d.,]+"""), " ")
             .replace(Regex("""[—\-–]+"""), " ")
+            .replace(DESCRIPTOR_REGEX, " ")
             .replace(Regex("""\s+"""), " ")
             .trim()
 

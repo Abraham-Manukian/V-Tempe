@@ -16,6 +16,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BarChart
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.components.LineChart
+import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import com.vtempe.ui.util.kmpFormat
@@ -241,11 +247,10 @@ fun ProgressScreen(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                stringResource(Res.string.progress_weekly_volume),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = contentColor,
+                            ProgressSectionHeader(
+                                title = stringResource(Res.string.progress_weekly_volume),
+                                icon = Icons.Filled.FitnessCenter,
+                                tint = AiPalette.Primary,
                             )
                             androidx.compose.foundation.layout.Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -269,14 +274,8 @@ fun ProgressScreen(
                             }
                             BarChart(
                                 data = state.weeklyVolumes.map { it.coerceAtLeast(0) },
+                                labels = dayLabels,
                                 modifier = Modifier.fillMaxWidth(),
-                            )
-                            Text(
-                                dayLabels.mapIndexed { i, day ->
-                                    "$day: ${state.weeklyVolumes.getOrNull(i) ?: 0}"
-                                }.joinToString("   "),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = contentColor.copy(alpha = 0.75f),
                             )
                         }
                     }
@@ -299,11 +298,10 @@ fun ProgressScreen(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                stringResource(Res.string.sleep_weekly_chart_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = contentColor,
+                            ProgressSectionHeader(
+                                title = stringResource(Res.string.sleep_weekly_chart_title),
+                                icon = Icons.Filled.Bedtime,
+                                tint = AiPalette.Secondary,
                             )
                             if (state.sleepHoursWeek.isNotEmpty()) {
                                 androidx.compose.foundation.layout.Row(
@@ -324,7 +322,12 @@ fun ProgressScreen(
                                             "+${abs(sleepTargetGap).roundToInt()} h",
                                     )
                                 }
-                                BarChart(data = state.sleepHoursWeek, modifier = Modifier.fillMaxWidth())
+                                BarChart(
+                                    data = state.sleepHoursWeek,
+                                    labels = dayLabels,
+                                    barColor = AiPalette.Secondary,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                                 Text(
                                     stringResource(Res.string.progress_sleep_hint),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -340,13 +343,12 @@ fun ProgressScreen(
 
                             if (state.weightSeries.isNotEmpty()) {
                                 androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 4.dp))
-                                Text(
-                                    stringResource(Res.string.progress_avg_weight_title),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = contentColor,
+                                ProgressSectionHeader(
+                                    title = stringResource(Res.string.progress_avg_weight_title),
+                                    icon = Icons.Filled.MonitorWeight,
+                                    tint = AiPalette.Tertiary,
                                 )
-                                LineChart(values = state.weightSeries, modifier = Modifier.fillMaxWidth())
+                                LineChart(values = state.weightSeries, lineColor = AiPalette.Tertiary, modifier = Modifier.fillMaxWidth())
                                 Text(
                                     stringResource(Res.string.progress_weight_change).kmpFormat(
                                         "${if (weightDelta >= 0f) "+" else ""}${weightDelta.toOneDecimal()}"
@@ -358,13 +360,16 @@ fun ProgressScreen(
 
                             if (state.caloriesSeries.isNotEmpty()) {
                                 androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 4.dp))
-                                Text(
-                                    stringResource(Res.string.progress_calories_title),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = contentColor,
+                                ProgressSectionHeader(
+                                    title = stringResource(Res.string.progress_calories_title),
+                                    icon = Icons.Filled.LocalFireDepartment,
+                                    tint = AiPalette.Warning,
                                 )
-                                BarChart(data = state.caloriesSeries, modifier = Modifier.fillMaxWidth())
+                                BarChart(
+                                    data = state.caloriesSeries,
+                                    barColor = AiPalette.Warning,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                                 Text(
                                     stringResource(Res.string.progress_calories_avg).kmpFormat(caloriesAverage),
                                     style = MaterialTheme.typography.bodyMedium,
