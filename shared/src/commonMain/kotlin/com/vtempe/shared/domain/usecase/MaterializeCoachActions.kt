@@ -28,13 +28,15 @@ class MaterializeCoachActions(
         baseProfile: Profile,
         response: CoachResponse
     ): CoachResponse {
-        if (response.actions.isEmpty()) return response
-
         var effectiveProfile = baseProfile
         var trainingPlan = response.trainingPlan
         var nutritionPlan = response.nutritionPlan
         var sleepAdvice = response.sleepAdvice
 
+        // Note: actions may be empty even when the AI inlined a plan directly in the response
+        // (e.g. "translate my meal plan to Russian" isn't a REBUILD_NUTRITION_PLAN action, it's
+        // just a nutritionPlan object on the response) — the persistence below must still run
+        // in that case, so there is no early return here.
         response.actions.forEach { action ->
             when (action.type) {
                 CoachActionType.SHOW_CURRENT_WORKOUT -> {
