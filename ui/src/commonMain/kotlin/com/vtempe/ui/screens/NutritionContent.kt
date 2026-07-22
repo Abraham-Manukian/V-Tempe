@@ -99,7 +99,7 @@ internal fun NutritionContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp, start = 20.dp, end = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     maxItemsInEachRow = 4,
                 ) {
@@ -114,7 +114,11 @@ internal fun NutritionContent(
             } else {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    // spacedBy's alignment param centers the whole 7-chip group when it's
+                    // narrower than the row (the usual case) — plain spacedBy(12.dp) left-
+                    // anchors at the content padding instead, leaving a lopsided gap on the
+                    // right that read as "not centered".
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                     contentPadding = PaddingValues(horizontal = 20.dp),
                 ) {
                     items(dayOptions.size) { i ->
@@ -214,10 +218,14 @@ internal fun NutritionContent(
                             )
                             RingChart(
                                 values = listOf(proteinDay.toFloat(), fatDay.toFloat(), carbsDay.toFloat()),
+                                // AiPalette's own accents, not MaterialTheme.colorScheme.secondary/
+                                // tertiary — aiLightColorScheme() never overrides those two, so they
+                                // fell back to Material3's generic baseline (a muddy grey-purple and
+                                // maroon) instead of anything matching the app's actual brand colors.
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                    MaterialTheme.colorScheme.secondary,
+                                    AiPalette.Primary,
+                                    AiPalette.Warning,
+                                    AiPalette.Secondary,
                                 ),
                                 modifier = Modifier.fillMaxWidth(),
                             )
