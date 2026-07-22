@@ -28,12 +28,12 @@ import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
-import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AuthPresenter
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 
 /** Android's half of the sign-in options — Google via Credential Manager (Google's current
@@ -79,7 +79,11 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
  *  (see app-android/build.gradle.kts GOOGLE_WEB_CLIENT_ID). Reports real failures to [presenter]
  *  itself since they never touch [com.vtempe.shared.domain.repository.AuthRepository]. */
 private suspend fun requestGoogleIdToken(context: Context, presenter: AuthPresenter): String? {
-    val webClientId = KoinProvider.koin?.get<String>(named("googleWebClientId")).orEmpty()
+    // GlobalContext, not KoinProvider — KoinProvider.koin is only ever assigned on iOS (see its
+    // kdoc); on Android, Koin is started via the standard androidContext()/startKoin{} path and
+    // lives in GlobalContext, so KoinProvider.koin is always null here. Using it silently made
+    // this always resolve to a blank id and report AuthErrorCode.UNAVAILABLE.
+    val webClientId = GlobalContext.getOrNull()?.get<String>(named("googleWebClientId")).orEmpty()
     if (webClientId.isBlank()) {
         presenter.reportError(AuthErrorCode.UNAVAILABLE)
         return null

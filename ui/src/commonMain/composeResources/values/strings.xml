@@ -312,7 +312,7 @@
     <string name="nutrition_shopping_bullet">• %1$s</string>
     <string name="action_back">Back</string>
     <string name="common_retry">Retry</string>
-    <string name="home_load_error">Couldn\'t refresh your plan</string>
+    <string name="home_load_error">Couldn't refresh your plan</string>
     <string name="home_load_error_hint">Check your connection and try again.</string>
 
     <!-- Sleep -->
@@ -398,7 +398,7 @@
     <string name="auth_error_weak_password">Password is too weak</string>
     <string name="auth_error_email_in_use">An account with this email already exists</string>
     <string name="auth_error_network">Network error, please try again</string>
-    <string name="auth_error_unavailable">Sign-in isn\'t available in this build yet</string>
+    <string name="auth_error_unavailable">Sign-in isn't available in this build yet</string>
     <string name="auth_error_generic">Something went wrong, please try again</string>
     <string name="auth_continue_with_google">Continue with Google</string>
     <string name="auth_continue_with_apple">Continue with Apple</string>
