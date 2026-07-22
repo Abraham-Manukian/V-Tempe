@@ -266,6 +266,7 @@
     <string name="workout_stat_session">Session</string>
     <string name="workout_summary_help">Each card below shows the movement visually, explains the technique, and lets you save actual reps, weight, and effort for AI adaptation.</string>
     <string name="workout_status_done">Done</string>
+    <string name="workout_tap_to_enlarge">Enlarge</string>
     <string name="workout_status_planned">Planned</string>
     <string name="workout_image_fullscreen_hint">Open full screen</string>
     <string name="workout_target_set">Target for this set</string>

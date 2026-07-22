@@ -58,7 +58,7 @@ fun AppRoot() {
                 // Tab switch: clear everything above the bottom nav entry (or start fresh)
                 val existingIdx = backStack.indexOfLast { it == dest }
                 if (existingIdx >= 0) {
-                    while (backStack.size > existingIdx + 1) backStack.removeLast()
+                    while (backStack.size > existingIdx + 1) backStack.removeAt(backStack.lastIndex)
                 } else {
                     // Remove any other bottom-nav entries to avoid duplicates
                     backStack.removeAll { it.isBottomNav }
@@ -70,7 +70,10 @@ fun AppRoot() {
         }
 
         fun navigateBack() {
-            if (backStack.size > 1) backStack.removeLast()
+            // Not `.removeLast()` — on some devices (confirmed on an Android 9 BlueStacks
+            // instance) it resolves to a NoSuchMethodError against SnapshotStateList at
+            // runtime despite compiling fine. `.removeAt(lastIndex)` is unambiguous.
+            if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
         }
 
         // Handle system back button — prevents app exit when back stack has history

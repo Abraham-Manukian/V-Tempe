@@ -245,7 +245,8 @@ private fun MessageBubble(msg: ChatMessage, coachTrainerId: String) {
                             shape = CircleShape
                         )
                         .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.TopCenter
                 )
                 Spacer(Modifier.size(8.dp))
             }

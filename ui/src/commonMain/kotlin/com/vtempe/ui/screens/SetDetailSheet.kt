@@ -131,7 +131,7 @@ internal fun SetDetailSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp)
+                    .height(240.dp)
                     .clickable { showImageFullScreen = true }
             ) {
                 Image(
@@ -194,18 +194,31 @@ internal fun SetDetailSheet(
                         }
                     }
                 }
-                // Fullscreen icon top-right
+                // "Tap to enlarge" pill, top-right — a bare icon here was easy to miss;
+                // labelled so it's obvious the photo expands to fullscreen on tap.
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.40f)
+                    shape = MaterialTheme.shapes.large,
+                    color = Color.Black.copy(alpha = 0.45f)
                 ) {
-                    Icon(
-                        Icons.Filled.Fullscreen,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(6.dp).size(16.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Fullscreen,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            stringResource(Res.string.workout_tap_to_enlarge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 

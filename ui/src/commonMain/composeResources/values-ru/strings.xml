@@ -268,6 +268,7 @@
     <string name="workout_stat_session">Сессия</string>
     <string name="workout_summary_help">Ниже каждая карточка показывает упражнение визуально, объясняет технику и даёт сохранить фактические повторы, вес и усилие для адаптации AI.</string>
     <string name="workout_status_done">Готово</string>
+    <string name="workout_tap_to_enlarge">Увеличить</string>
     <string name="workout_status_planned">План</string>
     <string name="workout_image_fullscreen_hint">Открыть полностью</string>
     <string name="workout_target_set">Цель этого подхода</string>

@@ -1,4 +1,14 @@
 ﻿<resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.VTempe" parent="Theme.Material3.Light.NoActionBar" />
+    <!-- MainActivity calls setDecorFitsSystemWindows(window, false) for edge-to-edge content,
+         but Material3.Light's default statusBarColor/navigationBarColor still paint a solid
+         theme color (Material3's baseline purple) on top of that content unless overridden
+         here — this is what made the status bar area show a solid purple bar instead of the
+         app's own background showing through. -->
+    <style name="Theme.VTempe" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+    </style>
 </resources>
 
