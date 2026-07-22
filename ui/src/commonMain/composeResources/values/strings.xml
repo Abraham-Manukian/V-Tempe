@@ -404,6 +404,7 @@
     <string name="auth_continue_with_apple">Continue with Apple</string>
     <string name="auth_or_divider">or</string>
     <string name="auth_skip">Continue without an account</string>
+    <string name="auth_subtitle">Sync your progress across every device</string>
     <string name="entitlement_active_until">Subscription active until %1$s</string>
     <string name="entitlement_active_until_unknown">Subscription active</string>
     <string name="entitlement_none">No active subscription</string>

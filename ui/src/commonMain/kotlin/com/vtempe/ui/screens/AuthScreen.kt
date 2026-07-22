@@ -5,8 +5,10 @@ package com.vtempe.ui.screens
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AuthPresenter
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -31,13 +33,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
+import com.vtempe.core.designsystem.icons.AiIcons
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.util.kmpFormat
@@ -102,12 +107,39 @@ private fun SignedOutContent(
     val passwordValid = password.length >= 6
     val canSubmit = emailValid && passwordValid && !state.loading
 
-    Text(
-        text = stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = AiPalette.OnGradient
-    )
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                AiIcons.Strength,
+                contentDescription = null,
+                tint = AiPalette.OnGradient,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        Text(
+            text = stringResource(if (isSignUpMode) Res.string.auth_sign_up else Res.string.auth_sign_in),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = AiPalette.OnGradient,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = stringResource(Res.string.auth_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = AiPalette.OnGradient.copy(alpha = 0.85f),
+            textAlign = TextAlign.Center
+        )
+    }
 
     // The email/password form and its buttons need normal (light-surface) Material contrast —
     // OutlinedTextField/OutlinedButton default colors are tuned for a light background, and
