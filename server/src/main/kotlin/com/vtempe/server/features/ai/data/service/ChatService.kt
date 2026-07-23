@@ -196,6 +196,18 @@ class ChatService(
             trainingModeRaw = req.profile.trainingMode,
             equipment = req.profile.equipment
         )
+        // Concrete catalog ids the user can actually do — the AI MUST pick swap/add targets from
+        // this exact list. Without it the model emits a localized display name ("тяга верхнего
+        // блока") that can't be resolved to a catalog exercise, and the swap silently no-ops.
+        val availableExerciseIds = run {
+            val mode = trainingPlanResolver.resolveMode(req.profile.trainingMode, req.profile.equipment)
+            val equip = trainingPlanResolver.normalizeEquipment(req.profile.equipment)
+            exerciseCatalog.availablePatterns(mode, equip)
+                .flatMap { exerciseCatalog.candidatesFor(it, mode, equip) }
+                .map { it.id }
+                .distinct()
+                .sorted()
+        }
 
         val lastUserMessage = req.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }?.content
             ?: req.messages.lastOrNull()?.content
@@ -267,7 +279,11 @@ class ChatService(
             appendLine("full plan null. Only touch the domain(s) the user actually asked about.")
             appendLine()
             appendLine("editOps operations (op + the fields it uses):")
-            appendLine("  TRAINING (exerciseId/newExerciseId must be a supported exercise id or resolver token):")
+            appendLine("  TRAINING. exerciseId identifies an EXISTING exercise in the current plan above (copy its")
+            appendLine("  exact id). newExerciseId (for swap/add) MUST be one of these supported exercise ids —")
+            appendLine("  copy an id VERBATIM, never invent one and never use a translated display name:")
+            appendLine("    ${availableExerciseIds.joinToString(", ")}")
+            appendLine("  If none of these fits what the user wants, say so in reply and emit no op — do not guess.")
             appendLine("   - swap_exercise: {op, workoutId?, exerciseId, newExerciseId}")
             appendLine("   - set_weight:    {op, workoutId?, exerciseId, weightKg}")
             appendLine("   - set_reps:      {op, workoutId?, exerciseId, reps}")

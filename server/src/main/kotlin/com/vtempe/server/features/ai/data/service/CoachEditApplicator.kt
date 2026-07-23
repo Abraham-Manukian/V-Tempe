@@ -114,7 +114,7 @@ class CoachEditApplicator(
         val result: AiTrainingResponse = when (type) {
             CoachEditOpType.SWAP_EXERCISE -> {
                 val target = normalizeExerciseToken(op.exerciseId.orEmpty())
-                val replacement = resolveExerciseOrNull(op.newExerciseId)
+                val replacement = resolveExerciseOrNull(op.newExerciseId, profile)
                 if (target.isBlank() || replacement == null) {
                     rejections += "cannot swap to '${op.newExerciseId ?: "?"}' — not a known exercise"
                     return plan to false
@@ -152,7 +152,7 @@ class CoachEditApplicator(
             }
 
             CoachEditOpType.ADD_EXERCISE -> {
-                val newId = resolveExerciseOrNull(op.newExerciseId ?: op.exerciseId)
+                val newId = resolveExerciseOrNull(op.newExerciseId ?: op.exerciseId, profile)
                 if (newId == null) {
                     rejections += "cannot add '${op.newExerciseId ?: op.exerciseId ?: "?"}' — not a known exercise"
                     return plan to false
@@ -223,11 +223,35 @@ class CoachEditApplicator(
     private fun dedupeSets(sets: List<AiSet>): List<AiSet> =
         sets.distinctBy { normalizeExerciseToken(it.exerciseId) }.take(MaxSetsPerWorkout)
 
-    private fun resolveExerciseOrNull(raw: String?): String? {
+    private fun resolveExerciseOrNull(raw: String?, profile: AiProfile?): String? {
         val token = normalizeExerciseToken(raw.orEmpty())
         if (token.isBlank()) return null
-        return catalog.findByIdOrAlias(token)?.id
-            ?: resolver.resolveExerciseId(rawToken = raw!!, trainingModeRaw = null, equipment = emptyList())
+        // 1. Exact catalog id / alias (mode-independent).
+        catalog.findByIdOrAlias(token)?.let { return it.id }
+        // 2. Resolver in the USER'S context — resolves both pattern slot tokens (pattern:vertical_pull)
+        //    and near-miss ids, but only to exercises the user can actually do with their equipment.
+        resolver.resolveExerciseId(
+            rawToken = raw!!,
+            trainingModeRaw = profile?.trainingMode,
+            equipment = profile?.equipment.orEmpty(),
+            userExperienceLevel = profile?.experienceLevel ?: 3,
+        )?.let { return it }
+        // 3. Last-ditch fuzzy match against catalog ids/aliases (catches English near-misses the AI
+        //    might write, e.g. "lat_pulldown_wide" → "lat_pulldown"). Won't map a localized name.
+        return fuzzyCatalogId(token)
+    }
+
+    private fun fuzzyCatalogId(token: String): String? {
+        val words = token.split("_", " ").filter { it.length > 2 }
+        if (words.isEmpty()) return null
+        // Strict: every significant word of the AI's token must appear somewhere in the catalog
+        // item's id/aliases. Deliberately conservative — a loose "any word matches" rule maps
+        // nonsense like "flying unicorn press" onto "leg_press". A miss here just means the op is
+        // rejected and reported, which is the correct honest outcome.
+        return catalog.all().firstOrNull { item ->
+            val haystack = (item.aliases + item.id).joinToString(" ")
+            words.all { w -> haystack.contains(w) }
+        }?.id
     }
 
     // ── Nutrition ────────────────────────────────────────────────────────

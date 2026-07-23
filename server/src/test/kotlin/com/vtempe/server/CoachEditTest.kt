@@ -100,6 +100,22 @@ class CoachEditTest {
     }
 
     @Test
+    fun `swap accepts a resolver pattern token as the replacement`() {
+        // The AI may emit a slot token instead of a concrete id — it must still resolve to a real
+        // catalog exercise the user can do, in the user's equipment context.
+        val result = applicator.apply(
+            ops = listOf(CoachEditOp(op = "swap_exercise", exerciseId = "bench", newExerciseId = "pattern:vertical_pull")),
+            currentTraining = planWith("squat", "bench"),
+            currentNutrition = null,
+            profile = gymProfile(),
+        )
+        assertTrue(result.trainingChanged)
+        val ids = result.trainingPlan!!.workouts.single().sets.map { it.exerciseId }
+        assertFalse(ids.contains("bench"))
+        assertFalse(ids.any { it.startsWith("pattern:") }, "token must resolve to a concrete id, got $ids")
+    }
+
+    @Test
     fun `set_weight updates only the matching exercise`() {
         val result = applicator.apply(
             ops = listOf(CoachEditOp(op = "set_weight", exerciseId = "squat", weightKg = 100.0)),
