@@ -61,7 +61,11 @@ fun NutritionScreen(
 
     BrandScreen(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val isCompactWidth = maxWidth < 360.dp
+            // The 7 day chips (~56dp each + gaps + 20dp side insets) need ~500dp to sit stretched
+            // edge-to-edge in one row. Below that they don't fit, so we horizontally scroll them
+            // instead of stretching (which would clip the last day). 520dp keeps a safe margin so
+            // the stretched layout only kicks in on tablets / wide screens that truly fit all 7.
+            val isCompactWidth = maxWidth < 520.dp
 
             Crossfade(
                 targetState = state.ui,

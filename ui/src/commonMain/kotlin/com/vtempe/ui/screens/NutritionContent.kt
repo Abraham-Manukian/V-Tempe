@@ -11,16 +11,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -95,13 +95,15 @@ internal fun NutritionContent(
         // ── Day selector ──────────────────────────────────────────
         item {
             if (isCompactWidth) {
-                FlowRow(
+                // Narrow screen: chips can't all fit at once, so scroll them horizontally in one
+                // row instead of wrapping to a second line.
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
                         .padding(top = 16.dp, start = 20.dp, end = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    maxItemsInEachRow = 4,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     dayOptions.forEach { key ->
                         DayChip(
@@ -112,17 +114,18 @@ internal fun NutritionContent(
                     }
                 }
             } else {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    // spacedBy's alignment param centers the whole 7-chip group when it's
-                    // narrower than the row (the usual case) — plain spacedBy(12.dp) left-
-                    // anchors at the content padding instead, leaving a lopsided gap on the
-                    // right that read as "not centered".
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                    contentPadding = PaddingValues(horizontal = 20.dp),
+                // Wide screen: spread the 7 day chips edge-to-edge with SpaceBetween so the first
+                // and last chip line up with the top bar / card edges (both at the 20.dp inset),
+                // instead of a centered group leaving empty margins on the sides. The isCompactWidth
+                // branch above already handles the narrow case where 7 chips can't fit in one row.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    items(dayOptions.size) { i ->
-                        val key = dayOptions[i]
+                    dayOptions.forEach { key ->
                         DayChip(
                             label = dayLabels[key] ?: key,
                             selected = selectedDay == key,

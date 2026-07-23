@@ -111,19 +111,26 @@ fun AppRoot() {
                     containerColor = Color.Transparent,
                     contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        AppNavigationHost(
-                            current = currentDest,
-                            pendingChatPrompt = pendingChatPrompt,
-                            onPromptConsumed = { pendingChatPrompt = null },
-                            onNavigate = { dest -> navigateTo(dest) },
-                            onAskCoach = { prompt ->
-                                pendingChatPrompt = prompt
-                                navigateTo(Destination.Chat)
-                            },
-                            onEnterActiveWorkout = { isActiveWorkout = true },
-                            onExitActiveWorkout = { isActiveWorkout = false }
-                        )
+                    // Cap all screen content to a phone-column width and center it, so on tablets /
+                    // wide screens (720dp+) every screen renders as one tidy centered column instead
+                    // of spreading into sparse multi-column layouts with big empty margins. On real
+                    // phones (≤600dp) this is a no-op. The gradient background and the top/bottom
+                    // bars are drawn outside this Box, so they still span the full width.
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                        Box(modifier = Modifier.widthIn(max = 600.dp).fillMaxSize()) {
+                            AppNavigationHost(
+                                current = currentDest,
+                                pendingChatPrompt = pendingChatPrompt,
+                                onPromptConsumed = { pendingChatPrompt = null },
+                                onNavigate = { dest -> navigateTo(dest) },
+                                onAskCoach = { prompt ->
+                                    pendingChatPrompt = prompt
+                                    navigateTo(Destination.Chat)
+                                },
+                                onEnterActiveWorkout = { isActiveWorkout = true },
+                                onExitActiveWorkout = { isActiveWorkout = false }
+                            )
+                        }
                     }
                 }
 
@@ -132,6 +139,8 @@ fun AppRoot() {
                     GlassTopBarContainer(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
+                            .widthIn(max = 600.dp)
+                            .fillMaxWidth()
                             .onGloballyPositioned { coords ->
                                 topBarHeight = with(density) { coords.size.height.toDp() }
                             }
