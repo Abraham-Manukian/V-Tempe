@@ -45,6 +45,18 @@ internal fun isBodyweightOnly(
     catalog: ExerciseCatalog = builtInExerciseCatalog
 ): Boolean = catalog.findByIdOrAlias(exerciseId)?.isBodyweightOnly ?: false
 
+/**
+ * GENERATE rebuilds the whole plan from a deterministic skeleton (bootstrap / regenerate):
+ * the AI only fills in reps/weight/rpe and every exercise id is authoritative from the skeleton.
+ *
+ * EDIT preserves whatever exercises the AI returned (validating each against the catalog via the
+ * resolver) instead of snapping them back to the skeleton. This is what the chat path must use:
+ * when the user asks "replace the standing press", the AI returns the full plan with that one
+ * change, and re-running the skeleton would deterministically overwrite the swap right back to the
+ * original — silently discarding every targeted edit. See CoachEditApplicator for the op-based path.
+ */
+internal enum class NormalizationMode { GENERATE, EDIT }
+
 internal fun normalizeTrainingPlan(
     plan: AiTrainingResponse,
     profile: AiProfile? = null,
@@ -55,7 +67,8 @@ internal fun normalizeTrainingPlan(
      * which causes the client to store workouts under the wrong week and
      * never find them via observeWorkoutsByWeek(requestedWeekIndex).
      */
-    enforcedWeekIndex: Int? = null
+    enforcedWeekIndex: Int? = null,
+    mode: NormalizationMode = NormalizationMode.GENERATE
 ): AiTrainingResponse {
     val resolvedWeekIndex = enforcedWeekIndex ?: plan.weekIndex
     val weekStart = expectedWeekStart(resolvedWeekIndex)
@@ -63,7 +76,9 @@ internal fun normalizeTrainingPlan(
 
     // Pre-resolve ALL exercises from the skeleton — AI only provides reps/weight/rpe.
     // This guarantees correct exercises per slot regardless of what AI returned.
-    val skeletonData = profile?.let {
+    // EDIT mode skips the skeleton entirely so the resolver-based branch below runs, preserving
+    // the AI's edited exercise selection instead of overwriting it.
+    val skeletonData = if (mode == NormalizationMode.EDIT) null else profile?.let {
         computeSkeletonData(it, resolvedWeekIndex, trainingPlanResolver)
     }
     val skeletonLabels = skeletonData?.map { it.label } ?: emptyList()
@@ -87,7 +102,14 @@ internal fun normalizeTrainingPlan(
             val preResolved = skeletonExercises.getOrNull(index)
             val preResolvedSets = skeletonData?.getOrNull(index)?.setsCounts
             val preResolvedRpes = skeletonData?.getOrNull(index)?.rpeTargets
-            val normalizedSets = if (preResolved != null) {
+            val normalizedSets = if (mode == NormalizationMode.EDIT) {
+                normalizeEditSets(
+                    sets = workout.sets,
+                    profile = profile,
+                    resolver = trainingPlanResolver,
+                    bandsOnlyEquipment = bandsOnlyEquipment,
+                )
+            } else if (preResolved != null) {
                 // Skeleton-driven: exercise IDs are authoritative.
                 // Weight is kept only when AI chose the same exercise — otherwise null,
                 // because 70kg deadlift ≠ 70kg barbell row.
@@ -155,6 +177,53 @@ internal fun normalizeTrainingPlan(
         }
 
     return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
+}
+
+/**
+ * EDIT-mode set normalization: keep whatever the AI returned, only validating it against the
+ * catalog. A set whose exerciseId is a real catalog id (or a known alias) is kept verbatim — we
+ * do NOT run it back through the resolver's rotation, which in GYM mode can legitimately swap one
+ * valid exercise for another "preferred" one and would silently undo an untouched exercise during
+ * an edit. Only a genuinely unknown id gets a resolver rescue (near-miss / pattern token); if that
+ * still fails, the set is dropped. Contraindicated exercises (per injuries) are dropped too.
+ */
+private fun normalizeEditSets(
+    sets: List<AiSet>,
+    profile: AiProfile?,
+    resolver: TrainingPlanResolver,
+    bandsOnlyEquipment: Boolean,
+    catalog: ExerciseCatalog = builtInExerciseCatalog,
+): List<AiSet> {
+    val banned = com.vtempe.server.features.ai.data.service.split.InjuryFilter
+        .bannedExerciseIds(profile?.injuries.orEmpty())
+    val usedExerciseIds = banned.toMutableSet()
+
+    return sets.mapNotNull { set ->
+        val token = normalizeExerciseToken(set.exerciseId)
+        // Valid catalog id/alias → keep as-is (canonicalized). Never re-resolve, to avoid the
+        // resolver rotating a perfectly good exercise into a different one mid-edit.
+        val canonical = catalog.findByIdOrAlias(token)?.id
+            ?: resolver.resolveExerciseId(
+                rawToken = set.exerciseId,
+                trainingModeRaw = profile?.trainingMode,
+                userExperienceLevel = profile?.experienceLevel ?: 3,
+                equipment = profile?.equipment.orEmpty(),
+                usedExerciseIds = usedExerciseIds,
+                rotationSeed = 0,
+            )
+            ?: return@mapNotNull null
+
+        if (canonical in banned) return@mapNotNull null
+
+        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1))
+        val weight = if (isBodyweightOnly(canonical) || bandsOnlyEquipment) null
+        else set.weightKg?.takeIf { it >= 0.0 }
+        val rpe = set.rpe?.takeIf { it > 0.0 }
+        val setsCount = set.sets.coerceIn(1, 10)
+        AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount)
+    }
+        .distinctBy { it.exerciseId }
+        .take(MaxSetsPerWorkout)
 }
 
 /**

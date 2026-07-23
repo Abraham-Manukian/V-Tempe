@@ -3,7 +3,6 @@ package com.vtempe.shared.domain.usecase
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.repository.AdviceRepository
-import com.vtempe.shared.domain.repository.CoachAction
 import com.vtempe.shared.domain.repository.CoachActionType
 import com.vtempe.shared.domain.repository.CoachResponse
 import com.vtempe.shared.domain.repository.NutritionRepository
@@ -12,11 +11,19 @@ import com.vtempe.shared.domain.repository.TrainingRepository
 import kotlinx.coroutines.flow.first
 
 /**
- * Materializes [CoachResponse.actions] into concrete domain objects:
- * fetches or generates training/nutrition plans and sleep advice based on
- * the actions the AI coach requested.
+ * Materializes a [CoachResponse] into persisted plans.
  *
- * Extracted from [AskAiTrainer] to give each class a single responsibility.
+ * Two kinds of change arrive from the coach:
+ *  - Targeted EDITS (swap an exercise, change a weight, replace an ingredient) are applied and
+ *    validated entirely SERVER-SIDE now; they come back as a fully-formed trainingPlan /
+ *    nutritionPlan on the response. This class just saves whatever plan is present — it must NOT
+ *    try to re-derive or second-guess the edit (that older client-side "replace_exercise" path
+ *    fought the server's own logic and silently discarded edits).
+ *  - WHOLE-PLAN regeneration ("rebuild my plan", "switch to home workouts") still arrives as an
+ *    action, because it needs a fresh generatePlan() call the server can't do inside a chat turn.
+ *
+ * So the only work left here is: honor the regeneration/show actions, then persist whatever plans
+ * ended up on the response.
  */
 class MaterializeCoachActions(
     private val profileRepository: ProfileRepository,
@@ -33,22 +40,12 @@ class MaterializeCoachActions(
         var nutritionPlan = response.nutritionPlan
         var sleepAdvice = response.sleepAdvice
 
-        // Note: actions may be empty even when the AI inlined a plan directly in the response
-        // (e.g. "translate my meal plan to Russian" isn't a REBUILD_NUTRITION_PLAN action, it's
-        // just a nutritionPlan object on the response) — the persistence below must still run
-        // in that case, so there is no early return here.
         response.actions.forEach { action ->
             when (action.type) {
                 CoachActionType.SHOW_CURRENT_WORKOUT -> {
                     if (trainingPlan == null) {
                         trainingPlan = currentOrGeneratedTrainingPlan(effectiveProfile, action.weekIndex ?: 0)
                     }
-                }
-
-                CoachActionType.REPLACE_EXERCISE -> {
-                    val basePlan = trainingPlan
-                        ?: currentOrGeneratedTrainingPlan(effectiveProfile, action.weekIndex ?: 0)
-                    trainingPlan = replaceExerciseInPlan(basePlan, action)
                 }
 
                 CoachActionType.REBUILD_TRAINING_PLAN -> {
@@ -83,10 +80,17 @@ class MaterializeCoachActions(
                         sleepAdvice = adviceRepository.getAdvice(effectiveProfile, mapOf("topic" to "sleep"))
                     }
                 }
+
+                CoachActionType.REPLACE_EXERCISE -> {
+                    // Legacy: exercise swaps are now applied and validated server-side and arrive as a
+                    // full trainingPlan on the response. A bare replace_exercise action with no inline
+                    // plan is intentionally a no-op — the client must never re-run the swap itself.
+                }
             }
         }
 
-        // Persist whatever was materialized (covers inline AI plans and REPLACE_EXERCISE results)
+        // Persist whatever ended up materialized. A null plan means "no change to this domain" —
+        // the server only attaches a plan when it actually differs from what the user had.
         trainingPlan?.let { trainingRepository.savePlan(it) }
         nutritionPlan?.let { nutritionRepository.savePlan(it) }
         sleepAdvice?.let { adviceRepository.saveAdvice("sleep", it) }
@@ -108,50 +112,5 @@ class MaterializeCoachActions(
         } else {
             trainingRepository.generatePlan(profile, weekIndex)
         }
-    }
-
-    private fun replaceExerciseInPlan(
-        plan: TrainingPlan,
-        action: CoachAction
-    ): TrainingPlan {
-        val targetExerciseId = action.targetExerciseId?.trim()?.lowercase()
-            ?.takeIf { it.isNotEmpty() } ?: return plan
-        val replacementExerciseId = action.replacementExerciseId?.trim()?.lowercase()
-            ?.takeIf { it.isNotEmpty() } ?: return plan
-        if (targetExerciseId == replacementExerciseId) return plan
-
-        val scopedWorkoutId = action.workoutId?.trim()?.takeIf { it.isNotEmpty() }
-        var replacedAny = false
-
-        val updatedWorkouts = plan.workouts.map { workout ->
-            if (scopedWorkoutId != null && workout.id != scopedWorkoutId) return@map workout
-
-            val containsTarget = workout.sets.any { it.exerciseId.equals(targetExerciseId, ignoreCase = true) }
-            if (!containsTarget) return@map workout
-
-            replacedAny = true
-            workout.copy(
-                sets = workout.sets.map { set ->
-                    if (!set.exerciseId.equals(targetExerciseId, ignoreCase = true)) {
-                        set
-                    } else {
-                        set.copy(
-                            exerciseId = replacementExerciseId,
-                            weightKg = adjustReplacementWeight(replacementExerciseId, set.weightKg)
-                        )
-                    }
-                }
-            )
-        }
-
-        return if (replacedAny) plan.copy(workouts = updatedWorkouts) else plan
-    }
-
-    private fun adjustReplacementWeight(
-        replacementExerciseId: String,
-        currentWeightKg: Double?
-    ): Double? = when (replacementExerciseId.lowercase()) {
-        "pushup", "pullup", "dip", "plank", "run" -> null
-        else -> currentWeightKg
     }
 }

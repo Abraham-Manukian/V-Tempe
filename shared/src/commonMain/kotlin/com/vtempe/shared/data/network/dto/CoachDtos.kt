@@ -235,7 +235,11 @@ data class TrainingPlanDto(
 @Serializable
 data class NutritionPlanDto(
     val weekIndex: Int,
-    val mealsByDay: Map<String, List<MealDto>>
+    val mealsByDay: Map<String, List<MealDto>>,
+    /** Server-normalized shopping list (grouped, deduped, quantities summed). Carried through so
+     *  the nice list the server built actually reaches the UI instead of the client re-deriving a
+     *  raw one. Empty for older payloads → toDomain() falls back to deriving from ingredients. */
+    val shoppingList: List<String> = emptyList()
 ) {
     @Serializable
     data class MealDto(
@@ -264,13 +268,20 @@ data class NutritionPlanDto(
                 )
             }
         }
-        val shopping = grouped.values
-            .flatten()
-            .flatMap { it.ingredients }
+        // Prefer the server's normalized shopping list; only derive a raw one when it's absent
+        // (older payloads / offline fallbacks that never went through the server normalizer).
+        val shopping = shoppingList
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-            .distinct()
-            .sorted()
+            .ifEmpty {
+                grouped.values
+                    .flatten()
+                    .flatMap { it.ingredients }
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .sorted()
+            }
         return NutritionPlan(weekIndex, mealsDomain, shopping)
     }
 
@@ -296,7 +307,8 @@ data class NutritionPlanDto(
             }
             return NutritionPlanDto(
                 weekIndex = plan.weekIndex,
-                mealsByDay = normalized
+                mealsByDay = normalized,
+                shoppingList = plan.shoppingList
             )
         }
     }

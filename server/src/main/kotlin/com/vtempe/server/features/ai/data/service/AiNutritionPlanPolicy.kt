@@ -140,7 +140,8 @@ internal fun validateNutritionPlan(
     return errors.distinct()
 }
 
-private fun canonicalDayKey(raw: String): String? {
+// internal, not private: CoachEditApplicator reuses it to resolve the AI's day key in edit ops.
+internal fun canonicalDayKey(raw: String): String? {
     val token = sanitizeText(raw).lowercase(Locale.US)
     if (token.isBlank()) return null
     return dayKeyAliases[token]

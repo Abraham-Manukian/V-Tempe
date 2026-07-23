@@ -36,6 +36,7 @@ class ChatService(
 ) {
     private val logger = LoggerFactory.getLogger(ChatService::class.java)
     private val llmRouter = LlmClientRouter(paidLlmClient, freeLlmClient)
+    private val editApplicator = CoachEditApplicator(exerciseCatalog, trainingPlanResolver)
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -77,7 +78,8 @@ class ChatService(
             )
         }
 
-        normalizeChatResponse(response, locale, req.profile, trainingPlanResolver)
+        val normalized = normalizeChatResponse(response, locale, req.profile, trainingPlanResolver)
+        finalizeChatResponse(normalized, req, locale)
     }.getOrElse { error ->
         if (error is CancellationException && error !is TimeoutCancellationException) throw error
         if (!isExpectedLlmFailure(error)) {
@@ -109,6 +111,76 @@ class ChatService(
             nutritionPlan = aiService.nutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale)),
             sleepAdvice = aiService.sleep(AiAdviceRequest(req.profile, req.locale))
         )
+    }
+
+    /**
+     * Turns the AI's raw intent into the final plans the client will save. Two paths converge here:
+     *  - editOps (surgical): applied to the plan the client sent, server-side, by CoachEditApplicator.
+     *  - inline full plan: the EDIT-normalized trainingPlan/nutritionPlan the AI returned wholesale.
+     *
+     * A plan is only attached to the response when it ACTUALLY differs from what the user already
+     * had — so the client's "plan updated" card (shown whenever a plan is non-null) never lies about
+     * a change that didn't happen. When ops were rejected and nothing changed, a short localized note
+     * is appended so the reply is honest too.
+     */
+    private fun finalizeChatResponse(
+        normalized: AiChatResponse,
+        req: AiChatRequest,
+        locale: Locale
+    ): AiChatResponse {
+        val edit = editApplicator.apply(
+            ops = normalized.editOps,
+            currentTraining = req.currentTrainingPlan,
+            currentNutrition = req.currentNutritionPlan,
+            profile = req.profile,
+        )
+
+        val finalTraining = when {
+            edit.trainingChanged -> edit.trainingPlan
+            normalized.trainingPlan != null && normalized.trainingPlan != req.currentTrainingPlan ->
+                normalized.trainingPlan
+            else -> null
+        }
+        val finalNutrition = when {
+            // editOps mutate meals directly but don't touch the derived shopping list — regenerate
+            // it from the edited ingredients so the client shows a list that matches the new meals.
+            edit.nutritionChanged -> edit.nutritionPlan?.let { regenerateShoppingList(it) }
+            normalized.nutritionPlan != null && normalized.nutritionPlan != req.currentNutritionPlan ->
+                normalized.nutritionPlan
+            else -> null
+        }
+
+        val nothingChanged = finalTraining == null && finalNutrition == null &&
+            normalized.sleepAdvice == null
+        val reply = if (edit.rejections.isNotEmpty() && nothingChanged) {
+            logger.info("Chat edit ops all rejected: {}", edit.rejections.joinToString(" | "))
+            appendEditFailureNote(normalized.reply, locale)
+        } else {
+            normalized.reply
+        }
+
+        return normalized.copy(
+            reply = reply,
+            editOps = emptyList(), // internal protocol — never forwarded to the client
+            trainingPlan = finalTraining,
+            nutritionPlan = finalNutrition,
+        )
+    }
+
+    private fun regenerateShoppingList(plan: com.vtempe.server.shared.dto.nutrition.AiNutritionResponse):
+        com.vtempe.server.shared.dto.nutrition.AiNutritionResponse {
+        val ingredients = plan.mealsByDay.values.flatten().flatMap { it.ingredients }
+        val list = com.vtempe.server.features.ai.data.service.nutrition.ShoppingListNormalizer.normalize(ingredients)
+        return plan.copy(shoppingList = list)
+    }
+
+    private fun appendEditFailureNote(reply: String, locale: Locale): String {
+        val note = if (locale.language.equals("ru", ignoreCase = true)) {
+            "Не получилось применить это изменение к плану — уточни, пожалуйста, что именно поменять."
+        } else {
+            "I couldn't apply that change to your plan — could you clarify exactly what to change?"
+        }
+        return if (reply.isBlank()) note else "$reply\n\n$note"
     }
 
     private fun buildChatPrompt(req: AiChatRequest, locale: Locale): String {
@@ -182,37 +254,62 @@ class ChatService(
             }
             appendLine()
             appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
-            appendLine("GRANULAR EDITING: When the user asks to change one exercise, one meal, one day, or one set of parameters:")
-            appendLine("  - Return the FULL updated plan (trainingPlan or nutritionPlan) with ONLY the requested item changed.")
-            appendLine("  - Do NOT rebuild the entire plan from scratch — copy the current plan JSON and apply the minimal change.")
-            appendLine("  - Example: user says 'replace squats on Monday with leg press' → return the full trainingPlan with only that set changed.")
-            appendLine("  - Example: user says 'I want chicken instead of salmon on Tuesday dinner' → return the full nutritionPlan with only that meal changed.")
-            appendLine("  - Example: user says 'I can only do 3 sets of bench press not 5, and reduce weight to 60kg' → update only those parameters.")
-            appendLine("Only update trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes; otherwise return null for unchanged sections.")
+            appendLine()
+            appendLine("HOW TO APPLY A CHANGE — pick exactly ONE mechanism per request:")
+            appendLine("1. editOps (PREFERRED for small, surgical changes): a list of precise edits applied to the")
+            appendLine("   user's CURRENT plan on the server. Use for: changing one exercise, weight, reps, sets, one")
+            appendLine("   ingredient, one meal's macros, renaming/removing/adding a single item. You do NOT copy the")
+            appendLine("   whole plan — just emit the deltas. This is cheaper and cannot corrupt the untouched parts.")
+            appendLine("2. Full plan (trainingPlan / nutritionPlan): only for LARGE changes where editOps would be")
+            appendLine("   dozens of ops — e.g. regenerating a whole workout/day, translating the entire plan,")
+            appendLine("   restructuring the week. Return the FULL updated plan with your changes applied.")
+            appendLine("Never return BOTH editOps and a full plan for the same domain. If editOps cover it, keep the")
+            appendLine("full plan null. Only touch the domain(s) the user actually asked about.")
+            appendLine()
+            appendLine("editOps operations (op + the fields it uses):")
+            appendLine("  TRAINING (exerciseId/newExerciseId must be a supported exercise id or resolver token):")
+            appendLine("   - swap_exercise: {op, workoutId?, exerciseId, newExerciseId}")
+            appendLine("   - set_weight:    {op, workoutId?, exerciseId, weightKg}")
+            appendLine("   - set_reps:      {op, workoutId?, exerciseId, reps}")
+            appendLine("   - set_rpe:       {op, workoutId?, exerciseId, rpe}")
+            appendLine("   - set_sets:      {op, workoutId?, exerciseId, sets}")
+            appendLine("   - add_exercise:  {op, workoutId, newExerciseId, reps?, weightKg?, rpe?, sets?}")
+            appendLine("   - remove_exercise:{op, workoutId?, exerciseId}")
+            appendLine("   (workoutId omitted = apply to every workout containing that exercise.)")
+            appendLine("  NUTRITION (day = Mon..Sun; target a meal by mealIndex OR mealName):")
+            appendLine("   - set_ingredient:  {op, day, mealIndex|mealName, ingredientIndex, ingredient}")
+            appendLine("   - add_ingredient:  {op, day, mealIndex|mealName, ingredient}")
+            appendLine("   - remove_ingredient:{op, day, mealIndex|mealName, ingredientIndex|ingredient}")
+            appendLine("   - set_meal_macros: {op, day, mealIndex|mealName, kcal?, proteinGrams?, fatGrams?, carbsGrams?}")
+            appendLine("   - rename_meal:     {op, day, mealIndex|mealName, name}")
+            appendLine("   - swap_meal:       {op, day, mealIndex|mealName, name, ingredients, kcal?, proteinGrams?, fatGrams?, carbsGrams?, recipe?}")
+            appendLine("   - add_meal:        {op, day, name, ingredients, kcal?, proteinGrams?, fatGrams?, carbsGrams?, recipe?}")
+            appendLine("   - remove_meal:     {op, day, mealIndex|mealName}")
+            appendLine("  All ingredient text must keep a quantity + unit (\"150 г риса\"). Write ingredient/meal names in $languageDisplay.")
+            appendLine()
+            appendLine("Only update editOps, trainingPlan, nutritionPlan, or sleepAdvice when the user explicitly requests changes; otherwise leave them empty/null.")
             appendLine("CRITICAL: The \"reply\" field MUST always be a non-empty string. It is your conversational message to the user.")
-            appendLine("NEVER return an empty string for reply. Even if you only execute actions, still write a short explanation in reply.")
+            appendLine("NEVER claim you changed something unless you emitted the matching editOps or full plan. If you cannot express the change with the ops above, say so in reply and change nothing.")
             appendLine("Return STRICT JSON matching this schema (no comments or extra text):")
             appendLine("{\"reply\": String,  // REQUIRED — never empty, write your response here")
-            appendLine(" \"actions\": [{\"type\": String, \"trainingMode\": String?, \"weekIndex\": Int?, \"notes\": String?, \"workoutId\": String?, \"targetExerciseId\": String?, \"replacementExerciseId\": String?}],")
+            appendLine(" \"editOps\": [{ \"op\": String, \"workoutId\": String?, \"exerciseId\": String?, \"newExerciseId\": String?, \"weightKg\": Double?, \"reps\": Int?, \"rpe\": Double?, \"sets\": Int?, \"day\": String?, \"mealIndex\": Int?, \"mealName\": String?, \"ingredientIndex\": Int?, \"ingredient\": String?, \"name\": String?, \"kcal\": Int?, \"proteinGrams\": Int?, \"fatGrams\": Int?, \"carbsGrams\": Int?, \"ingredients\": [String]?, \"recipe\": String? }],")
+            appendLine(" \"actions\": [{\"type\": String, \"trainingMode\": String?, \"weekIndex\": Int?, \"notes\": String?}],")
             appendLine(" \"trainingPlan\": {\"weekIndex\": Int, \"workouts\": [{ \"id\": String, \"date\": String(YYYY-MM-DD), \"sets\": [{ \"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double? }] }] } | null,")
             appendLine(" \"nutritionPlan\": {\"weekIndex\": Int, \"mealsByDay\": { DayLabel: [{ \"name\": String, \"ingredients\": [String], \"kcal\": Int, \"macros\": { \"proteinGrams\": Int, \"fatGrams\": Int, \"carbsGrams\": Int, \"kcal\": Int } }] }, \"shoppingList\": [String]} | null,")
             appendLine(" \"sleepAdvice\": {\"messages\": [String], \"disclaimer\": String?} | null }")
             appendLine()
             appendLine("Guidelines:")
-            appendLine("- Set plan sections to null when no update is required; never return empty arrays to signal no change.")
-            appendLine("- Prefer action objects over rewriting full plans when the app can safely execute the request itself.")
-            appendLine("- Available action types: show_current_workout, replace_exercise, rebuild_training_plan, switch_training_mode, rebuild_nutrition_plan, refresh_sleep_advice.")
+            appendLine("- Set plan sections to null and editOps to [] when no update is required; never return empty arrays to signal no change.")
+            appendLine("- actions are for whole-plan regeneration or view requests only (NOT edits — use editOps for edits).")
+            appendLine("- Available action types: show_current_workout, rebuild_training_plan, switch_training_mode, rebuild_nutrition_plan, refresh_sleep_advice.")
             appendLine("- Use switch_training_mode with trainingMode set to one of: gym, home, outdoor, mixed.")
             appendLine("- Use show_current_workout when the user asks to display or explain the current workout without changing it.")
-            appendLine("- Use replace_exercise for local swaps inside the current plan instead of regenerating the entire week.")
-            appendLine("- replace_exercise requires targetExerciseId. Provide replacementExerciseId when you know the exact supported exercise or pattern token. workoutId is optional but should be set when the user refers to one workout/day.")
             appendLine("- Use rebuild_training_plan for regenerate/refresh/rebuild plan requests when no full handcrafted plan is needed.")
             appendLine("- Use rebuild_nutrition_plan for regenerate/refresh meal-plan requests when no full handcrafted nutrition plan is needed.")
             appendLine("- Use refresh_sleep_advice for recovery/sleep refresh requests when no handcrafted advice block is needed.")
-            appendLine("- If actions fully express the request, keep trainingPlan, nutritionPlan, and sleepAdvice null.")
             appendLine("- When updating trainingPlan, prefer resolver slot tokens in `exerciseId`; you may keep existing supported concrete ids if the user is editing a current exercise.")
             appendLine(trainingResolverPrompt)
-            appendLine("- Nutrition updates MUST include integer macros fields in every meal object.")
+            appendLine("- Nutrition full-plan updates MUST include integer macros fields in every meal object.")
             appendLine("- Nutrition updates must strictly obey allergy/intolerance restrictions above.")
             appendLine("- Ensure macros.kcal equals proteinGrams*4 + carbsGrams*4 + fatGrams*9 (+/- 20 kcal). Fix kcal rather than omitting fields.")
             appendLine("Do not include trailing commas or comments; output must be valid JSON.")
@@ -340,7 +437,12 @@ private fun normalizeChatResponse(
     actions = response.actions
         .mapNotNull { normalizeChatAction(it, profile) }
         .distinctBy { "${it.type}|${it.trainingMode.orEmpty()}|${it.weekIndex ?: -1}|${it.workoutId.orEmpty()}|${it.targetExerciseId.orEmpty()}|${it.replacementExerciseId.orEmpty()}" },
-        trainingPlan = response.trainingPlan?.let { normalizeTrainingPlan(it, profile, trainingPlanResolver) },
+        trainingPlan = response.trainingPlan?.let {
+            // EDIT mode: the chat path is always an edit of the existing plan, never a fresh
+            // generation. GENERATE would rebuild the deterministic skeleton and silently overwrite
+            // whatever exercise the user just asked the coach to change.
+            normalizeTrainingPlan(it, profile, trainingPlanResolver, mode = NormalizationMode.EDIT)
+        },
         nutritionPlan = response.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
         sleepAdvice = response.sleepAdvice?.let(::normalizeAdvice)
     )
