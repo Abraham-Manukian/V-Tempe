@@ -26,9 +26,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -172,6 +175,7 @@ private fun ExerciseDetailSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val guide = exerciseGuide(exercise.id, coachTrainerId)
+    var showImageFullScreen by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -185,15 +189,44 @@ private fun ExerciseDetailSheet(
                 .navigationBarsPadding()
                 .padding(bottom = 24.dp)
         ) {
-            // Large illustration
-            Image(
-                painter = painterResource(guide.illustration),
-                contentDescription = exercise.name(localeTag),
-                contentScale = ContentScale.Crop,
+            // Large illustration — tap to open full-screen (same affordance as the workout sheet)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-            )
+                    .clickable { showImageFullScreen = true }
+            ) {
+                Image(
+                    painter = painterResource(guide.illustration),
+                    contentDescription = exercise.name(localeTag),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                    shape = RoundedCornerShape(50),
+                    color = Color.Black.copy(alpha = 0.45f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Fullscreen,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            stringResource(Res.string.workout_tap_to_enlarge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -301,6 +334,15 @@ private fun ExerciseDetailSheet(
                 }
             }
         }
+    }
+
+    if (showImageFullScreen) {
+        ExerciseImageDialog(
+            illustration = guide.illustration,
+            exerciseName = exercise.name(localeTag),
+            cue = guide.cue,
+            onDismiss = { showImageFullScreen = false }
+        )
     }
 }
 

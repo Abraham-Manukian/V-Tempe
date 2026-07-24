@@ -392,6 +392,10 @@
     <string name="entitlement_active_until">Подписка активна до %1$s</string>
     <string name="entitlement_active_until_unknown">Подписка активна</string>
     <string name="entitlement_none">Нет активной подписки</string>
+    <string name="account_signed_in">Вы вошли</string>
+    <string name="account_subscription">Подписка</string>
+    <string name="account_free_plan">Бесплатный план</string>
+    <string name="account_sync_note">Прогресс синхронизируется на всех твоих устройствах</string>
     <string name="settings_weight_label">Вес</string>
     <string name="settings_weight_value">%1$.1f кг</string>
     <string name="settings_height_label">Рост</string>
@@ -439,6 +443,9 @@
     <string name="progress_week_volume_kg">%1$d кг</string>
     <string name="progress_sleep_hours_short">%1$d ч</string>
     <string name="progress_best_day_value">%1$s · %2$d</string>
+    <string name="progress_tap_day_hint">Нажми на день, чтобы увидеть детали</string>
+    <string name="progress_day_volume_detail">%1$d кг · %2$d упр.</string>
+    <string name="progress_day_volume_rest">%1$d кг · день отдыха</string>
     <string name="progress_active_days_value">%1$d / 7</string>
 
     <!-- Calendar month names -->

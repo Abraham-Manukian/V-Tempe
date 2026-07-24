@@ -13,10 +13,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -252,24 +256,119 @@ private fun SignedInContent(
     presenter: AuthPresenter
 ) {
     val user = state.user ?: return
-    val contentColor = MaterialTheme.colorScheme.onSurface
+    val email = user.email ?: user.uid
+    val initial = (user.email?.firstOrNull() ?: 'V').uppercaseChar().toString()
 
-    Text(user.email ?: user.uid, style = MaterialTheme.typography.titleMedium, color = contentColor)
-
+    val isPremium = state.entitlementActive == true
     val entitlementText = when {
-        state.entitlementActive == true && state.entitlementExpiresAt != null ->
+        isPremium && state.entitlementExpiresAt != null ->
             stringResource(Res.string.entitlement_active_until).kmpFormat(state.entitlementExpiresAt.toDisplayDate())
-        state.entitlementActive == true -> stringResource(Res.string.entitlement_active_until_unknown)
-        state.entitlementActive == false -> stringResource(Res.string.entitlement_none)
+        isPremium -> stringResource(Res.string.entitlement_active_until_unknown)
+        state.entitlementActive == false -> stringResource(Res.string.account_free_plan)
         else -> "—"
     }
-    Text(entitlementText, style = MaterialTheme.typography.bodyMedium, color = contentColor.copy(alpha = 0.8f))
+
+    // ── Profile header card ───────────────────────────────────────────
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = Color.White,
+        shadowElevation = 10.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(AiPalette.DeepAccent),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(initial, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = AiPalette.OnDeepAccent)
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(email, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1F1F1F))
+                Text(
+                    stringResource(Res.string.account_signed_in),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF1F1F1F).copy(alpha = 0.55f)
+                )
+            }
+        }
+    }
+
+    // ── Subscription card ─────────────────────────────────────────────
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background((if (isPremium) AiPalette.Warning else AiPalette.Primary).copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (isPremium) Icons.Filled.WorkspacePremium else Icons.Filled.FitnessCenter,
+                    contentDescription = null,
+                    tint = if (isPremium) AiPalette.Warning else AiPalette.Primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(Res.string.account_subscription),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF1F1F1F).copy(alpha = 0.55f)
+                )
+                Text(entitlementText, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F1F1F))
+            }
+        }
+    }
+
+    // ── Cross-device sync note ────────────────────────────────────────
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White.copy(alpha = 0.14f)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(Icons.Filled.CloudDone, contentDescription = null, tint = AiPalette.OnGradient, modifier = Modifier.size(22.dp))
+            Text(
+                stringResource(Res.string.account_sync_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = AiPalette.OnGradient.copy(alpha = 0.9f)
+            )
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
 
     OutlinedButton(
         onClick = { presenter.signOut() },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = AiPalette.OnGradient),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AiPalette.OnGradient.copy(alpha = 0.5f))
     ) {
-        Text(stringResource(Res.string.auth_sign_out))
+        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(Res.string.auth_sign_out), fontWeight = FontWeight.SemiBold)
     }
 }
 

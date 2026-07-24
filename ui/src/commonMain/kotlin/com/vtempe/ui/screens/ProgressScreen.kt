@@ -39,6 +39,10 @@ import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -60,6 +64,14 @@ fun ProgressScreen(
         stringResource(Res.string.day_sun_short),
     )
     val contentColor = MaterialTheme.colorScheme.onSurface
+
+    // Map the weekly-volume bars (index 0 = Mon) onto the current week's actual dates, so tapping
+    // a bar selects that day and drives the same day-detail card the calendar uses.
+    val weekMonday = state.today.minus(DatePeriod(days = state.today.dayOfWeek.isoDayNumber - 1))
+    val weekSunday = weekMonday.plus(DatePeriod(days = 6))
+    val selectedBarIndex = state.selectedDate
+        ?.takeIf { it >= weekMonday && it <= weekSunday }
+        ?.let { it.dayOfWeek.isoDayNumber - 1 }
 
     // Derived stats
     val weeklyTotalVolume  = state.weeklyVolumes.sum()
@@ -276,7 +288,29 @@ fun ProgressScreen(
                                 data = state.weeklyVolumes.map { it.coerceAtLeast(0) },
                                 labels = dayLabels,
                                 modifier = Modifier.fillMaxWidth(),
+                                selectedIndex = selectedBarIndex,
+                                onBarClick = { i -> presenter.selectDate(weekMonday.plus(DatePeriod(days = i))) },
                             )
+                            if (selectedBarIndex != null) {
+                                val dayVolume = state.weeklyVolumes.getOrNull(selectedBarIndex) ?: 0
+                                val exerciseCount = state.dayWorkouts.sumOf { it.sets.size }
+                                val detail = if (state.dayWorkouts.isNotEmpty())
+                                    stringResource(Res.string.progress_day_volume_detail).kmpFormat(dayVolume, exerciseCount)
+                                else
+                                    stringResource(Res.string.progress_day_volume_rest).kmpFormat(dayVolume)
+                                Text(
+                                    text = "${dayLabels[selectedBarIndex]} · $detail",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AiPalette.Primary,
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(Res.string.progress_tap_day_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = contentColor.copy(alpha = 0.55f),
+                                )
+                            }
                         }
                     }
                 }

@@ -35,6 +35,36 @@ internal data class ExerciseGuideData(
     val defaultRestSeconds: Int
 )
 
+/**
+ * Localizes the AI-generated workout session label (e.g. "Chest + Triceps", "Full Body A"). The
+ * server emits these in English and the AI is told to echo them verbatim, so we translate the
+ * finite, known vocabulary here at display time. Word-by-word so variants ("Legs A", "Pull B")
+ * and any suffix (A/B/A2) survive; unknown words pass through unchanged.
+ */
+@Composable
+internal fun localizedWorkoutLabel(label: String): String {
+    if (Locale.current.language != "ru" || label.isBlank()) return label
+    val words = label.trim().split(Regex("\\s+"))
+    val translated = words.joinToString(" ") { w ->
+        workoutLabelWords[w.lowercase()] ?: w
+    }
+    return translated.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+}
+
+private val workoutLabelWords = mapOf(
+    "full" to "всё", "body" to "тело",
+    "upper" to "верх", "lower" to "низ",
+    "push" to "жимовая", "pull" to "тяговая",
+    "legs" to "ноги", "leg" to "ноги",
+    "chest" to "грудь", "triceps" to "трицепс",
+    "back" to "спина", "biceps" to "бицепс",
+    "shoulders" to "плечи", "shoulder" to "плечи",
+    "arms" to "руки", "arm" to "руки",
+    "abs" to "пресс", "core" to "кор",
+    "glutes" to "ягодицы", "cardio" to "кардио",
+    // "+" stays as-is (not in map)
+)
+
 @Composable
 internal fun exerciseLabel(exerciseId: String): String {
     val lang = Locale.current.language

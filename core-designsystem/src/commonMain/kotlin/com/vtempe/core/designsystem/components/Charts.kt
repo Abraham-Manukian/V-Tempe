@@ -1,8 +1,10 @@
 package com.vtempe.core.designsystem.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.StrokeCap
@@ -37,17 +39,36 @@ fun BarChart(
     labels: List<String>? = null,
     /** Draws the numeric value above each non-zero bar so the chart is legible without a tap. */
     showValues: Boolean = true,
+    /** When set, bars become tappable and this fires with the tapped bar's index. */
+    onBarClick: ((Int) -> Unit)? = null,
+    /** Index of the currently selected bar — drawn highlighted. */
+    selectedIndex: Int? = null,
 ) {
     val resolvedBarColor = barColor ?: MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
     val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val selectedLabelColor = resolvedBarColor
     val valueColor = MaterialTheme.colorScheme.onSurface
     val maxVal = (data.maxOrNull() ?: 0).coerceAtLeast(1)
     val textMeasurer = rememberTextMeasurer()
     val valueStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = valueColor)
     val labelStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = labelColor)
+    val selectedLabelStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = selectedLabelColor)
 
-    Canvas(modifier = modifier.fillMaxWidth().height(150.dp)) {
+    val tapModifier = if (onBarClick != null) {
+        Modifier.pointerInput(data.size) {
+            detectTapGestures { offset ->
+                val barW = barWidth.toPx()
+                val gap = spacing.toPx()
+                val total = data.size * barW + (data.size - 1).coerceAtLeast(0) * gap
+                val startX = (size.width - total) / 2f
+                val idx = ((offset.x - startX) / (barW + gap)).toInt()
+                if (idx in data.indices) onBarClick(idx)
+            }
+        }
+    } else Modifier
+
+    Canvas(modifier = modifier.fillMaxWidth().height(150.dp).then(tapModifier)) {
         val widthPx = size.width
         val topPad = 22.dp.toPx()
         val bottomPad = if (labels != null) 20.dp.toPx() else 4.dp.toPx()
@@ -68,13 +89,15 @@ fun BarChart(
         )
 
         data.forEachIndexed { i, value ->
-            val isBest = value == maxVal && value > 0
+            val isSelected = i == selectedIndex
+            // A selected bar reads at full strength; otherwise the tallest bar is emphasised.
+            val isStrong = isSelected || (selectedIndex == null && value == maxVal && value > 0)
             val h = ((value.toFloat() / maxVal.toFloat()) * chartHeight).coerceAtLeast(if (value > 0) 6f else 0f)
             val top = baselineY - h
             if (value > 0) {
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        colors = if (isBest) listOf(resolvedBarColor, resolvedBarColor.copy(alpha = 0.75f))
+                        colors = if (isStrong) listOf(resolvedBarColor, resolvedBarColor.copy(alpha = 0.75f))
                         else listOf(resolvedBarColor.copy(alpha = 0.55f), resolvedBarColor.copy(alpha = 0.35f)),
                         startY = top,
                         endY = baselineY,
@@ -83,6 +106,10 @@ fun BarChart(
                     size = Size(barW, h),
                     cornerRadius = radius,
                 )
+                // A dot above the selected bar marks the current selection, Apple-Health style.
+                if (isSelected) {
+                    drawCircle(color = resolvedBarColor, radius = 3.dp.toPx(), center = Offset(x + barW / 2f, top - 12.dp.toPx()))
+                }
             } else {
                 // Zero-value placeholder so the day still reads as "present" instead of vanishing.
                 drawRoundRect(
@@ -97,7 +124,7 @@ fun BarChart(
                 drawCenteredText(textMeasurer, value.toString(), valueStyle, centerX = x + barW / 2f, bottomY = top - 6.dp.toPx())
             }
             labels?.getOrNull(i)?.let { label ->
-                drawCenteredText(textMeasurer, label, labelStyle, centerX = x + barW / 2f, bottomY = size.height)
+                drawCenteredText(textMeasurer, label, if (isSelected) selectedLabelStyle else labelStyle, centerX = x + barW / 2f, bottomY = size.height)
             }
 
             x += barW + gap

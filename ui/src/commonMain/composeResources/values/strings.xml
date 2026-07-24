@@ -409,6 +409,10 @@
     <string name="entitlement_active_until">Subscription active until %1$s</string>
     <string name="entitlement_active_until_unknown">Subscription active</string>
     <string name="entitlement_none">No active subscription</string>
+    <string name="account_signed_in">Signed in</string>
+    <string name="account_subscription">Subscription</string>
+    <string name="account_free_plan">Free plan</string>
+    <string name="account_sync_note">Your progress syncs across all your devices</string>
 
     <!-- Paywall -->
     <string name="paywall_title">Pro version</string>
@@ -447,6 +451,9 @@
     <string name="progress_week_volume_kg">%1$d kg</string>
     <string name="progress_sleep_hours_short">%1$d h</string>
     <string name="progress_best_day_value">%1$s · %2$d</string>
+    <string name="progress_tap_day_hint">Tap a day to see its details</string>
+    <string name="progress_day_volume_detail">%1$d kg · %2$d exercises</string>
+    <string name="progress_day_volume_rest">%1$d kg · rest day</string>
     <string name="progress_active_days_value">%1$d / 7</string>
 
     <!-- Calendar month names -->

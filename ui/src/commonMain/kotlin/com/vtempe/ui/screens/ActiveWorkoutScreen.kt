@@ -127,7 +127,7 @@ internal fun ActiveWorkoutScreen(
             ActiveWorkoutHeader(
                 modifier = Modifier.zIndex(1f),
                 onBack = onBack,
-                title = workout.label.ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
+                title = localizedWorkoutLabel(workout.label).ifBlank { exerciseLabel(workout.sets.firstOrNull()?.exerciseId ?: "workout") },
                 date = workout.date.toString(),
                 sessionSeconds = sessionSeconds,
                 completedCount = doneSetsAcrossExercises,
