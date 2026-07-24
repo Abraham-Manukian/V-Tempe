@@ -49,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -83,8 +84,6 @@ fun ChatScreen(
     val bottomBarHeight = LocalBottomBarHeight.current
     val isLoading = state.sendState is ChatSendState.Loading
     val errorMessage = (state.sendState as? ChatSendState.Error)?.message
-    val quickShowWorkoutPrompt = stringResource(Res.string.chat_quick_show_workout_prompt)
-    val quickHomePlanPrompt = stringResource(Res.string.chat_quick_make_home_plan_prompt)
 
     LaunchedEffect(initialPrompt) {
         val prompt = initialPrompt?.trim().orEmpty()
@@ -177,6 +176,13 @@ fun ChatScreen(
                     }
                 }
 
+                // Context-aware, varied suggestions: broad "starter" prompts before the chat has
+                // any messages, follow-up prompts once a conversation is going. Shuffled and capped
+                // so they differ each time the chat is opened instead of always the same two.
+                val suggestions = remember(state.messages.isEmpty()) {
+                    val pool = if (state.messages.isEmpty()) starterSuggestions else followUpSuggestions
+                    pool.shuffled().take(4)
+                }
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
@@ -184,12 +190,8 @@ fun ChatScreen(
                 ) {
                     Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
                         QuickActionRow(
-                            onShowWorkout = {
-                                presenter.updateInput(quickShowWorkoutPrompt)
-                            },
-                            onHomePlan = {
-                                presenter.updateInput(quickHomePlanPrompt)
-                            }
+                            suggestions = suggestions,
+                            onPick = { presenter.updateInput(it) }
                         )
                     }
                 }
@@ -341,10 +343,30 @@ private fun DayChip() {
     }
 }
 
+/** Broad prompts to kick off a fresh conversation. */
+private val starterSuggestions = listOf(
+    Res.string.chat_sg_today_workout,
+    Res.string.chat_sg_home_plan,
+    Res.string.chat_sg_week_plan,
+    Res.string.chat_sg_eat_today,
+    Res.string.chat_sg_lose_weight,
+    Res.string.chat_sg_gain_muscle,
+)
+
+/** Follow-up prompts once the coach is already in a conversation. */
+private val followUpSuggestions = listOf(
+    Res.string.chat_sg_swap_exercise,
+    Res.string.chat_sg_easier,
+    Res.string.chat_sg_add_cardio,
+    Res.string.chat_sg_more_protein,
+    Res.string.chat_sg_less_calories,
+    Res.string.chat_sg_why_exercise,
+)
+
 @Composable
 private fun QuickActionRow(
-    onShowWorkout: () -> Unit,
-    onHomePlan: () -> Unit
+    suggestions: List<org.jetbrains.compose.resources.StringResource>,
+    onPick: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -352,14 +374,10 @@ private fun QuickActionRow(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        QuickActionButton(
-            label = stringResource(Res.string.chat_quick_show_workout),
-            onClick = onShowWorkout
-        )
-        QuickActionButton(
-            label = stringResource(Res.string.chat_quick_make_home_plan),
-            onClick = onHomePlan
-        )
+        suggestions.forEach { res ->
+            val label = stringResource(res)
+            QuickActionButton(label = label, onClick = { onPick(label) })
+        }
     }
 }
 

@@ -485,6 +485,19 @@
     <string name="chat_quick_make_home_plan">Домашний план</string>
     <string name="chat_quick_show_workout_prompt">Покажи мою текущую тренировку и объясни нагрузку.</string>
     <string name="chat_quick_make_home_plan_prompt">Адаптируй мой план под домашние тренировки без зала.</string>
+    <!-- Разнообразные быстрые подсказки (используются и как ярлык чипа, и как текст сообщения) -->
+    <string name="chat_sg_today_workout">Покажи тренировку на сегодня</string>
+    <string name="chat_sg_home_plan">План для дома без оборудования</string>
+    <string name="chat_sg_week_plan">Составь план на всю неделю</string>
+    <string name="chat_sg_eat_today">Что мне поесть сегодня?</string>
+    <string name="chat_sg_lose_weight">Помоги похудеть</string>
+    <string name="chat_sg_gain_muscle">Как набрать мышечную массу?</string>
+    <string name="chat_sg_swap_exercise">Замени упражнение, которое не нравится</string>
+    <string name="chat_sg_easier">Сделай тренировку полегче</string>
+    <string name="chat_sg_add_cardio">Добавь немного кардио</string>
+    <string name="chat_sg_more_protein">Добавь больше белка в питание</string>
+    <string name="chat_sg_less_calories">Сделай питание менее калорийным</string>
+    <string name="chat_sg_why_exercise">Зачем это упражнение в плане?</string>
     <string name="chat_error_unavailable">Тренер временно недоступен. Попробуйте еще раз чуть позже.</string>
     <string name="chat_empty_title">С чего начнем?</string>
     <string name="chat_empty_body">Напиши цель, самочувствие и доступное оборудование. Я подстрою программу под тебя.</string>

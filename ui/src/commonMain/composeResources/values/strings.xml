@@ -493,6 +493,19 @@
     <string name="chat_quick_make_home_plan">Home version</string>
     <string name="chat_quick_show_workout_prompt">Show my current workout and explain load.</string>
     <string name="chat_quick_make_home_plan_prompt">Adapt my plan for home training without gym equipment.</string>
+    <!-- Varied quick-suggestion chips (used as both chip label and prefilled message) -->
+    <string name="chat_sg_today_workout">Show today's workout</string>
+    <string name="chat_sg_home_plan">Home plan, no equipment</string>
+    <string name="chat_sg_week_plan">Plan my whole week</string>
+    <string name="chat_sg_eat_today">What should I eat today?</string>
+    <string name="chat_sg_lose_weight">Help me lose weight</string>
+    <string name="chat_sg_gain_muscle">How do I gain muscle?</string>
+    <string name="chat_sg_swap_exercise">Swap an exercise I dislike</string>
+    <string name="chat_sg_easier">Make the workout a bit easier</string>
+    <string name="chat_sg_add_cardio">Add some cardio</string>
+    <string name="chat_sg_more_protein">Add more protein to my meals</string>
+    <string name="chat_sg_less_calories">Make my meals less calorie-dense</string>
+    <string name="chat_sg_why_exercise">Why is this exercise in my plan?</string>
     <string name="chat_error_unavailable">Coach is temporarily unavailable. Please try again in a moment.</string>
     <string name="chat_empty_title">What can I help with?</string>
     <string name="chat_empty_body">Tell me your goal, condition, and available equipment. I will adapt your plan.</string>
