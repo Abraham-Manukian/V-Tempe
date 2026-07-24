@@ -21,6 +21,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -122,6 +124,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            val photoUrl = state.authUser?.photoUrl
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
@@ -134,10 +137,21 @@ fun SettingsScreen(
                                     contentDescription = "Avatar",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
+                                if (!photoUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = photoUrl,
+                                        contentDescription = "Avatar",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.matchParentSize().clip(CircleShape)
+                                    )
+                                }
                             }
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                // Google account name if signed in, else email, else the generic title.
                                 Text(
-                                    stringResource(Res.string.settings_title),
+                                    state.authUser?.displayName
+                                        ?: state.authUser?.email
+                                        ?: stringResource(Res.string.settings_title),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = contentColor

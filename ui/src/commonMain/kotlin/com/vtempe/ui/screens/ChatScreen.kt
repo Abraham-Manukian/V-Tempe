@@ -13,6 +13,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,11 +30,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -46,6 +49,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -108,39 +113,66 @@ fun ChatScreen(
                     DayChip()
                 }
 
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 8.dp)
-                ) {
-                    if (state.messages.isEmpty()) {
-                        item {
-                            EmptyConversationCard()
-                        }
-                    }
+                val listState = rememberLazyListState()
+                val scrollScope = rememberCoroutineScope()
+                // Land at the newest message on entering the chat and whenever a new one arrives.
+                LaunchedEffect(state.messages.size) {
+                    if (state.messages.isNotEmpty()) listState.scrollToItem(state.messages.size - 1)
+                }
 
-                    itemsIndexed(state.messages) { _, msg ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(220)) + slideInVertically(
-                                initialOffsetY = { it / 10 },
-                                animationSpec = tween(220)
-                            )
-                        ) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        if (state.messages.isEmpty()) {
+                            item {
+                                EmptyConversationCard()
+                            }
+                        }
+
+                        itemsIndexed(state.messages) { _, msg ->
                             if (msg.role == "plan_change") {
                                 PlanChangeCard(changeType = msg.content, onNavigate = onNavigate)
                             } else {
                                 MessageBubble(msg = msg, coachTrainerId = state.coachTrainerId)
                             }
                         }
+
+                        if (!errorMessage.isNullOrBlank()) {
+                            item {
+                                ErrorBubble(errorMessage = errorMessage)
+                            }
+                        }
                     }
 
-                    if (!errorMessage.isNullOrBlank()) {
-                        item {
-                            ErrorBubble(errorMessage = errorMessage)
+                    // Glass "jump to latest" button — appears only when scrolled up away from the end.
+                    if (listState.canScrollForward) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.18f))
+                                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)), CircleShape)
+                                .clickable {
+                                    scrollScope.launch {
+                                        listState.animateScrollToItem((state.messages.size - 1).coerceAtLeast(0))
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }

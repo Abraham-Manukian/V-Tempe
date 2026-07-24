@@ -21,8 +21,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 private fun FirebaseUser?.toAuthUser(): AuthUser? = this?.let {
-    // Google Sign-In provides a profile photo; email/password and Apple typically don't.
-    AuthUser(uid = it.uid, email = it.email, photoUrl = it.photoUrl?.toString())
+    // Google Sign-In provides a profile photo + display name; email/password and Apple typically don't.
+    AuthUser(
+        uid = it.uid,
+        email = it.email,
+        photoUrl = it.photoUrl?.toString(),
+        displayName = it.displayName?.takeIf { n -> n.isNotBlank() }
+    )
 }
 
 /**

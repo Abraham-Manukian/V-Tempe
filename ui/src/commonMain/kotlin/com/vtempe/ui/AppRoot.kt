@@ -318,8 +318,7 @@ private fun TopBar(
         Text(
             text = currentTitle,
             style = MaterialTheme.typography.titleLarge,
-            // Muted grey to match the bottom bar's tone instead of near-black.
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 56.dp)
@@ -366,8 +365,7 @@ private fun TopBarIcon(
         Icon(
             imageVector = imageVector,
             contentDescription = null,
-            // Same muted grey as the bottom bar's unselected icons.
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp)
         )
     }
