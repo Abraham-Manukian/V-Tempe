@@ -60,7 +60,7 @@ interface PurchasesRepository {
     suspend fun isSubscriptionActive(): Boolean
 }
 
-data class AuthUser(val uid: String, val email: String?)
+data class AuthUser(val uid: String, val email: String?, val photoUrl: String? = null)
 
 /** Machine-readable reason, so the UI layer can show a LOCALIZED message via string resources —
  *  [message] is an English fallback only (logs, non-UI contexts), never shown to the user

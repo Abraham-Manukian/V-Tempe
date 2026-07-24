@@ -62,7 +62,9 @@ internal fun ExerciseImageDialog(
         label = "exerciseOverlayAlpha"
     )
     val imageScale by animateFloatAsState(
-        targetValue = if (appeared) 1f else 1.06f,
+        // Grow from slightly-smaller to full (never above 1.0) so a Fit image is never overscanned
+        // and cropped even mid-entrance.
+        targetValue = if (appeared) 1f else 0.94f,
         animationSpec = tween(650, easing = FastOutSlowInEasing),
         label = "exerciseImageScale"
     )
@@ -82,14 +84,16 @@ internal fun ExerciseImageDialog(
                     onClick = onDismiss
                 )
         ) {
-            // Full-bleed image with Ken Burns zoom-out entrance
+            // Whole image, never cropped — Fit letterboxes on black so heads/feet are never cut
+            // off regardless of the image's aspect ratio or the screen size. Keep a subtle Ken
+            // Burns entrance but settle at 1.0 so the resting frame shows everything.
             Image(
                 painter = painterResource(illustration),
                 contentDescription = exerciseName,
                 modifier = Modifier
                     .fillMaxSize()
                     .scale(imageScale),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
 
             // Top gradient: exercise name + close button

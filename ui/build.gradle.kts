@@ -34,6 +34,7 @@ kotlin {
                 implementation(compose.materialIconsExtended)
                 implementation(compose.components.resources)
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.coil.compose)
             }
             kotlin.srcDirs("build/generated/compose/resourceGenerator/kotlin/commonMainResourceAccessors")
         }
@@ -53,6 +54,10 @@ kotlin {
                 implementation(libs.androidx.credentials)
                 implementation(libs.androidx.credentials.play.services.auth)
                 implementation(libs.googleid)
+                // Coil network fetcher — auto-registers on Android so AsyncImage can load the
+                // Google account photo. iOS shows no photo (Apple doesn't share one), so no iOS
+                // network fetcher is needed.
+                implementation(libs.coil.network.okhttp)
             }
             kotlin.srcDirs("build/generated/compose/resourceGenerator/kotlin/androidMainResourceAccessors")
         }

@@ -27,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +75,9 @@ fun ProgressScreen(
     val selectedBarIndex = state.selectedDate
         ?.takeIf { it >= weekMonday && it <= weekSunday }
         ?.let { it.dayOfWeek.isoDayNumber - 1 }
+
+    // Local selection for the calories chart (independent of the calendar's selected date).
+    var selectedCalorieDay by remember { mutableStateOf<Int?>(null) }
 
     // Derived stats
     val weeklyTotalVolume  = state.weeklyVolumes.sum()
@@ -264,6 +270,11 @@ fun ProgressScreen(
                                 icon = Icons.Filled.FitnessCenter,
                                 tint = AiPalette.Primary,
                             )
+                            Text(
+                                text = stringResource(Res.string.progress_weekly_volume_sub),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = contentColor.copy(alpha = 0.55f),
+                            )
                             androidx.compose.foundation.layout.Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -401,13 +412,19 @@ fun ProgressScreen(
                                 )
                                 BarChart(
                                     data = state.caloriesSeries,
+                                    labels = dayLabels,
                                     barColor = AiPalette.Warning,
                                     modifier = Modifier.fillMaxWidth(),
+                                    selectedIndex = selectedCalorieDay,
+                                    onBarClick = { selectedCalorieDay = if (selectedCalorieDay == it) null else it },
                                 )
+                                val calDetail = selectedCalorieDay
+                                    ?.let { i -> state.caloriesSeries.getOrNull(i)?.let { kcal -> "${dayLabels[i]} · ${stringResource(Res.string.progress_calories_avg_short).kmpFormat(kcal)}" } }
                                 Text(
-                                    stringResource(Res.string.progress_calories_avg).kmpFormat(caloriesAverage),
+                                    text = calDetail ?: stringResource(Res.string.progress_calories_avg).kmpFormat(caloriesAverage),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = contentColor,
+                                    fontWeight = if (calDetail != null) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (calDetail != null) AiPalette.Warning else contentColor,
                                 )
                             }
                         }

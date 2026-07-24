@@ -43,8 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.icons.AiIcons
 import com.vtempe.core.designsystem.theme.AiPalette
@@ -287,7 +289,16 @@ private fun SignedInContent(
                     .background(AiPalette.DeepAccent),
                 contentAlignment = Alignment.Center
             ) {
+                // Initial as the base; the Google account photo (if any) loads on top and covers it.
                 Text(initial, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = AiPalette.OnDeepAccent)
+                if (!user.photoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = user.photoUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize().clip(CircleShape)
+                    )
+                }
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(email, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1F1F1F))

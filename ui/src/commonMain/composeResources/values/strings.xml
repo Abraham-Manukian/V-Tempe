@@ -452,6 +452,8 @@
     <string name="progress_sleep_hours_short">%1$d h</string>
     <string name="progress_best_day_value">%1$s · %2$d</string>
     <string name="progress_tap_day_hint">Tap a day to see its details</string>
+    <string name="progress_weekly_volume_sub">Total weight lifted each day (sets × reps × kg)</string>
+    <string name="progress_calories_avg_short">%1$d kcal</string>
     <string name="progress_day_volume_detail">%1$d kg · %2$d exercises</string>
     <string name="progress_day_volume_rest">%1$d kg · rest day</string>
     <string name="progress_active_days_value">%1$d / 7</string>
