@@ -41,11 +41,17 @@ object ShoppingListNormalizer {
     // lines — "chicken breast", "cooked chicken breast", and "chicken breast, diced" are all
     // the same thing to buy. Stripped before canonicalizing (and from the display name).
     private val DESCRIPTOR_WORDS = listOf(
-        "cooked", "raw", "frozen", "canned", "diced", "chopped", "sliced", "shredded",
-        "minced", "grated", "boiled", "steamed", "grilled", "roasted", "baked", "peeled",
+        // prep / state
+        "cooked", "raw", "frozen", "canned", "diced", "chopped", "sliced", "shredded", "cubed",
+        "minced", "grated", "boiled", "steamed", "grilled", "roasted", "baked", "peeled", "halved",
         "in juice", "in water", "in syrup", "drained", "fresh", "dried", "whole", "ground",
+        // size / qualifier (these are what split "1 medium apple" from "1 large apple")
+        "medium", "large", "small", "big", "extra",
         "варен\\w*", "отварн\\w*", "жарен\\w*", "тушен\\w*", "замороженн\\w*", "консервированн\\w*",
         "нарезанн\\w*", "измельченн\\w*", "тёртый", "тертый", "свеж\\w*", "сушен\\w*", "очищенн\\w*",
+        "кубик\\w*", "дольк\\w*", "половинк\\w*", "разрезанн\\w*", "порезанн\\w*", "рублен\\w*",
+        // size / qualifier (RU)
+        "средн\\w*", "больш\\w*", "мелк\\w*", "крупн\\w*", "маленьк\\w*", "небольш\\w*",
     )
 
     // Units that are interchangeable for summing.
