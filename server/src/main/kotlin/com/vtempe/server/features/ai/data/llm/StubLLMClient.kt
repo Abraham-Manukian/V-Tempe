@@ -1,7 +1,7 @@
 ﻿package com.vtempe.server.features.ai.data.llm
 
 class StubLLMClient(private val message: String) : LLMClient {
-    override suspend fun generateJson(prompt: String): String {
+    override suspend fun generateJson(prompt: String, schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema?): String {
         val lower = prompt.lowercase()
         return when {
             "generate a weekly training plan" in lower -> trainingStub()

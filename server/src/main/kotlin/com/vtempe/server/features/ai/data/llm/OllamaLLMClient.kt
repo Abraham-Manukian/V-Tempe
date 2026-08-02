@@ -30,7 +30,7 @@ class OllamaLLMClient(
         }
     }
 
-    override suspend fun generateJson(prompt: String): String {
+    override suspend fun generateJson(prompt: String, schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema?): String {
         val req = GenerateRequest(
             model = model,
             prompt = prompt,

@@ -3,6 +3,10 @@
 import com.vtempe.server.features.ai.data.llm.dto.ChatCompletionRequestDto
 import com.vtempe.server.features.ai.data.llm.dto.ChatCompletionResponseDto
 import com.vtempe.server.features.ai.data.llm.dto.ChatMessageDto
+import com.vtempe.server.features.ai.data.llm.dto.JsonSchemaDto
+import com.vtempe.server.features.ai.data.llm.dto.ProviderPreferencesDto
+import com.vtempe.server.features.ai.data.llm.dto.ResponseFormatDto
+import com.vtempe.server.features.ai.data.llm.schema.ResponseSchema
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -81,15 +85,15 @@ class OpenRouterLLMClient(
         }
     }
 
-    override suspend fun generateJson(prompt: String): String {
+    override suspend fun generateJson(prompt: String, schema: ResponseSchema?): String {
         val modelCandidates = buildModelCandidates()
         var lastError: Throwable? = null
+        // Null unless the feature is switched on — see StructuredOutputPolicy.
+        val effectiveSchema = schema?.takeIf { StructuredOutputPolicy.isEnabled }
 
         for ((index, currentModel) in modelCandidates.withIndex()) {
             try {
-                val response = requestCompletion(model = currentModel, prompt = prompt)
-                val content = response.choices.firstOrNull()?.message?.content?.trim()
-                    ?: error("OpenRouter response did not contain choices")
+                val content = completeWithSchemaFallback(currentModel, prompt, effectiveSchema)
                 if (content.isEmpty()) {
                     error("OpenRouter response was empty")
                 }
@@ -112,7 +116,57 @@ class OpenRouterLLMClient(
         throw lastError ?: IllegalStateException("OpenRouter completion failed without a concrete error")
     }
 
-    private suspend fun requestCompletion(model: String, prompt: String): ChatCompletionResponseDto {
+    /**
+     * Runs the completion with the schema attached, and — if the provider rejects the request
+     * *because of* the schema — retries once without it.
+     *
+     * Rationale: structured-output support on OpenRouter is per-endpoint, and `require_parameters`
+     * makes a request fail outright rather than be silently downgraded when no endpoint supports
+     * it. Degrading to an unconstrained call is much better than failing the user's whole weekly
+     * plan; the loud log is what tells us the model/route needs changing.
+     */
+    private suspend fun completeWithSchemaFallback(
+        model: String,
+        prompt: String,
+        schema: ResponseSchema?
+    ): String {
+        fun contentOf(response: ChatCompletionResponseDto): String =
+            response.choices.firstOrNull()?.message?.content?.trim()
+                ?: error("OpenRouter response did not contain choices")
+
+        if (schema == null) return contentOf(requestCompletion(model, prompt, null))
+
+        return try {
+            contentOf(requestCompletion(model, prompt, schema))
+        } catch (ex: Throwable) {
+            if (!isSchemaUnsupported(ex)) throw ex
+            logger.warn(
+                "Model '{}' rejected structured output (schema '{}') — retrying WITHOUT the schema. " +
+                    "Shape is no longer guaranteed for this call. reason={}",
+                model,
+                schema.name,
+                ex.message ?: ex::class.simpleName
+            )
+            contentOf(requestCompletion(model, prompt, null))
+        }
+    }
+
+    /** Heuristic: only schema/parameter-support failures are worth retrying unconstrained. */
+    private fun isSchemaUnsupported(ex: Throwable): Boolean {
+        val text = (ex.message ?: "").lowercase()
+        return text.contains("response_format") ||
+            text.contains("json_schema") ||
+            text.contains("structured output") ||
+            text.contains("require_parameters") ||
+            text.contains("no allowed providers") ||
+            text.contains("not support")
+    }
+
+    private suspend fun requestCompletion(
+        model: String,
+        prompt: String,
+        schema: ResponseSchema?
+    ): ChatCompletionResponseDto {
         val body = ChatCompletionRequestDto(
             model = model,
             messages = listOf(
@@ -121,7 +175,16 @@ class OpenRouterLLMClient(
             ),
             temperature = resolvedTemperature,
             topP = resolvedTopP,
-            maxTokens = resolvedMaxTokens
+            maxTokens = resolvedMaxTokens,
+            responseFormat = schema?.let {
+                ResponseFormatDto(
+                    type = "json_schema",
+                    jsonSchema = JsonSchemaDto(name = it.name, strict = true, schema = it.schema)
+                )
+            },
+            // Only meaningful alongside a schema: without it OpenRouter may route to an endpoint
+            // that ignores response_format, which would give a false sense of enforcement.
+            provider = schema?.let { ProviderPreferencesDto(requireParameters = true) }
         )
         val response: ChatCompletionResponseDto = try {
             http.post("$resolvedBaseUrl/chat/completions") {

@@ -11,14 +11,14 @@ class RetryingLLMClient(
     private val maxDelayMs: Long = 12_000,
     private val backoffMultiplier: Double = 2.0
 ) : LLMClient {
-    override suspend fun generateJson(prompt: String): String {
+    override suspend fun generateJson(prompt: String, schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema?): String {
         var attempt = 1
         var nextDelay = initialDelayMs.coerceAtLeast(0)
         var lastError: Throwable? = null
 
         while (attempt <= attempts) {
             try {
-                return delegate.generateJson(prompt)
+                return delegate.generateJson(prompt, schema)
             } catch (ex: Throwable) {
                 lastError = ex
                 val retryable = isRetryable(ex)

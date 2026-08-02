@@ -25,13 +25,15 @@ class LlmClientRouter(
         profile: AiProfile,
         prompt: String,
         operation: String,
-        requestId: String
+        requestId: String,
+        /** Response schema for constrained decoding; ignored unless AI_STRUCTURED_OUTPUT is on. */
+        schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema? = null,
     ): String {
         val mode = profile.llmMode?.trim()?.lowercase()
-        if (mode == "free") return freeLlmClient.generateJson(prompt)
+        if (mode == "free") return freeLlmClient.generateJson(prompt, schema)
 
         return runCatching {
-            paidLlmClient.generateJson(prompt)
+            paidLlmClient.generateJson(prompt, schema)
         }.recoverCatching { ex ->
             if (!shouldFallbackToFree(ex)) throw ex
             logger.warn(
@@ -40,7 +42,7 @@ class LlmClientRouter(
                 requestId,
                 ex.message ?: ex::class.simpleName
             )
-            freeLlmClient.generateJson(prompt)
+            freeLlmClient.generateJson(prompt, schema)
         }.getOrThrow()
     }
 }

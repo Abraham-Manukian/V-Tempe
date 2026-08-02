@@ -15,7 +15,7 @@ class ThrottledLLMClient(
     private val mutex = Mutex()
     private var lastInvocationTimeMs: Long = 0L
 
-    override suspend fun generateJson(prompt: String): String {
+    override suspend fun generateJson(prompt: String, schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema?): String {
         val waitFor = mutex.withLock {
             val now = System.currentTimeMillis()
             val elapsed = now - lastInvocationTimeMs
@@ -27,7 +27,7 @@ class ThrottledLLMClient(
         if (waitFor > 0) {
             delay(waitFor)
         }
-        return delegate.generateJson(prompt)
+        return delegate.generateJson(prompt, schema)
     }
 }
 

@@ -164,7 +164,12 @@ class AiService(
                 operation = "coach-bundle",
                 requestId = requestId,
                 basePrompt = prompt,
-                callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "coach-bundle", requestId) },
+                callModel = { currentPrompt ->
+                llmRouter.generateWithFallback(
+                    logger, profile, currentPrompt, "coach-bundle", requestId,
+                    schema = com.vtempe.server.features.ai.data.llm.schema.JsonSchemas.bootstrapBundle(exerciseCatalog)
+                )
+            },
                 strategy = AiBootstrapResponse.serializer(),
                 validator = SchemaValidator { bundle ->
                     // Log skeleton compliance violations on the RAW AI response for observability.
@@ -384,7 +389,12 @@ class AiService(
             operation = "training-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "training-section", sectionRequestId) },
+            callModel = { currentPrompt ->
+                llmRouter.generateWithFallback(
+                    logger, profile, currentPrompt, "training-section", sectionRequestId,
+                    schema = com.vtempe.server.features.ai.data.llm.schema.JsonSchemas.trainingPlan(exerciseCatalog)
+                )
+            },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
                 val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
@@ -420,7 +430,12 @@ class AiService(
             operation = "nutrition-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "nutrition-section", sectionRequestId) },
+            callModel = { currentPrompt ->
+                llmRouter.generateWithFallback(
+                    logger, profile, currentPrompt, "nutrition-section", sectionRequestId,
+                    schema = com.vtempe.server.features.ai.data.llm.schema.JsonSchemas.nutritionPlan()
+                )
+            },
             strategy = AiNutritionResponse.serializer(),
             validator = SchemaValidator { plan ->
                 val normalized = normalizeNutritionPlan(plan, locale, profile)
@@ -463,7 +478,12 @@ class AiService(
             operation = "sleep-section",
             requestId = sectionRequestId,
             basePrompt = prompt,
-            callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, profile, currentPrompt, "sleep-section", sectionRequestId) },
+            callModel = { currentPrompt ->
+                llmRouter.generateWithFallback(
+                    logger, profile, currentPrompt, "sleep-section", sectionRequestId,
+                    schema = com.vtempe.server.features.ai.data.llm.schema.JsonSchemas.sleepAdvice()
+                )
+            },
             strategy = AiAdviceResponse.serializer(),
             validator = SchemaValidator { advice ->
                 val normalized = normalizeAdvice(advice)

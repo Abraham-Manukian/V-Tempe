@@ -55,7 +55,12 @@ class ChatService(
                 operation = "chat",
                 requestId = requestId,
                 basePrompt = prompt,
-                callModel = { currentPrompt -> llmRouter.generateWithFallback(logger, req.profile, currentPrompt, "chat", requestId) },
+                callModel = { currentPrompt ->
+                    llmRouter.generateWithFallback(
+                        logger, req.profile, currentPrompt, "chat", requestId,
+                        schema = com.vtempe.server.features.ai.data.llm.schema.JsonSchemas.chatResponse(exerciseCatalog)
+                    )
+                },
                 strategy = AiChatResponse.serializer(),
                 validator = SchemaValidator { resp ->
                     val normalized = normalizeChatResponse(resp, locale, req.profile, trainingPlanResolver)
