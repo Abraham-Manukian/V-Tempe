@@ -53,8 +53,8 @@ android {
         applicationId = "com.vtempe"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
         buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-eoofh53gda-ew.a.run.app\"")
         buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
