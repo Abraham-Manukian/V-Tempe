@@ -23,12 +23,35 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 val appToken: String = localProps.getProperty("APP_TOKEN", "")
+
 // The Google OAuth "web" client id from google-services.json (client_type 3 under the app's
 // oauth_client entries) — needed by Credential Manager's GetGoogleIdOption to request a Google
 // ID token. Not itself secret (OAuth client ids are public identifiers), but it's per-project
 // and google-services.json is gitignored, so it's read from local.properties like the other
 // per-developer values here rather than hardcoded.
+//
+// It used to be read from local.properties only, which failed badly: a missing entry baked an
+// empty string into BuildConfig, the build stayed green, and Google sign-in died at runtime with
+// nothing pointing at the cause. Since google-services.json already carries the exact same value,
+// fall back to reading it from there and only fail when neither source has it.
+fun webClientIdFromGoogleServices(): String {
+    val json = file("google-services.json")
+    if (!json.exists()) return ""
+    return runCatching {
+        @Suppress("UNCHECKED_CAST")
+        val root = groovy.json.JsonSlurper().parse(json) as Map<String, Any?>
+        (root["client"] as? List<*>).orEmpty()
+            .mapNotNull { (it as? Map<*, *>)?.get("oauth_client") as? List<*> }
+            .flatten()
+            .mapNotNull { it as? Map<*, *> }
+            .firstOrNull { (it["client_type"] as? Number)?.toInt() == 3 }
+            ?.get("client_id") as? String
+            ?: ""
+    }.getOrDefault("")
+}
+
 val googleWebClientId: String = localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")
+    .ifBlank { webClientIdFromGoogleServices() }
 val keystorePath: String = localProps.getProperty("KEYSTORE_PATH", "")
 val keystorePass: String = localProps.getProperty("KEYSTORE_PASS", "")
 val releaseKeyAlias: String = localProps.getProperty("KEY_ALIAS", "")
@@ -73,6 +96,21 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+    }
+
+    // Shipping a release with an empty web client id means Google sign-in is dead for every user
+    // of that build, and nothing about the build or the app says so. Fail loudly instead.
+    if (googleWebClientId.isBlank()) {
+        tasks.matching { it.name.contains("Release") && (it.name.startsWith("assemble") || it.name.startsWith("bundle")) }
+            .configureEach {
+                doFirst {
+                    error(
+                        "GOOGLE_WEB_CLIENT_ID is empty — Google sign-in would silently fail in this " +
+                            "release build. Set it in local.properties, or place a google-services.json " +
+                            "with a client_type 3 oauth_client in app-android/."
+                    )
+                }
+            }
     }
 
     buildFeatures {
