@@ -55,7 +55,7 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "1.1.0"
-        buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-eoofh53gda-ew.a.run.app\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-6uzlqtekka-ew.a.run.app\"")
         buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
@@ -64,7 +64,7 @@ android {
         debug {
             // Temporarily pointing to prod Cloud Run for testing without local server.
             // Switch back to "http://10.0.2.2:8081" when local server needed.
-            buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-eoofh53gda-ew.a.run.app\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-6uzlqtekka-ew.a.run.app\"")
         }
         release {
             isMinifyEnabled = true   // R8/ProGuard obfuscates the token

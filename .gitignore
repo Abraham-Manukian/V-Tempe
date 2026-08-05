@@ -69,3 +69,6 @@ T3.txt
 logs/
 server/logs/
 server/server/logs/
+
+# GCP service account key (never commit)
+gcp-sa-key.json

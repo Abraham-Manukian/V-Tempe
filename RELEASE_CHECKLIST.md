@@ -7,7 +7,7 @@
 ## 🔴 P0 — Блокеры (без этого релиз невозможен)
 
 - [x] **Продакшн URL бэкенда** — ✅ уже настроено (`app-android/build.gradle.kts:42,50`),
-  указывает на `https://vtempe-server-eoofh53gda-ew.a.run.app` в debug и release.
+  указывает на `https://vtempe-server-6uzlqtekka-ew.a.run.app` в debug и release.
 
 - [x] **Задеплоить Ktor-сервер** — ✅ сервер живой на Cloud Run, подтверждено прямыми запросами (2026-07-01/02).
 

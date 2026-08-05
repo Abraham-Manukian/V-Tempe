@@ -10,7 +10,7 @@ import org.koin.dsl.module
 import platform.Foundation.NSBundle
 import platform.Foundation.NSProcessInfo
 
-private const val DEFAULT_API_BASE_URL = "https://vtempe-server-eoofh53gda-ew.a.run.app"
+private const val DEFAULT_API_BASE_URL = "https://vtempe-server-6uzlqtekka-ew.a.run.app"
 
 fun initKoinIfNeeded(apiBaseUrl: String = resolveApiBaseUrl()) {
     if (KoinProvider.koin != null) return
