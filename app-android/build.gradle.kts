@@ -76,7 +76,9 @@ android {
         applicationId = "com.vtempe"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
+        // 2 was uploaded to Play before the empty-client-id fix and can never be reused, even
+        // though that build was never rolled out — Play retires a versionCode on upload.
+        versionCode = 3
         versionName = "1.1.0"
         buildConfigField("String", "API_BASE_URL", "\"https://vtempe-server-6uzlqtekka-ew.a.run.app\"")
         buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
