@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -260,7 +260,7 @@ internal fun ErrorBubble(errorMessage: String) {
             verticalAlignment = Alignment.Top
         ) {
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = Icons.Filled.ErrorOutline,
                 contentDescription = null,
                 tint = AiPalette.DeepAccent,
                 modifier = Modifier
