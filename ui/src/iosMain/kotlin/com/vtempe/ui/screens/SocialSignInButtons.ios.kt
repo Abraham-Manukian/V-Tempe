@@ -1,9 +1,12 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package com.vtempe.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -13,6 +16,7 @@ import androidx.compose.ui.Modifier
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AuthPresenter
+import com.vtempe.ui.presenter.CREDENTIAL_PICKER_TIMEOUT_MS
 import com.vtempe.ui.util.sha256Hex
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.allocArray
@@ -20,8 +24,10 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
 import kotlinx.cinterop.memScoped
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.stringResource
 import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationAppleIDCredential
@@ -35,6 +41,7 @@ import platform.AuthenticationServices.ASPresentationAnchor
 import platform.Foundation.NSError
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
+import platform.Foundation.NSOperationQueue
 import platform.Security.SecRandomCopyBytes
 import platform.Security.kSecRandomDefault
 import platform.UIKit.UIApplication
@@ -62,20 +69,31 @@ import kotlin.coroutines.resumeWithException
 actual fun SocialSignInButtons(presenter: AuthPresenter) {
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
+    val authState by presenter.state.collectAsState()
 
     OutlinedButton(
         onClick = {
             scope.launch {
                 loading = true
-                val rawNonce = secureRandomNonce()
-                runCatching { requestAppleIdToken(rawNonce) }
-                    .onSuccess { idToken -> if (idToken != null) presenter.signInWithApple(idToken, rawNonce) }
-                    .onFailure { presenter.reportError(AuthErrorCode.UNKNOWN) }
-                loading = false
+                try {
+                    val rawNonce = secureRandomNonce()
+                    val completed = withTimeoutOrNull(CREDENTIAL_PICKER_TIMEOUT_MS) {
+                        val idToken = requestAppleIdToken(rawNonce)
+                        if (idToken != null) presenter.signInWithApple(idToken, rawNonce)
+                        true
+                    }
+                    if (completed == null) presenter.reportError(AuthErrorCode.NETWORK)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    presenter.reportError(AuthErrorCode.UNKNOWN)
+                } finally {
+                    loading = false
+                }
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !loading
+        enabled = !loading && !authState.loading
     ) {
         Text(stringResource(Res.string.auth_continue_with_apple))
     }
@@ -98,12 +116,13 @@ private class AppleSignInDelegate(
         val tokenData = credential?.identityToken
         val idToken = tokenData?.let { NSString(data = it, encoding = NSUTF8StringEncoding) as String }
         onComplete()
-        continuation.resume(idToken)
+        if (continuation.isActive) continuation.resume(idToken)
     }
 
     override fun authorizationController(controller: ASAuthorizationController, didCompleteWithError: NSError) {
         // ASAuthorizationErrorCanceled == 1001 — the user closed the sheet, not a real failure.
         onComplete()
+        if (!continuation.isActive) return
         if (didCompleteWithError.code == 1001L) {
             continuation.resume(null)
         } else {
@@ -124,7 +143,9 @@ private val nonceCharset = (('0'..'9') + ('A'..'Z') + ('a'..'z') + listOf('-', '
  *  [kotlin.random.Random] for lower-stakes uses — this one uses the platform CSPRNG. */
 private fun secureRandomNonce(length: Int = 32): String = memScoped {
     val bytes = allocArray<ByteVar>(length)
-    SecRandomCopyBytes(kSecRandomDefault, length.convert(), bytes)
+    check(SecRandomCopyBytes(kSecRandomDefault, length.convert(), bytes) == 0) {
+        "Secure random generator unavailable"
+    }
     (0 until length).map { i -> nonceCharset[(bytes[i].toInt() and 0xFF) % nonceCharset.size] }.joinToString("")
 }
 
@@ -136,18 +157,25 @@ private fun secureRandomNonce(length: Int = 32): String = memScoped {
 private var activeAppleSignIn: Pair<ASAuthorizationController, AppleSignInDelegate>? = null
 
 private suspend fun requestAppleIdToken(rawNonce: String): String? = suspendCancellableCoroutine { cont ->
+    check(activeAppleSignIn == null) { "Apple sign-in is already in progress" }
     val provider = ASAuthorizationAppleIDProvider()
     val request = provider.createRequest().apply {
         requestedScopes = listOf(ASAuthorizationScopeFullName, ASAuthorizationScopeEmail)
         nonce = sha256Hex(rawNonce)
     }
 
-    val delegate = AppleSignInDelegate(cont) { activeAppleSignIn = null }
     val controller = ASAuthorizationController(authorizationRequests = listOf(request))
+    val delegate = AppleSignInDelegate(cont) {
+        if (activeAppleSignIn?.first === controller) activeAppleSignIn = null
+    }
     controller.delegate = delegate
     controller.presentationContextProvider = delegate
     activeAppleSignIn = controller to delegate
 
     controller.performRequests()
-    cont.invokeOnCancellation { activeAppleSignIn = null }
+    cont.invokeOnCancellation {
+        NSOperationQueue.mainQueue.addOperationWithBlock {
+            if (activeAppleSignIn?.first === controller) activeAppleSignIn = null
+        }
+    }
 }

@@ -8,7 +8,7 @@ import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
-import com.vtempe.shared.domain.usecase.ResetCoachData
+import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsPresenterDelegate
@@ -20,7 +20,7 @@ private class IosSettingsPresenter(
     profileRepository: ProfileRepository,
     preferencesRepository: PreferencesRepository,
     ensureCoachData: EnsureCoachData,
-    resetCoachData: ResetCoachData,
+    accountSession: AccountSession,
     syncAnalyticsProfile: SyncAnalyticsProfile,
     authRepository: AuthRepository,
 ) : SettingsPresenter {
@@ -31,7 +31,7 @@ private class IosSettingsPresenter(
         profileRepository = profileRepository,
         preferencesRepository = preferencesRepository,
         ensureCoachData = ensureCoachData,
-        resetCoachData = resetCoachData,
+        accountSession = accountSession,
         syncAnalyticsProfile = syncAnalyticsProfile,
         authRepository = authRepository,
         scope = scope
@@ -55,7 +55,7 @@ actual fun rememberSettingsPresenter(): SettingsPresenter {
             profileRepository = koin.get(),
             preferencesRepository = koin.get(),
             ensureCoachData = koin.get(),
-            resetCoachData = koin.get(),
+            accountSession = koin.get(),
             syncAnalyticsProfile = koin.get(),
             authRepository = koin.get()
         )

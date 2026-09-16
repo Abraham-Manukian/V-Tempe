@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,13 +26,15 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AuthPresenter
+import com.vtempe.ui.presenter.CREDENTIAL_PICKER_TIMEOUT_MS
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.stringResource
 import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
@@ -44,6 +47,7 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
+    val authState by presenter.state.collectAsState()
 
     // Google's own brand guidelines call for a plain white button with the "G" mark — matches
     // what users already recognize from every other app's sign-in screen, and (unlike an
@@ -52,13 +56,21 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
         onClick = {
             scope.launch {
                 loading = true
-                val token = requestGoogleIdToken(context, presenter)
-                loading = false
-                if (token != null) presenter.signInWithGoogle(token)
+                try {
+                    // The credential picker also performs network work before Firebase is called.
+                    val completed = withTimeoutOrNull(CREDENTIAL_PICKER_TIMEOUT_MS) {
+                        val token = requestGoogleIdToken(context, presenter)
+                        if (token != null) presenter.signInWithGoogle(token)
+                        true
+                    }
+                    if (completed == null) presenter.reportError(AuthErrorCode.NETWORK)
+                } finally {
+                    loading = false
+                }
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !loading,
+        enabled = !loading && !authState.loading,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.White,
             contentColor = Color(0xFF1F1F1F)
@@ -89,9 +101,7 @@ private suspend fun requestGoogleIdToken(context: Context, presenter: AuthPresen
         return null
     }
 
-    val option = GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(webClientId)
+    val option = GetSignInWithGoogleOption.Builder(webClientId)
         .build()
     val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
 
@@ -101,9 +111,11 @@ private suspend fun requestGoogleIdToken(context: Context, presenter: AuthPresen
     } catch (e: GetCredentialCancellationException) {
         null // user closed the picker — not an error
     } catch (e: GetCredentialException) {
+        android.util.Log.w("GoogleSignIn", "Credential request failed: ${e.type}")
         presenter.reportError(AuthErrorCode.UNKNOWN)
         null
     } catch (e: GoogleIdTokenParsingException) {
+        android.util.Log.w("GoogleSignIn", "Google ID credential could not be parsed")
         presenter.reportError(AuthErrorCode.UNKNOWN)
         null
     }

@@ -16,6 +16,7 @@ import com.vtempe.shared.domain.usecase.BootstrapCoachData
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,8 @@ const val TRAINING_FOCUS_HYPERTROPHY = "HYPERTROPHY"
 const val TRAINING_FOCUS_GENERAL = "GENERAL"
 const val TRAINING_FOCUS_FAT_LOSS = "FAT_LOSS"
 internal const val EQUIPMENT_NOTE_MAX_CHARS = 200
+
+enum class OnboardingError { INVALID_INPUT, SAVE_FAILED, GENERATION_FAILED }
 
 data class OnboardingState(
     val age: String = "28",
@@ -70,7 +73,7 @@ data class OnboardingState(
     val currentStep: Int = 0,
     val saving: Boolean = false,
     val savingStep: Int = 0,  // 0=profile, 1=generating plan
-    val error: String? = null
+    val error: OnboardingError? = null
 )
 
 interface OnboardingPresenter {
@@ -96,8 +99,9 @@ class OnboardingPresenterDelegate(
     private val syncAnalyticsProfile: SyncAnalyticsProfile
 ) : OnboardingPresenter {
 
-    private val _state = MutableStateFlow(OnboardingState())
+    private val _state = MutableStateFlow(OnboardingState(languageTag = languagePrefs.getLanguageTag() ?: "system"))
     override val state: StateFlow<OnboardingState> = _state.asStateFlow()
+    private val newProfileId = "user_${Random.nextLong().toString(16)}_${Random.nextLong().toString(16)}"
 
     override fun update(transform: (OnboardingState) -> OnboardingState) {
         _state.update(transform)
@@ -122,28 +126,40 @@ class OnboardingPresenterDelegate(
     }
 
     override fun nextStep() {
+        if (_state.value.saving) return
+        if (_state.value.currentStep == 1 && !hasValidMeasurements(_state.value)) {
+            _state.update { it.copy(error = OnboardingError.INVALID_INPUT) }
+            return
+        }
         _state.update { s ->
-            if (s.currentStep < ONBOARDING_TOTAL_STEPS - 1) s.copy(currentStep = s.currentStep + 1) else s
+            if (s.currentStep < ONBOARDING_TOTAL_STEPS - 1) s.copy(currentStep = s.currentStep + 1, error = null) else s
         }
     }
 
     override fun prevStep() {
+        if (_state.value.saving) return
         _state.update { s ->
-            if (s.currentStep > 0) s.copy(currentStep = s.currentStep - 1) else s
+            if (s.currentStep > 0) s.copy(currentStep = s.currentStep - 1, error = null) else s
         }
     }
 
     override fun save(onSuccess: () -> Unit) {
         val s = _state.value
+        if (s.saving) return
+        if (!hasValidMeasurements(s)) {
+            _state.update { it.copy(currentStep = 1, error = OnboardingError.INVALID_INPUT) }
+            return
+        }
         _state.update { it.copy(saving = true, savingStep = 0, error = null) }
         scope.launch {
-            runCatching {
+            try {
+                val existingProfile = profileRepository.getProfile()
                 val profile = Profile(
-                    id = "user_${Random.nextInt(100_000)}",
-                    age = s.age.toIntOrNull() ?: 28,
+                    id = existingProfile?.id ?: newProfileId,
+                    age = s.age.toInt(),
                     sex = s.sex,
-                    heightCm = s.heightCm.toIntOrNull() ?: 178,
-                    weightKg = s.weightKg.toDoubleOrNull() ?: 78.0,
+                    heightCm = s.heightCm.toInt(),
+                    weightKg = s.weightKg.toDouble(),
                     goal = s.goal,
                     experienceLevel = s.experienceLevel,
                     dietaryPreferences = s.dietaryPreferences.split(",").map { it.trim() }.filter { it.isNotEmpty() },
@@ -168,17 +184,32 @@ class OnboardingPresenterDelegate(
                 analyticsConsentPreferences.setAnalyticsConsent(s.analyticsConsent)
                 syncAnalyticsProfile(profile) // no-op internally unless consent was just granted
                 _state.update { it.copy(savingStep = 1) }
-                bootstrapCoachData()
+                if (!bootstrapCoachData(force = existingProfile != null && existingProfile != profile)) {
+                    _state.update { it.copy(error = OnboardingError.GENERATION_FAILED) }
+                    return@launch
+                }
                 analytics.logEvent(AnalyticsEvents.PLAN_GENERATED)
-            }.onSuccess {
                 _state.update { it.copy(saving = false) }
                 analytics.logEvent(AnalyticsEvents.ONBOARDING_COMPLETE)
                 onSuccess()
-            }.onFailure { e ->
-                Napier.e("Onboarding save failed", e)
-                analytics.recordNonFatal(e, "Onboarding save failed")
-                _state.update { it.copy(saving = false, error = e.message) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // Backend/DB exception messages can contain profile data; keep UI and logs safe.
+                Napier.w("Onboarding failed at stage ${_state.value.savingStep}: ${error::class.simpleName}")
+                _state.update {
+                    it.copy(error = if (it.savingStep == 0) OnboardingError.SAVE_FAILED else OnboardingError.GENERATION_FAILED)
+                }
+            } finally {
+                _state.update { it.copy(saving = false) }
             }
         }
+    }
+
+    private fun hasValidMeasurements(state: OnboardingState): Boolean {
+        val age = state.age.toIntOrNull() ?: return false
+        val height = state.heightCm.toIntOrNull() ?: return false
+        val weight = state.weightKg.toDoubleOrNull() ?: return false
+        return age > 0 && height > 0 && weight.isFinite() && weight > 0
     }
 }

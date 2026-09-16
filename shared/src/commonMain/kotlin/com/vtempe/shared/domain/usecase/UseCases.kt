@@ -1,4 +1,4 @@
-﻿package com.vtempe.shared.domain.usecase
+package com.vtempe.shared.domain.usecase
 
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.repository.*
@@ -58,12 +58,14 @@ class BootstrapCoachData(
     // BootstrapCoachData is a Koin `single` so this mutex is truly app-wide.
     private val mutex = Mutex()
 
-    suspend operator fun invoke(weekIndex: Int = 0): Boolean = mutex.withLock {
+    suspend operator fun invoke(weekIndex: Int = 0, force: Boolean = false): Boolean = mutex.withLock {
         val profile = profileRepository.getProfile() ?: return@withLock false
 
         // Double-check after acquiring the lock: a concurrent caller may have
         // already completed the bootstrap for this week while we were waiting.
-        if (trainingRepository.hasPlan(weekIndex) && nutritionRepository.hasPlan(weekIndex)) {
+        if (!force && trainingRepository.hasPlan(weekIndex) && nutritionRepository.hasPlan(weekIndex) &&
+            adviceRepository.hasAdvice("sleep") && coachCache.planEpochDateMs() != null
+        ) {
             Napier.d("Bootstrap week $weekIndex: already done by concurrent call — skipping")
             return@withLock true
         }
@@ -149,7 +151,7 @@ class EnsureCoachData(
         val needsAdvice    = force || !adviceRepository.hasAdvice("sleep")
 
         if (needsTraining || needsNutrition || needsAdvice) {
-            if (!bootstrapCoachData(currentWeek)) return false
+            if (!bootstrapCoachData(currentWeek, force = force)) return false
         }
 
         // Pre-fetch next week in the background when the current week is almost over.
@@ -181,16 +183,6 @@ class EnsureCoachData(
  * NOT called on regular profile edits — those keep the epoch and regenerate
  * plans for the current week via EnsureCoachData(force = true).
  */
-class ResetCoachData(
-    private val profileRepository: ProfileRepository,
-    private val coachCache: CoachCacheRepository,
-) {
-    suspend operator fun invoke() {
-        profileRepository.clearAll()      // DB: profile, workouts, nutrition rows
-        coachCache.clearAllAndResetEpoch() // SharedPrefs: AI cache + week epoch
-    }
-}
-
 class ValidateSubscription(
     private val purchasesRepository: PurchasesRepository
 ) {

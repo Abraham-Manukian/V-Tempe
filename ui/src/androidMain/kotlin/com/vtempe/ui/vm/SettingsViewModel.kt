@@ -10,7 +10,7 @@ import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
-import com.vtempe.shared.domain.usecase.ResetCoachData
+import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsPresenterDelegate
@@ -21,7 +21,7 @@ class SettingsViewModel(
     profileRepository: ProfileRepository,
     preferencesRepository: PreferencesRepository,
     ensureCoachData: EnsureCoachData,
-    resetCoachData: ResetCoachData,
+    accountSession: AccountSession,
     syncAnalyticsProfile: SyncAnalyticsProfile,
     authRepository: AuthRepository,
 ) : ViewModel(), SettingsPresenter {
@@ -30,7 +30,7 @@ class SettingsViewModel(
         profileRepository = profileRepository,
         preferencesRepository = preferencesRepository,
         ensureCoachData = ensureCoachData,
-        resetCoachData = resetCoachData,
+        accountSession = accountSession,
         syncAnalyticsProfile = syncAnalyticsProfile,
         authRepository = authRepository,
         scope = viewModelScope,

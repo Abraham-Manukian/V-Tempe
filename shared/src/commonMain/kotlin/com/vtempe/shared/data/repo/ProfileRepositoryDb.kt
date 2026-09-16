@@ -4,13 +4,24 @@ import com.vtempe.shared.db.AppDatabase
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.SyncDomain
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class ProfileRepositoryDb(
     private val db: AppDatabase,
     /** See WorkoutProgressStore's kdoc on the same parameter — same lazy-DI reasoning. */
     private val onLocalChange: (SyncDomain) -> Unit = {}
 ) : ProfileRepository {
-    override suspend fun getProfile(): Profile? {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    override suspend fun getProfile(): Profile? = withContext(Dispatchers.IO) {
+        db.transactionWithResult { readProfile() }
+    }
+
+    private fun readProfile(): Profile? {
         val row = db.profileQueries.selectProfile().executeAsOneOrNull() ?: return null
         val id = row.id
         val equipment = db.profileDetailsQueries.selectEquipment(id).executeAsList()
@@ -25,7 +36,7 @@ class ProfileRepositoryDb(
             weightKg = row.weightKg,
             goal = runCatching { Goal.valueOf(row.goal) }.getOrDefault(Goal.MAINTAIN),
             experienceLevel = row.experienceLevel.toInt(),
-            constraints = Constraints(),
+            constraints = json.decodeFromString<Constraints>(row.constraintsJson),
             equipment = Equipment(items = equipment),
             dietaryPreferences = prefs,
             allergies = allergies,
@@ -41,7 +52,7 @@ class ProfileRepositoryDb(
     }
 
     override suspend fun upsertProfile(profile: Profile) {
-        writeProfile(profile)
+        withContext(Dispatchers.IO) { db.transaction { writeProfile(profile) } }
         onLocalChange(SyncDomain.PROFILE)
     }
 
@@ -50,7 +61,7 @@ class ProfileRepositoryDb(
      *  must not re-trigger a push of the very data it just received. Not part of
      *  [ProfileRepository]: only the sync system needs this distinction. */
     suspend fun restoreProfile(profile: Profile) {
-        writeProfile(profile)
+        withContext(Dispatchers.IO) { db.transaction { writeProfile(profile) } }
     }
 
     private fun writeProfile(profile: Profile) {
@@ -68,7 +79,8 @@ class ProfileRepositoryDb(
             lifestyleActivity = profile.lifestyleActivity.name,
             trainingFocus = profile.trainingFocus.name,
             sessionDurationMins = profile.sessionDurationMins.toLong(),
-            splitPreference = profile.splitPreference.name
+            splitPreference = profile.splitPreference.name,
+            constraintsJson = json.encodeToString(profile.constraints)
         )
         // Replace detail tables
         db.profileDetailsQueries.deleteEquipmentForProfile(profile.id)

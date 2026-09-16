@@ -272,7 +272,7 @@ class CoachEditApplicator(
         // ADD_MEAL / SWAP_MEAL can create/replace a whole meal; the rest target an existing meal.
         if (type == CoachEditOpType.ADD_MEAL) {
             val meal = buildMealFromOp(op) ?: run {
-                rejections += "add_meal needs a name and ingredients"
+                rejections += "add_meal needs a name, ingredients and complete non-negative macros with positive energy"
                 return plan to false
             }
             meals.add(meal)
@@ -333,7 +333,7 @@ class CoachEditApplicator(
             }
             CoachEditOpType.SWAP_MEAL -> {
                 buildMealFromOp(op)?.also { changed = true }
-                    ?: run { rejections += "swap_meal needs a name and ingredients"; meal }
+                    ?: run { rejections += "swap_meal needs a name, ingredients and complete non-negative macros with positive energy"; meal }
             }
             CoachEditOpType.REMOVE_MEAL -> {
                 if (meals.size <= 1) { rejections += "cannot remove the only meal on $dayKey"; meal }
@@ -356,14 +356,7 @@ class CoachEditApplicator(
         val ingredients = op.ingredients?.map { sanitizeText(it) }?.filter { it.isNotEmpty() }
             ?: return null
         if (ingredients.isEmpty()) return null
-        val macros = normalizeMacros(
-            Macros(
-                proteinGrams = op.proteinGrams?.coerceAtLeast(0) ?: 0,
-                fatGrams = op.fatGrams?.coerceAtLeast(0) ?: 0,
-                carbsGrams = op.carbsGrams?.coerceAtLeast(0) ?: 0,
-                kcal = op.kcal?.coerceAtLeast(0) ?: 0,
-            )
-        )
+        val macros = op.completeMealMacros() ?: return null
         return AiMeal(
             name = name,
             ingredients = ingredients,
@@ -393,4 +386,15 @@ class CoachEditApplicator(
         }
         return fuzzy.takeIf { it >= 0 }
     }
+}
+
+/** Missing values are unknown, never zero; reject overflow before calorie normalization. */
+internal fun CoachEditOp.completeMealMacros(): Macros? {
+    val protein = proteinGrams?.takeIf { it >= 0 } ?: return null
+    val fat = fatGrams?.takeIf { it >= 0 } ?: return null
+    val carbs = carbsGrams?.takeIf { it >= 0 } ?: return null
+    val calories = kcal?.takeIf { it > 0 } ?: return null
+    val energy = protein.toLong() * 4 + fat.toLong() * 9 + carbs.toLong() * 4
+    if (energy !in 1..Int.MAX_VALUE.toLong()) return null
+    return normalizeMacros(Macros(protein, fat, carbs, calories))
 }

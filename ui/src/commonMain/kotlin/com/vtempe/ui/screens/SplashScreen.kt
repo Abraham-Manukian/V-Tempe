@@ -18,7 +18,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiGradients
 import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.ui.navigation.Destination
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 
 @Composable
 fun SplashScreen(onReady: (Destination) -> Unit = {}) {
@@ -48,3 +51,15 @@ fun SplashScreen(onReady: (Destination) -> Unit = {}) {
 }
 
 expect suspend fun determineStartDestination(): Destination
+
+/** Launch must not fail because of sync; an unsettled state is retried on the next launch or sign-in. */
+internal suspend fun reconcileAccountData(session: AccountSession?) {
+    if (session == null) return
+    try {
+        session.reconcile()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Napier.w(tag = "Account", message = "launch reconcile failed", throwable = error)
+    }
+}

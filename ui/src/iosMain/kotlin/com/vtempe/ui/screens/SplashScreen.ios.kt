@@ -6,6 +6,9 @@ import com.vtempe.ui.navigation.Destination
 
 actual suspend fun determineStartDestination(): Destination {
     val koin = KoinProvider.koin ?: return Destination.Welcome
+    // Before reading the profile: an interrupted account switch may have left another account's data.
+    reconcileAccountData(koin.getOrNull())
+
     val profileRepository = runCatching { koin.get<ProfileRepository>() }.getOrNull()
         ?: return Destination.Welcome
 

@@ -37,7 +37,8 @@ data class AiProfile(
 @Serializable
 data class AiSleepEntry(
     val date: String,
-    val durationMinutes: Int
+    val durationMinutes: Int,
+    val notes: String = ""
 )
 
 /** One body-weight measurement sent from the client to help the coach track progress trends. */

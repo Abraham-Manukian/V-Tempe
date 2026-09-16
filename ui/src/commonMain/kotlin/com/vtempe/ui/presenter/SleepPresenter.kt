@@ -29,13 +29,14 @@ data class SleepState(
     val disclaimer: String? = null,
     /** Minutes logged by the user for tonight's sleep */
     val loggedMinutes: Int = 0,
+    val loggedNotes: String = "",
     val logSaved: Boolean = false,
 )
 
 interface SleepPresenter {
     val state: StateFlow<SleepState>
     fun sync()
-    fun logSleep(hours: Int, minutes: Int)
+    fun logSleep(hours: Int, minutes: Int, notes: String)
 }
 
 class SleepPresenterDelegate(
@@ -68,10 +69,10 @@ class SleepPresenterDelegate(
         }
     }
 
-    override fun logSleep(hours: Int, minutes: Int) {
+    override fun logSleep(hours: Int, minutes: Int, notes: String) {
         val total = (hours * 60 + minutes).coerceIn(0, 24 * 60)
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        sleepStore.logSleep(today.toString(), total)
+        sleepStore.logSleep(today.toString(), total, notes)
         refreshFromStore()
         _state.update { it.copy(logSaved = true) }
         scope.launch {
@@ -93,6 +94,6 @@ class SleepPresenterDelegate(
             sleepStore.getForDate(day.toString()) / 60
         }
 
-        _state.update { it.copy(loggedMinutes = loggedMinutes, weeklyHours = weeklyHours) }
+        _state.update { it.copy(loggedMinutes = loggedMinutes, loggedNotes = sleepStore.getNotesForDate(todayStr), weeklyHours = weeklyHours) }
     }
 }

@@ -109,6 +109,10 @@ interface AuthRepository {
      *  unavailable. Implementations own caching/refresh internally (the Firebase SDK already
      *  does this — callers should call this once per request, not cache it themselves). */
     suspend fun idToken(): String?
+
+    /** Like [idToken], but only if [uid] is still the signed-in user — taken from that same user
+     *  object, so a sign-in switch can't slip in between the check and the token. */
+    suspend fun idTokenFor(uid: String): String?
 }
 
 /** Wire shape for `GET /me/entitlement` — field names must match the server's
@@ -122,6 +126,7 @@ enum class SyncDomain(val wireKey: String) {
     PROFILE("profile"),
     WORKOUT_PROGRESS("workoutProgress"),
     SLEEP("sleep"),
+    SLEEP_NOTES("sleepNotes"),
     WEIGHT("weight")
 }
 
@@ -139,15 +144,34 @@ enum class SyncDomain(val wireKey: String) {
  */
 interface SyncRepository {
     /** Pushes the current local snapshot of [domain] to the server. Fire-and-forget: call after
-     *  every local write. Failures (offline, signed out, server error) are swallowed — the next
-     *  successful push naturally carries the latest state, so there's nothing to retry. */
+     *  every local write. Does nothing unless the device data belongs to the signed-in account
+     *  ([com.vtempe.shared.domain.account.LocalDataOwnerStore]). Failures are swallowed — the next
+     *  successful push naturally carries the latest state. */
     suspend fun pushDomain(domain: SyncDomain)
 
-    /** Pulls every domain from the server and restores it into local storage, overwriting
-     *  whatever's there. Call once right after a fresh sign-in (not on every app launch of an
-     *  already-signed-in session — that could clobber local edits made before they've had a
-     *  chance to push). */
-    suspend fun pullAll()
+    /** Everything the server holds for [uid], or null if it couldn't be fetched (offline,
+     *  [uid] no longer signed in, server error). */
+    suspend fun fetchRemote(uid: String): RemoteSyncSnapshot?
+
+    /** Writes [snapshot] into local storage. Domains missing from it are left untouched, so
+     *  callers that switch accounts clear local data first. */
+    suspend fun restore(snapshot: RemoteSyncSnapshot)
+
+    /** Uploads every domain for [uid]; domains the device has nothing for are stored as
+     *  [RemoteSyncSnapshot.EMPTY_PAYLOAD], so the account ends up mirroring the device.
+     *  Returns false if any upload failed. */
+    suspend fun pushAll(uid: String): Boolean
+}
+
+/** Server-side sync blobs keyed by [SyncDomain.wireKey]. */
+data class RemoteSyncSnapshot(val payloads: Map<String, String>) {
+    /** True when the account holds no progress — never synced, or wiped by a reset. */
+    val isEmpty: Boolean get() = payloads.values.all { it == EMPTY_PAYLOAD }
+
+    companion object {
+        /** Map-shaped domains decode it as empty; for the profile it means "no profile". */
+        const val EMPTY_PAYLOAD = "{}"
+    }
 }
 
 /**

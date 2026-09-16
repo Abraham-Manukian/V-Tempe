@@ -7,7 +7,8 @@ import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.EntitlementRepository
-import com.vtempe.shared.domain.repository.SyncRepository
+import com.vtempe.shared.domain.account.AccountSession
+import com.vtempe.shared.domain.account.GuestDataChoice
 import com.vtempe.ui.presenter.AuthPresenter
 import com.vtempe.ui.presenter.AuthPresenterDelegate
 import com.vtempe.ui.presenter.AuthUiState
@@ -19,14 +20,14 @@ import kotlinx.coroutines.flow.StateFlow
 private class IosAuthPresenter(
     authRepository: AuthRepository,
     entitlementRepository: EntitlementRepository,
-    syncRepository: SyncRepository
+    accountSession: AccountSession
 ) : AuthPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
     private val delegate = AuthPresenterDelegate(
         authRepository = authRepository,
         entitlementRepository = entitlementRepository,
-        syncRepository = syncRepository,
+        accountSession = accountSession,
         scope = scope
     )
     override val state: StateFlow<AuthUiState> get() = delegate.state
@@ -35,6 +36,10 @@ private class IosAuthPresenter(
     override fun signInWithGoogle(idToken: String) = delegate.signInWithGoogle(idToken)
     override fun signInWithApple(idToken: String, rawNonce: String) = delegate.signInWithApple(idToken, rawNonce)
     override fun signOut() = delegate.signOut()
+    override fun confirmSignOut() = delegate.confirmSignOut()
+    override fun dismissSignOutWarning() = delegate.dismissSignOutWarning()
+    override fun resolveGuestChoice(choice: GuestDataChoice) = delegate.resolveGuestChoice(choice)
+    override fun retryAccountData() = delegate.retryAccountData()
     override fun refresh() = delegate.refresh()
     override fun reportError(code: AuthErrorCode) = delegate.reportError(code)
     fun close() = job.cancel()
@@ -47,7 +52,7 @@ actual fun rememberAuthPresenter(): AuthPresenter {
         IosAuthPresenter(
             authRepository = koin.get(),
             entitlementRepository = koin.get(),
-            syncRepository = koin.get()
+            accountSession = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

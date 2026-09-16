@@ -106,19 +106,23 @@ fun NutritionDetailScreen(
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold
                                     )
-                                    Text(
-                                        stringResource(Res.string.nutrition_kcal_value).kmpFormat(meal.kcal),
-                                        color = Color(0xFF323232),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        stringResource(Res.string.nutrition_macros_detail).kmpFormat(
-                                            meal.macros.proteinGrams,
-                                            meal.macros.fatGrams,
-                                            meal.macros.carbsGrams
-                                        ),
-                                        color = Color(0xFF3A3A3A)
-                                    )
+                                    if (meal.kcal > 0 && (meal.macros.proteinGrams > 0 || meal.macros.fatGrams > 0 || meal.macros.carbsGrams > 0)) {
+                                        Text(
+                                            stringResource(Res.string.nutrition_kcal_value).kmpFormat(meal.kcal),
+                                            color = Color(0xFF323232),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            stringResource(Res.string.nutrition_macros_detail).kmpFormat(
+                                                meal.macros.proteinGrams,
+                                                meal.macros.fatGrams,
+                                                meal.macros.carbsGrams
+                                            ),
+                                            color = Color(0xFF3A3A3A)
+                                        )
+                                    } else {
+                                        Text(stringResource(Res.string.nutrition_macros_unavailable), color = Color(0xFF323232))
+                                    }
                                     Text(
                                         stringResource(Res.string.nutrition_ingredients),
                                         style = MaterialTheme.typography.titleMedium,

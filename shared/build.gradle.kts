@@ -57,6 +57,11 @@ kotlin {
                 api(libs.sqldelight.driver.android)
             }
         }
+        androidUnitTest {
+            dependencies {
+                implementation(libs.sqldelight.driver.jvm)
+            }
+        }
         iosMain {
             dependencies {
                 api(libs.ktor.client.darwin)

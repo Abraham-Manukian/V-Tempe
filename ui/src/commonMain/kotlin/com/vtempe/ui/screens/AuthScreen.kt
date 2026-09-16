@@ -50,7 +50,9 @@ import coil3.compose.AsyncImage
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.icons.AiIcons
 import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.shared.domain.account.AccountDataState
 import com.vtempe.shared.domain.repository.AuthErrorCode
+import com.vtempe.ui.screens.auth.AccountDataDialogs
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
 
@@ -75,9 +77,21 @@ fun AuthScreen(
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
 
-    LaunchedEffect(state.user != null) {
-        if (state.user != null) onAuthenticated?.invoke()
+    // Advance only once the device holds this account's data; otherwise the next screen would be
+    // built from data that is about to be cleared or replaced.
+    val accountReady = state.user != null && !state.loading && state.accountData == AccountDataState.Idle
+    LaunchedEffect(accountReady) {
+        if (accountReady) onAuthenticated?.invoke()
     }
+
+    // Device data was cleared or replaced: rebuild the app from Splash so no screen keeps stale data.
+    val restartApp = LocalAppRestart.current
+    val initialGeneration = remember { state.localDataGeneration }
+    LaunchedEffect(state.localDataGeneration) {
+        if (state.localDataGeneration != initialGeneration) restartApp()
+    }
+
+    AccountDataDialogs(state.accountData, presenter)
 
     BrandScreen(Modifier.fillMaxSize()) {
         Column(

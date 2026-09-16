@@ -78,6 +78,7 @@ class StubAuthRepository : AuthRepository {
     override suspend fun signOut() = Unit
 
     override suspend fun idToken(): String? = null
+    override suspend fun idTokenFor(uid: String): String? = null
 }
 
 /**

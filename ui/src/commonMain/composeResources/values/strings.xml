@@ -49,6 +49,8 @@
     <string name="onboard_title">Welcome to V-Tempe</string>
     <string name="onboard_subtitle">Smart training, nutrition and sleep tailored to your goals.</string>
     <string name="onboard_cta">Save and start</string>
+    <string name="onboard_save_error">Could not save your profile. Your entries are still here. Please try again.</string>
+    <string name="onboard_generation_error">Your profile was saved, but the plan could not be prepared. Please try again.</string>
     <string name="onboard_step_counter">Step %1$d of %2$d</string>
     <string name="label_age">Age</string>
     <string name="label_height_cm">Height, cm</string>
@@ -413,7 +415,17 @@
     <string name="account_subscription">Subscription</string>
     <string name="account_free_plan">Free plan</string>
     <string name="account_sync_note">Your progress syncs across all your devices</string>
-
+    <string name="account_data_choice_title">This account already has progress</string>
+    <string name="account_data_choice_message">You have progress on this device and different progress saved in the account. Which one should be kept? The other will be replaced.</string>
+    <string name="account_data_choice_keep_account">Use account progress</string>
+    <string name="account_data_choice_keep_device">Use this device</string>
+    <string name="account_data_failed_title">Couldn't load account data</string>
+    <string name="account_data_failed_message">Check your connection and try again. Until then your progress isn't synced.</string>
+    <string name="account_data_retry">Try again</string>
+    <string name="account_data_unsynced_title">Progress isn't saved to the account</string>
+    <string name="account_data_unsynced_message">Some recent progress couldn't be uploaded. If you sign out now, it will be deleted from this device.</string>
+    <string name="account_data_unsynced_cancel">Stay signed in</string>
+    <string name="account_data_unsynced_sign_out">Sign out and delete</string>
     <!-- Paywall -->
     <string name="paywall_title">Pro version</string>
     <string name="paywall_desc">Unlock advanced features. Billing integration pending.</string>
@@ -430,7 +442,11 @@
     <!-- Settings extra -->
     <string name="settings_choose_theme_color">Choose another color</string>
     <string name="settings_reset_app">Re-register</string>
-
+    <string name="settings_reset_confirm_title">Start over?</string>
+    <string name="settings_reset_confirm_message">All your data on this device will be deleted: profile, plans, workout progress, sleep, weight and coach chat. Language and units stay.</string>
+    <string name="settings_reset_confirm_message_account">All your data will be deleted from this device and from your account: profile, plans, workout progress, sleep, weight and coach chat. You stay signed in. This can't be undone.</string>
+    <string name="settings_reset_confirm">Delete everything</string>
+    <string name="settings_reset_cancel">Cancel</string>
     <!-- Progress extra -->
     <string name="progress_summary_title">Overall</string>
     <string name="progress_metric_workouts">Workouts</string>
@@ -513,6 +529,9 @@
     <string name="chat_change_nutrition">Nutrition updated</string>
     <string name="chat_change_sleep">Sleep advice updated</string>
     <string name="chat_change_tap">Tap to view</string>
+    <string name="sleep_notes_label">How did you sleep?</string>
+    <string name="sleep_notes_hint">For example: woke up often, felt rested in the morning</string>
+    <string name="nutrition_macros_unavailable">Nutrition is unavailable. Ask the coach to recalculate it for this serving.</string>
 </resources>
 
 

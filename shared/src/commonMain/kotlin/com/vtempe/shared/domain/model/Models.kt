@@ -222,7 +222,9 @@ data class Advice(
 
 /** One night of logged sleep, used in the AI profile to personalise recovery advice. */
 @Serializable
-data class SleepEntry(val date: String, val durationMinutes: Int)
+data class SleepEntry(val date: String, val durationMinutes: Int, val notes: String = "")
+
+const val MAX_SLEEP_NOTE_LENGTH = 500
 
 /** One body-weight measurement, used in the AI profile to track progress trends. */
 @Serializable

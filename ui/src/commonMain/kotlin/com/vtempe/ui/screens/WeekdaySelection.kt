@@ -1,7 +1,7 @@
 package com.vtempe.ui.screens
 
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DayOfWeek
+import com.vtempe.ui.util.toShortKey
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -25,14 +25,4 @@ internal fun resolveNutritionSelectedDay(
     if (today in availableDays) return today
 
     return weekOrder.firstOrNull { it in availableDays } ?: selectedDay
-}
-
-private fun DayOfWeek.toShortKey(): String = when (this) {
-    DayOfWeek.MONDAY -> "Mon"
-    DayOfWeek.TUESDAY -> "Tue"
-    DayOfWeek.WEDNESDAY -> "Wed"
-    DayOfWeek.THURSDAY -> "Thu"
-    DayOfWeek.FRIDAY -> "Fri"
-    DayOfWeek.SATURDAY -> "Sat"
-    DayOfWeek.SUNDAY -> "Sun"
 }

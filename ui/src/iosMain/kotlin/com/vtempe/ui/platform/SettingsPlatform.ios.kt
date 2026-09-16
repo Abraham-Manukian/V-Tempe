@@ -2,12 +2,14 @@
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import com.vtempe.ui.LocalAppRestart
 
-private object IosSettingsPlatformActions : SettingsPlatformActions {
-    override fun restartApp() {}
+private class IosSettingsPlatformActions(private val restart: () -> Unit) : SettingsPlatformActions {
+    override fun restartApp() = restart()
 }
 
 @Composable
-actual fun rememberSettingsPlatformActions(): SettingsPlatformActions =
-    remember { IosSettingsPlatformActions }
-
+actual fun rememberSettingsPlatformActions(): SettingsPlatformActions {
+    val restart = LocalAppRestart.current
+    return remember(restart) { IosSettingsPlatformActions(restart) }
+}

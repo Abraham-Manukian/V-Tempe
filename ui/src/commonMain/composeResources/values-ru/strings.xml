@@ -49,6 +49,8 @@
     <string name="onboard_title">Добро пожаловать в V-Tempe</string>
     <string name="onboard_subtitle">Умные тренировки, питание и сон под ваши цели.</string>
     <string name="onboard_cta">Сохранить и начать</string>
+    <string name="onboard_save_error">Не удалось сохранить профиль. Введённые данные сохранены на экране. Попробуйте ещё раз.</string>
+    <string name="onboard_generation_error">Профиль сохранён, но подготовить план не удалось. Попробуйте ещё раз.</string>
     <string name="onboard_step_counter">Шаг %1$d из %2$d</string>
     <string name="label_age">Возраст</string>
     <string name="label_height_cm">Рост, см</string>
@@ -396,7 +398,17 @@
     <string name="account_subscription">Подписка</string>
     <string name="account_free_plan">Бесплатный план</string>
     <string name="account_sync_note">Прогресс синхронизируется на всех твоих устройствах</string>
-    <string name="settings_weight_label">Вес</string>
+    <string name="account_data_choice_title">В аккаунте уже есть прогресс</string>
+    <string name="account_data_choice_message">На этом устройстве есть прогресс, а в аккаунте сохранён другой. Какой оставить? Второй будет заменён.</string>
+    <string name="account_data_choice_keep_account">Прогресс из аккаунта</string>
+    <string name="account_data_choice_keep_device">С этого устройства</string>
+    <string name="account_data_failed_title">Не удалось загрузить данные аккаунта</string>
+    <string name="account_data_failed_message">Проверь подключение и попробуй ещё раз. Пока прогресс не синхронизируется.</string>
+    <string name="account_data_retry">Повторить</string>
+    <string name="account_data_unsynced_title">Прогресс не сохранён в аккаунте</string>
+    <string name="account_data_unsynced_message">Часть последнего прогресса не удалось отправить. Если выйти сейчас, он удалится с этого устройства.</string>
+    <string name="account_data_unsynced_cancel">Не выходить</string>
+    <string name="account_data_unsynced_sign_out">Выйти и удалить</string>    <string name="settings_weight_label">Вес</string>
     <string name="settings_weight_value">%1$.1f кг</string>
     <string name="settings_height_label">Рост</string>
     <string name="settings_height_value">%1$d см</string>
@@ -422,7 +434,11 @@
     <!-- Settings extra -->
     <string name="settings_choose_theme_color">Выбрать другой цвет</string>
     <string name="settings_reset_app">Заново регистрация</string>
-
+    <string name="settings_reset_confirm_title">Начать заново?</string>
+    <string name="settings_reset_confirm_message">С устройства удалятся все твои данные: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Язык и единицы измерения останутся.</string>
+    <string name="settings_reset_confirm_message_account">Все твои данные удалятся с устройства и из аккаунта: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Вход в аккаунт сохранится. Отменить это нельзя.</string>
+    <string name="settings_reset_confirm">Удалить всё</string>
+    <string name="settings_reset_cancel">Отмена</string>
     <!-- Progress extra -->
     <string name="progress_summary_title">Общий итог</string>
     <string name="progress_metric_workouts">Тренировки</string>
@@ -513,4 +529,7 @@
     <string name="common_retry">Повторить</string>
     <string name="home_load_error">Не удалось обновить план</string>
     <string name="home_load_error_hint">Проверьте соединение и попробуйте ещё раз.</string>
+    <string name="sleep_notes_label">Как спалось?</string>
+    <string name="sleep_notes_hint">Например: часто просыпался, утром чувствовал себя отдохнувшим</string>
+    <string name="nutrition_macros_unavailable">КБЖУ не рассчитаны. Попросите коуча пересчитать их для этой порции.</string>
 </resources>

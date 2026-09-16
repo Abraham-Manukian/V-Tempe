@@ -1,6 +1,13 @@
 package com.vtempe.shared.data.di
 
+import com.vtempe.shared.data.account.DeviceUserData
+import com.vtempe.shared.data.account.SettingsLocalDataOwnerStore
 import com.vtempe.shared.data.network.ApiClient
+import com.vtempe.shared.domain.account.AccountDataCoordinator
+import com.vtempe.shared.domain.account.AccountSession
+import com.vtempe.shared.domain.account.DefaultAccountSession
+import com.vtempe.shared.domain.account.LocalDataOwnerStore
+import com.vtempe.shared.domain.account.LocalUserData
 import com.vtempe.shared.data.network.createHttpClient
 import com.vtempe.shared.domain.repository.*
 import com.vtempe.shared.domain.repository.AiModelPreferences
@@ -133,11 +140,16 @@ object DI {
         //                       AppModule.kt; iOS keeps this stub until Firebase iOS is wired.
         single<AdviceRepository> { StubAdviceRepository() }
         single<PurchasesRepository> { StubPurchasesRepository() }
-        // Cross-platform on both Android and iOS — sync is plain HTTP through ApiClient's
-        // existing bearer-token auth, no Firebase SDK dependency like Auth/Analytics have.
-        // Requests made while signed out simply go unauthenticated and the server 401s, which
-        // pushDomain/pullAll already treat as a swallowed failure.
-        single<SyncRepository> { NetworkSyncRepository(get(), get(), get(), get(), get()) }
+        // Cross-platform on both Android and iOS — sync is plain HTTP through ApiClient, no
+        // Firebase SDK dependency like Auth/Analytics have. Uploads are pinned to the account
+        // that owns the device data (see AccountDataCoordinator).
+        single<SyncRepository> {
+            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get())
+        }
+        single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
+        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get()) }
+        single { AccountDataCoordinator(get(), get(), get(), get()) }
+        single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }
         single<AnalyticsRepository> { NoOpAnalyticsRepository() }
         single<AuthRepository> { StubAuthRepository() }
         single<EntitlementRepository> { NetworkEntitlementRepository(get()) }
@@ -161,7 +173,6 @@ object DI {
         // single (not factory) — holds the Mutex that prevents parallel bootstrap calls
         single { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
         factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope"))) }
-        factory { ResetCoachData(get(), get()) }
         factory { ValidateSubscription(get()) }
         factory { SyncAnalyticsProfile(get(), get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }

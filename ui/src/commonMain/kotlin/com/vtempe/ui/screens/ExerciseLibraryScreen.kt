@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,10 +57,11 @@ import com.vtempe.shared.domain.exercise.ExerciseBrowseCatalog
 import com.vtempe.shared.domain.exercise.ExerciseVisualFamily
 import com.vtempe.shared.domain.exercise.TrainMode
 import com.vtempe.shared.domain.model.CoachTrainerIds
+import com.vtempe.ui.*
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import com.vtempe.ui.Res
-import com.vtempe.ui.*
+import com.vtempe.ui.coach.coachExerciseIllustration
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource

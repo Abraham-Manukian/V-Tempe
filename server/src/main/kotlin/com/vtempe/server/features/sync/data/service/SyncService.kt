@@ -6,7 +6,7 @@ import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
 /** The domain names a client is allowed to sync — anything else is rejected before it reaches
  *  the repository, so this table can't be abused as an arbitrary per-user key-value store. Keep
  *  in sync with the client's SyncDomain enum (shared/.../domain/repository/Repositories.kt). */
-val ALLOWED_SYNC_DOMAINS = setOf("profile", "workoutProgress", "sleep", "weight")
+val ALLOWED_SYNC_DOMAINS = setOf("profile", "workoutProgress", "sleep", "sleepNotes", "weight")
 
 /** A generous cap, not a tuned one — these are compact JSON snapshots (a profile, a few weeks of
  *  workout completions, a couple months of sleep/weight entries), normally a few KB. 256 KB stops

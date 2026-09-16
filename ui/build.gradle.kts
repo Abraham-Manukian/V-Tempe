@@ -3,6 +3,7 @@
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -41,6 +42,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
         val androidMain by getting {
@@ -48,6 +50,7 @@ kotlin {
                 implementation("io.insert-koin:koin-androidx-compose:3.5.6")
                 implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
                 implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+                implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
                 implementation(libs.androidx.activity.compose)
                 implementation("androidx.compose.material:material-icons-extended:1.7.1")
                 implementation(libs.material)

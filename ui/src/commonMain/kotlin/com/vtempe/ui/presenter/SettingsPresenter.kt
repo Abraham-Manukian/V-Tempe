@@ -1,5 +1,6 @@
 package com.vtempe.ui.presenter
 
+import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.AuthRepository
@@ -7,9 +8,9 @@ import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
-import com.vtempe.shared.domain.usecase.ResetCoachData
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ data class SettingsState(
     val saving: Boolean = false,
     val aiModelMode: AiModelMode = AiModelMode.PAID,
     val analyticsConsent: Boolean = false,
-    val authUser: AuthUser? = null
+    val authUser: AuthUser? = null,
+    val resetting: Boolean = false
 )
 
 interface SettingsPresenter {
@@ -40,7 +42,7 @@ class SettingsPresenterDelegate(
     private val profileRepository: ProfileRepository,
     private val preferencesRepository: PreferencesRepository,
     private val ensureCoachData: EnsureCoachData,
-    private val resetCoachData: ResetCoachData,
+    private val accountSession: AccountSession,
     private val syncAnalyticsProfile: SyncAnalyticsProfile,
     private val authRepository: AuthRepository,
     private val scope: CoroutineScope,
@@ -76,11 +78,18 @@ class SettingsPresenterDelegate(
     }
 
     override fun reset(onDone: () -> Unit) {
+        if (_state.value.resetting) return
+        _state.update { it.copy(resetting = true) }
         scope.launch {
-            // Full wipe: DB (profile + workouts + nutrition) + AI cache + epoch date.
-            // Week counter restarts from zero on the next bootstrap.
-            runCatching { resetCoachData() }
-                .onFailure { Napier.e("Reset failed", it) }
+            // Everything the user created: profile, plans, progress, sleep, weight, chat, AI cache,
+            // and the signed-in account's synced copy. Device preferences (language, units) stay.
+            try {
+                accountSession.resetUserData()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Napier.e("Reset failed", error)
+            }
             _state.value = SettingsState()
             onDone()
         }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CancellationException
 
 private fun FirebaseUser?.toAuthUser(): AuthUser? = this?.let {
     // Google Sign-In provides a profile photo + display name; email/password and Apple typically don't.
@@ -81,9 +82,20 @@ class FirebaseAuthRepository : AuthRepository {
     override suspend fun idToken(): String? =
         // getIdToken(false) refreshes internally only if the cached token has actually expired —
         // this is NOT "always force a network round-trip", it's the standard cheap call.
-        runCatching { auth.currentUser?.getIdToken(false)?.await()?.token }.getOrNull()
+        runCatching { auth.currentUser?.getIdToken(false)?.await()?.token }
+            .onFailure { if (it is CancellationException) throw it }
+            .getOrNull()
+
+    override suspend fun idTokenFor(uid: String): String? {
+        // Token taken from the same FirebaseUser object that passed the uid check.
+        val user = auth.currentUser?.takeIf { it.uid == uid } ?: return null
+        return runCatching { user.getIdToken(false).await().token }
+            .onFailure { if (it is CancellationException) throw it }
+            .getOrNull()
+    }
 
     private fun Throwable.toAuthException(): AuthException = when (this) {
+        is CancellationException -> throw this
         is FirebaseAuthWeakPasswordException -> AuthException(AuthErrorCode.WEAK_PASSWORD, "Password is too weak", this)
         is FirebaseAuthInvalidCredentialsException -> AuthException(AuthErrorCode.INVALID_CREDENTIALS, "Invalid email or password", this)
         is FirebaseAuthUserCollisionException -> AuthException(AuthErrorCode.EMAIL_IN_USE, "An account with this email already exists", this)

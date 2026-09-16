@@ -26,5 +26,5 @@ class SleepViewModel(
     override val state: StateFlow<SleepState> = delegate.state
 
     override fun sync() = delegate.sync()
-    override fun logSleep(hours: Int, minutes: Int) = delegate.logSleep(hours, minutes)
+    override fun logSleep(hours: Int, minutes: Int, notes: String) = delegate.logSleep(hours, minutes, notes)
 }

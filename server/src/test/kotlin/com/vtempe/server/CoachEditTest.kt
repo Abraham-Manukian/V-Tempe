@@ -216,4 +216,48 @@ class CoachEditTest {
         assertFalse(result.trainingChanged)
         assertFalse(result.nutritionChanged)
     }
+    @Test
+    fun `incomplete or zero nutrition never adds or replaces a meal`() {
+        for (operation in listOf("add_meal", "swap_meal")) {
+            for (invalid in listOf(
+                CoachEditOp(op = operation, day = "Mon", mealIndex = 0, name = "Burger", ingredients = listOf("150 g beef")),
+                CoachEditOp(op = operation, day = "Mon", mealIndex = 0, name = "Burger", ingredients = listOf("150 g beef"), kcal = 500, proteinGrams = 0, fatGrams = 0, carbsGrams = 0),
+                CoachEditOp(op = operation, day = "Mon", mealIndex = 0, name = "Burger", ingredients = listOf("150 g beef"), kcal = 500, proteinGrams = -1, fatGrams = 20, carbsGrams = 40),
+            )) {
+                val original = nutritionPlan()
+                val result = applicator.apply(listOf(invalid), null, original, null)
+                assertFalse(result.nutritionChanged)
+                assertEquals(null, result.nutritionPlan)
+                assertTrue(result.rejections.isNotEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `burger keeps requested ingredients recipe and complete macros`() {
+        val result = applicator.apply(listOf(CoachEditOp(
+            op = "add_meal", day = "Mon", name = "Burger with mayonnaise",
+            ingredients = listOf("150 g beef", "80 g bun", "20 g mayonnaise"),
+            kcal = 700, proteinGrams = 40, fatGrams = 40, carbsGrams = 45,
+            recipe = "Cook the patty thoroughly, toast the bun and assemble with mayonnaise.",
+        )), null, nutritionPlan(), null)
+        assertTrue(result.nutritionChanged)
+        val meal = result.nutritionPlan!!.mealsByDay.getValue("Mon").last()
+        assertEquals("Burger with mayonnaise", meal.name)
+        assertTrue(meal.ingredients.contains("20 g mayonnaise"))
+        assertEquals(700, meal.kcal)
+        assertEquals(40, meal.macros.proteinGrams)
+        assertTrue(meal.recipe.isNotBlank())
+    }
+
+    @Test
+    fun `missing meal macros trigger model repair before applying edits`() {
+        val response = com.vtempe.server.shared.dto.chat.AiChatResponse(
+            reply = "Added",
+            editOps = listOf(CoachEditOp(op = "add_meal", day = "Mon", name = "Burger", ingredients = listOf("150 g beef"))),
+        )
+        val errors = com.vtempe.server.features.ai.data.service.validateChatResponse(response, gymProfile(), java.util.Locale.ENGLISH, catalog)
+        assertTrue(errors.any { it.startsWith("editOps[0]") })
+    }
+
 }

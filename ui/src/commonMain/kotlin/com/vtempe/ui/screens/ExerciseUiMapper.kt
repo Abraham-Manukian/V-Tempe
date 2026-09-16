@@ -18,12 +18,13 @@ import com.vtempe.shared.domain.exercise.LocalizedText
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.WorkoutSet
-import com.vtempe.ui.Res
 import com.vtempe.ui.*
+import com.vtempe.ui.Res
+import com.vtempe.ui.coach.coachExerciseIllustration
 import com.vtempe.ui.util.kmpFormat
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToInt
 
 internal data class ExerciseGuideData(
     val illustration: DrawableResource,

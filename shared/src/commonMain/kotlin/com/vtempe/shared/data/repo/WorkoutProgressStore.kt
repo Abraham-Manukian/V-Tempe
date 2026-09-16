@@ -71,6 +71,11 @@ class WorkoutProgressStore(
         cache.value = load()
     }
 
+    fun clear() {
+        settings.remove(KEY)
+        cache.value = emptyMap()
+    }
+
     suspend fun recentSummaries(limit: Int = 6): List<WorkoutSummary> {
         val workoutsById = loadWorkouts().associateBy { it.id }
         return cache.value.values

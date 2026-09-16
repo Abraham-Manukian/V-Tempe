@@ -64,18 +64,26 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
 
     /** For PUT endpoints that respond 204 No Content on success — there's no body to decode, so
      *  this just reports whether the call succeeded, unlike [postResult]/[getResult]. */
-    suspend inline fun <reified Req : Any> putNoContent(path: String, body: Req): Boolean =
+    suspend inline fun <reified Req : Any> putNoContent(
+        path: String,
+        body: Req,
+        /** Pins the request to a specific user's token instead of whoever is signed in when it's sent. */
+        bearerToken: String? = null
+    ): Boolean =
         runCatching {
             httpClient.put("$baseUrl$path") {
+                bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 contentType(ContentType.Application.Json)
                 setBody(body)
             }.status.isSuccess()
         }.onFailure { if (it is CancellationException) throw it }
             .getOrDefault(false)
 
-    suspend inline fun <reified Res : Any> getResult(path: String): DataResult<Res> {
+    suspend inline fun <reified Res : Any> getResult(path: String, bearerToken: String? = null): DataResult<Res> {
         val response = runCatching {
-            httpClient.get("$baseUrl$path")
+            httpClient.get("$baseUrl$path") {
+                bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+            }
         }.getOrElse { throwable -> return mapApiThrowable(throwable) }
         return parseApiResponse<Res>(response)
     }

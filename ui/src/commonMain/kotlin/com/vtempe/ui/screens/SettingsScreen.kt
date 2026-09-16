@@ -1,4 +1,4 @@
-﻿@file:OptIn(
+@file:OptIn(
     org.jetbrains.compose.resources.ExperimentalResourceApi::class,
     androidx.compose.foundation.layout.ExperimentalLayoutApi::class
 )
@@ -62,6 +62,7 @@ import com.vtempe.core.designsystem.theme.AppThemeColor
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.ui.platform.SettingsPlatformActions
+import com.vtempe.ui.screens.settings.ResetDataDialog
 import com.vtempe.ui.platform.rememberSettingsPlatformActions
 import com.vtempe.ui.util.kmpFormat
 import com.vtempe.ui.LocalBottomBarHeight
@@ -296,17 +297,32 @@ fun SettingsScreen(
             if (state.saving) {
                 Text(stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
             }
+            var confirmReset by remember { mutableStateOf(false) }
             Button(
-                onClick = { presenter.reset { platformActions.restartApp() } },
+                onClick = { confirmReset = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AiPalette.DeepAccent,
                     contentColor = AiPalette.OnDeepAccent
                 ),
                 shape = MaterialTheme.shapes.large,
-                enabled = !state.saving
+                enabled = !state.saving && !state.resetting
             ) {
-                Text(stringResource(Res.string.settings_reset_app), fontWeight = FontWeight.Bold)
+                if (state.resetting) {
+                    CircularProgressIndicator(Modifier.size(18.dp), color = AiPalette.OnDeepAccent, strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(Res.string.settings_reset_app), fontWeight = FontWeight.Bold)
+                }
+            }
+            if (confirmReset) {
+                ResetDataDialog(
+                    signedIn = state.authUser != null,
+                    onConfirm = {
+                        confirmReset = false
+                        presenter.reset { platformActions.restartApp() }
+                    },
+                    onDismiss = { confirmReset = false }
+                )
             }
             
             Spacer(Modifier.height(bottomBarHeight + 16.dp))

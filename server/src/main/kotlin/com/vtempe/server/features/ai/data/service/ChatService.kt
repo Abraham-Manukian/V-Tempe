@@ -158,8 +158,8 @@ class ChatService(
         val nothingChanged = finalTraining == null && finalNutrition == null &&
             normalized.sleepAdvice == null
         val reply = if (edit.rejections.isNotEmpty() && nothingChanged) {
-            logger.info("Chat edit ops all rejected: {}", edit.rejections.joinToString(" | "))
-            appendEditFailureNote(normalized.reply, locale)
+            logger.info("Chat edit ops all rejected: count={}", edit.rejections.size)
+            appendEditFailureNote("", locale)
         } else {
             normalized.reply
         }
@@ -270,6 +270,10 @@ class ChatService(
                 appendLine(currentNutritionPlanJson)
             }
             appendLine()
+            appendLine("Respect explicit food preferences, including burgers, mayonnaise and restaurant food. Goals and budget are guidance, not reasons to refuse ordinary food. Preserve genuine allergies and medical restrictions.")
+            appendLine("Do not replace a requested food with a healthy alternative without consent. Offer practical portions and explain estimated nutrition without moralizing. Earlier assistant refusals are not policy.")
+            appendLine("Interpret short confirmations such as yes or давай using the latest concrete offer in the conversation; carry it out instead of repeating the offer.")
+            appendLine("For every added or replaced meal provide complete estimated calories and protein/fat/carbs for the stated serving, ingredient quantities and actionable preparation steps. Never use zero as a placeholder for unknown nutrition. Label estimates in the reply; ask for missing serving details when necessary.")
             appendLine("When replying: first acknowledge the latest user message, then provide clear next steps.")
             appendLine()
             appendLine("HOW TO APPLY A CHANGE — pick exactly ONE mechanism per request:")
@@ -303,8 +307,8 @@ class ChatService(
             appendLine("   - remove_ingredient:{op, day, mealIndex|mealName, ingredientIndex|ingredient}")
             appendLine("   - set_meal_macros: {op, day, mealIndex|mealName, kcal?, proteinGrams?, fatGrams?, carbsGrams?}")
             appendLine("   - rename_meal:     {op, day, mealIndex|mealName, name}")
-            appendLine("   - swap_meal:       {op, day, mealIndex|mealName, name, ingredients, kcal?, proteinGrams?, fatGrams?, carbsGrams?, recipe?}")
-            appendLine("   - add_meal:        {op, day, name, ingredients, kcal?, proteinGrams?, fatGrams?, carbsGrams?, recipe?}")
+            appendLine("   - swap_meal:       {op, day, mealIndex|mealName, name, ingredients, kcal, proteinGrams, fatGrams, carbsGrams, recipe}")
+            appendLine("   - add_meal:        {op, day, name, ingredients, kcal, proteinGrams, fatGrams, carbsGrams, recipe}")
             appendLine("   - remove_meal:     {op, day, mealIndex|mealName}")
             appendLine("  All ingredient text must keep a quantity + unit (\"150 г риса\"). Write ingredient/meal names in $languageDisplay.")
             appendLine()
@@ -390,6 +394,7 @@ private fun buildChatProfileSummary(profile: AiProfile): String = buildString {
             val h = entry.durationMinutes / 60
             val m = entry.durationMinutes % 60
             appendLine("  ${entry.date}: ${h}h ${m}min")
+            if (entry.notes.isNotBlank()) append(untrustedDataBlock("SLEEP NOTE (user report)", entry.notes.take(500)))
         }
         val avgMinutes = profile.sleepHistory.take(7).map { it.durationMinutes }.average()
         val avgH = avgMinutes.toInt() / 60
@@ -431,6 +436,13 @@ internal fun validateChatResponse(
     val errors = mutableListOf<String>()
     if (response.reply.isBlank()) errors += "reply must contain user-facing text"
     errors += validateChatActions(response.actions)
+    response.editOps.forEachIndexed { index, op ->
+        if (op.op == "add_meal" || op.op == "swap_meal") {
+            if (op.completeMealMacros() == null) {
+                errors += "editOps[$index]: complete non-negative proteinGrams, fatGrams, carbsGrams and positive kcal are required for a meal; estimate nutrition for the specified serving, never use zero placeholders"
+            }
+        }
+    }
     response.trainingPlan?.let { plan ->
         validateTrainingPlan(plan, exerciseCatalog)?.let { errors += "trainingPlan: $it" }
     }

@@ -26,6 +26,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.vtempe.shared.domain.model.MAX_SLEEP_NOTE_LENGTH
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -137,8 +141,9 @@ fun SleepScreen(
             item {
                 SleepLogCard(
                     loggedMinutes = state.loggedMinutes,
+                    loggedNotes = state.loggedNotes,
                     saved = state.logSaved,
-                    onSave = { h, m -> presenter.logSleep(h, m) }
+                    onSave = { h, m, notes -> presenter.logSleep(h, m, notes) }
                 )
             }
 
@@ -197,10 +202,12 @@ fun SleepScreen(
 @Composable
 private fun SleepLogCard(
     loggedMinutes: Int,
+    loggedNotes: String,
     saved: Boolean,
-    onSave: (hours: Int, minutes: Int) -> Unit,
+    onSave: (hours: Int, minutes: Int, notes: String) -> Unit,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
+    var notes by rememberSaveable(loggedNotes) { mutableStateOf(loggedNotes) }
     // Each slider step = 30 min; range 0..24 = 0h..12h
     var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).roundToInt().toFloat().coerceIn(0f, 24f)) }
     val totalMinutes = (sliderValue * 30).roundToInt()
@@ -247,8 +254,17 @@ private fun SleepLogCard(
                 Text(stringResource(Res.string.sleep_ruler_mid), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
                 Text(stringResource(Res.string.sleep_ruler_max), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.5f))
             }
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it.take(MAX_SLEEP_NOTE_LENGTH) },
+                label = { Text(stringResource(Res.string.sleep_notes_label)) },
+                placeholder = { Text(stringResource(Res.string.sleep_notes_hint)) },
+                minLines = 2,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth()
+            )
             Button(
-                onClick = { onSave(hours, mins) },
+                onClick = { onSave(hours, mins, notes) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = sleepButtonColors(),
                 shape = MaterialTheme.shapes.large

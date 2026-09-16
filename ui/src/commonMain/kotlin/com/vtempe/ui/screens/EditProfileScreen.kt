@@ -5,13 +5,6 @@
 
 package com.vtempe.ui.screens
 
-import com.vtempe.ui.*
-import com.vtempe.ui.presenter.SettingsPresenter
-import com.vtempe.ui.presenter.TRAINING_MODE_GYM
-import com.vtempe.ui.presenter.TRAINING_MODE_HOME
-import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
-import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,8 +20,18 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.*
+import com.vtempe.ui.*
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
+import com.vtempe.ui.coach.CoachChoiceCard
+import com.vtempe.ui.coach.coachTrainerOptions
+import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import com.vtempe.ui.presenter.TRAINING_MODE_HOME
+import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
+import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
+import com.vtempe.ui.screens.profile.EditProfileState
+import com.vtempe.ui.screens.profile.toEditState
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
 

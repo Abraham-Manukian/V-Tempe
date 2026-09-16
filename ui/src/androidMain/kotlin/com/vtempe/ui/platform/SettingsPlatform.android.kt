@@ -1,22 +1,17 @@
-﻿package com.vtempe.ui.platform
+package com.vtempe.ui.platform
 
-import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
+import com.vtempe.ui.LocalAppRestart
 
-private class AndroidSettingsPlatformActions(
-    private val activity: Activity?
-) : SettingsPlatformActions {
-    override fun restartApp() {
-        activity?.recreate()
-    }
+// In-app restart, not Activity.recreate(): recreate() restores the saved back stack and keeps the
+// ViewModels, so after a reset the user landed back on an empty Settings screen spinning forever.
+private class AndroidSettingsPlatformActions(private val restart: () -> Unit) : SettingsPlatformActions {
+    override fun restartApp() = restart()
 }
 
 @Composable
 actual fun rememberSettingsPlatformActions(): SettingsPlatformActions {
-    val context = LocalContext.current
-    val activity = context as? Activity
-    return remember(activity) { AndroidSettingsPlatformActions(activity) }
+    val restart = LocalAppRestart.current
+    return remember(restart) { AndroidSettingsPlatformActions(restart) }
 }
-

@@ -475,6 +475,7 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
             val h = entry.durationMinutes / 60
             val m = entry.durationMinutes % 60
             appendLine("  ${entry.date}: ${h}h ${m}min")
+            if (entry.notes.isNotBlank()) append(untrustedDataBlock("SLEEP NOTE (user report)", entry.notes.take(500)))
         }
         val avgMinutes = profile.sleepHistory.take(7).map { it.durationMinutes }.average()
         val avgH = avgMinutes.toInt() / 60

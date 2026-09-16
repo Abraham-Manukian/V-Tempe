@@ -1,4 +1,4 @@
-package com.vtempe.ui.screens
+package com.vtempe.ui.screens.profile
 
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
