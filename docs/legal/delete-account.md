@@ -16,11 +16,11 @@
 
 ## Что удаляется
 
-- учётная запись V-Tempe (связь с вашим Google-аккаунтом);
+- учётная запись V-Tempe в Firebase Authentication (связь с вашим Google-аккаунтом; сам аккаунт Google не удаляется);
 - резервная копия на сервере: профиль, включая данные о здоровье (травмы, медицинские заметки,
   аллергии), журналы тренировок, сна и веса;
-- данные на устройстве удаляются при удалении аккаунта в приложении [ПРОВЕРИТЬ по реализации],
-  а также при сбросе данных или удалении приложения.
+- данные на устройстве удаляются при удалении аккаунта в приложении сразу после удаления данных на сервере
+  и учётной записи; а также при сбросе данных или удалении приложения.
 
 ## Что сохраняется и сколько
 
@@ -52,11 +52,11 @@ e-mail.
 
 ## What is deleted
 
-- your V-Tempe account (the link to your Google account);
+- your V-Tempe account in Firebase Authentication (the link to your Google account; the Google account itself is not deleted);
 - the server backup: profile including health data (injuries, health notes, allergies), workout,
   sleep and weight logs;
-- data on the device is erased when you delete the account in the app [VERIFY against the
-  implementation], reset data or uninstall.
+- data on the device is erased when you delete the account in the app right after the server data and the account
+  are deleted; also when you reset data or uninstall.
 
 ## What is kept and for how long
 

@@ -32,7 +32,7 @@ hr{border:0;border-top:1px solid var(--line);margin:32px 0}
 <h2>Если приложение недоступно</h2>
 <p>Напишите на [E-MAIL ДЛЯ ОБРАЩЕНИЙ] с адреса Google-аккаунта, которым вы входили в V-Tempe, с темой «Удаление аккаунта». Мы удалим аккаунт и данные в течение [СРОК, не более 30 дней] и сообщим об этом в ответном письме.</p>
 <h2>Что удаляется</h2>
-<ul><li>учётная запись V-Tempe (связь с вашим Google-аккаунтом);</li><li>резервная копия на сервере: профиль, включая данные о здоровье (травмы, медицинские заметки, аллергии), журналы тренировок, сна и веса;</li><li>данные на устройстве удаляются при удалении аккаунта в приложении [ПРОВЕРИТЬ по реализации], а также при сбросе данных или удалении приложения.</li></ul>
+<ul><li>учётная запись V-Tempe в Firebase Authentication (связь с вашим Google-аккаунтом; сам аккаунт Google не удаляется);</li><li>резервная копия на сервере: профиль, включая данные о здоровье (травмы, медицинские заметки, аллергии), журналы тренировок, сна и веса;</li><li>данные на устройстве удаляются при удалении аккаунта в приложении сразу после удаления данных на сервере и учётной записи; а также при сбросе данных или удалении приложения.</li></ul>
 <h2>Что сохраняется и сколько</h2>
 <ul><li>записи о платежах и подписке (идентификатор аккаунта, сумма, валюта, дата, идентификатор платежа) — в течение срока, установленного законодательством о бухгалтерском учёте [СРОК, не менее 5 лет];</li><li>технические журналы сервера — до [30 дней], затем удаляются автоматически;</li><li>отчёты о сбоях Firebase Crashlytics — до 90 дней, они не связаны с вашим аккаунтом.</li></ul>
 <p>Удаление аккаунта не отменяет подписку в Google Play — отмените её в настройках Google Play.</p>
@@ -44,7 +44,7 @@ hr{border:0;border-top:1px solid var(--line);margin:32px 0}
 <h2>If you can't use the app</h2>
 <p>E-mail [CONTACT E-MAIL] from the Google account address you used in V-Tempe, subject "Account deletion". We will delete the account and data within [PERIOD, at most 30 days] and confirm by e-mail.</p>
 <h2>What is deleted</h2>
-<ul><li>your V-Tempe account (the link to your Google account);</li><li>the server backup: profile including health data (injuries, health notes, allergies), workout, sleep and weight logs;</li><li>data on the device is erased when you delete the account in the app [VERIFY against the implementation], reset data or uninstall.</li></ul>
+<ul><li>your V-Tempe account in Firebase Authentication (the link to your Google account; the Google account itself is not deleted);</li><li>the server backup: profile including health data (injuries, health notes, allergies), workout, sleep and weight logs;</li><li>data on the device is erased when you delete the account in the app right after the server data and the account are deleted; also when you reset data or uninstall.</li></ul>
 <h2>What is kept and for how long</h2>
 <ul><li>payment and subscription records (account ID, amount, currency, date, payment ID) — for the period required by accounting law [PERIOD, at least 5 years];</li><li>server technical logs — up to [30 days], then deleted automatically;</li><li>Firebase Crashlytics crash reports — up to 90 days; they are not linked to your account.</li></ul>
 <p>Deleting the account does not cancel a Google Play subscription — cancel it in Google Play.</p>
