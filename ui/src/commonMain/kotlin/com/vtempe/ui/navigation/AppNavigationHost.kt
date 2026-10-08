@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import com.vtempe.ui.*
 import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.screens.*
+import com.vtempe.ui.screens.consent.HealthConsentScreen
 
 @Composable
 internal fun AppNavigationHost(
@@ -26,6 +27,7 @@ internal fun AppNavigationHost(
             onSkip = { onNavigate(Destination.Onboarding) }
         )
         is Destination.Onboarding -> OnboardingScreen(onDone = { onNavigate(Destination.Home) })
+        is Destination.HealthConsent -> HealthConsentScreen(onDone = { onNavigate(Destination.Home) })
         is Destination.Home -> HomeScreen(onNavigate = onNavigate)
         is Destination.Workout -> WorkoutScreen(
             onAskCoach = onAskCoach,

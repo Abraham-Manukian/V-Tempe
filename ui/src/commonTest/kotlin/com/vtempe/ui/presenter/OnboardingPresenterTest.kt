@@ -1,5 +1,8 @@
 package com.vtempe.ui.presenter
 
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
+import com.vtempe.shared.domain.consent.HealthDataConsentRecord
+import com.vtempe.shared.domain.legal.LegalDocuments
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.repository.*
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
@@ -150,6 +153,51 @@ class OnboardingPresenterTest {
         assertEquals(2, fixture.bootstrapCalls)
     }
 
+    @Test
+    fun consentCheckboxIsNeverPreChecked() {
+        assertFalse(OnboardingState().healthDataConsent)
+    }
+
+    @Test
+    fun finishingWithoutHealthConsentIsRefusedAndNothingIsSent() = runTest {
+        val fixture = Fixture()
+        val presenter = fixture.presenter(backgroundScope, consented = false)
+        presenter.update { it.copy(currentStep = 13) }
+        presenter.save { fail("Must not complete without consent") }
+        runCurrent()
+        assertEquals(OnboardingError.CONSENT_REQUIRED, presenter.state.value.error)
+        assertEquals(13, presenter.state.value.currentStep)
+        assertEquals(0, fixture.writes)
+        assertEquals(0, fixture.bootstrapCalls)
+        assertNull(fixture.healthConsent)
+    }
+
+    @Test
+    fun consentIsRecordedWithVersionAndTimeBeforeTheFirstAiRequest() = runTest {
+        val fixture = Fixture()
+        var grantedAtBootstrap: Boolean? = null
+        fixture.bootstrapAction = {
+            grantedAtBootstrap = fixture.consentManager.isHealthDataConsentGranted()
+            fixture.bundle
+        }
+        fixture.presenter(backgroundScope).save {}
+        runCurrent()
+        assertEquals(true, grantedAtBootstrap)
+        assertEquals(
+            HealthDataConsentRecord(granted = true, documentVersion = LegalDocuments.HEALTH_DATA_CONSENT_VERSION, decidedAtMillis = 99L),
+            fixture.healthConsent
+        )
+    }
+
+    @Test
+    fun analyticsOptInStaysSeparateFromHealthConsent() = runTest {
+        val fixture = Fixture()
+        fixture.presenter(backgroundScope).save {}
+        runCurrent()
+        assertTrue(fixture.healthConsent!!.granted)
+        assertFalse(fixture.analyticsConsent)
+    }
+
     private class Fixture {
         var profile: Profile? = null
         var writes = 0
@@ -159,6 +207,7 @@ class OnboardingPresenterTest {
         var nutritionReady = false
         var adviceReady = false
         var epoch: Long? = null
+        var analyticsConsent = false
         val trainingPlan = TrainingPlan(0, emptyList())
         val nutritionPlan = NutritionPlan(0, emptyMap(), emptyList())
         val bundle = CoachBundle(trainingPlan, nutritionPlan, Advice(listOf("test advice")))
@@ -224,19 +273,25 @@ class OnboardingPresenterTest {
             override fun setAiModelMode(mode: AiModelMode) = Unit
             override fun getUnits(): String? = null
             override fun setUnits(units: String?) = Unit
-            override fun getAnalyticsConsent() = false
-            override fun setAnalyticsConsent(granted: Boolean) = Unit
+            override fun getAnalyticsConsent() = analyticsConsent
+            override fun setAnalyticsConsent(granted: Boolean) { analyticsConsent = granted }
+            override fun getHealthDataConsent() = healthConsent
+            override fun setHealthDataConsent(record: HealthDataConsentRecord) { healthConsent = record }
         }
+        var healthConsent: HealthDataConsentRecord? = null
+        val consentManager = HealthDataConsentManager(preferences, nowMillis = { 99L })
         val analytics = object : AnalyticsRepository {
             override fun logEvent(name: String, params: Map<String, String>) = Unit
             override fun setUserProperty(key: String, value: String?) = Unit
             override fun recordNonFatal(throwable: Throwable, message: String?) = Unit
         }
         val bootstrap = BootstrapCoachData(profiles, ai, training, nutrition, advice, cache)
-        fun presenter(scope: CoroutineScope) = OnboardingPresenterDelegate(
+        /** [consented] mirrors the user ticking the health-data consent on the last step. */
+        fun presenter(scope: CoroutineScope, consented: Boolean = true) = OnboardingPresenterDelegate(
             profiles, bootstrap, preferences, scope,
             analytics = analytics, analyticsConsentPreferences = preferences,
-            syncAnalyticsProfile = SyncAnalyticsProfile(preferences, analytics)
-        )
+            syncAnalyticsProfile = SyncAnalyticsProfile(preferences, analytics),
+            healthDataConsent = consentManager
+        ).apply { if (consented) update { it.copy(healthDataConsent = true) } }
     }
 }

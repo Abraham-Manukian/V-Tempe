@@ -13,5 +13,5 @@ actual suspend fun determineStartDestination(): Destination {
         ?: return Destination.Welcome
 
     val hasProfile = runCatching { profileRepository.getProfile() != null }.getOrDefault(false)
-    return if (hasProfile) Destination.Home else Destination.Welcome
+    return if (hasProfile) destinationForExistingProfile(koin.getOrNull()) else Destination.Welcome
 }

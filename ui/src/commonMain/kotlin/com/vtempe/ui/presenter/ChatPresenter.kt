@@ -22,6 +22,8 @@ sealed interface ChatSendState {
     data object Loading : ChatSendState
     data object Success : ChatSendState
     data class Error(val message: String) : ChatSendState
+    /** Blocked on the device: no consent to send health data to the AI coach. */
+    data object ConsentRequired : ChatSendState
 }
 
 @Immutable
@@ -105,6 +107,11 @@ class ChatPresenterDelegate(
                     chatHistoryStore.save(updatedMessages.filter { it.role == "user" || it.role == "assistant" })
                 }
                 is DataResult.Failure -> {
+                    if (result.reason == DataResult.Reason.ConsentRequired) {
+                        // Nothing left the device — not an error worth reporting.
+                        _state.update { it.copy(sendState = ChatSendState.ConsentRequired) }
+                        return@launch
+                    }
                     Napier.w("Chat error: ${result.message}", result.throwable)
                     // Only the machine-readable reason/status go to crash reporting — result.message
                     // can carry the server's response body (and with it the coach's reply).

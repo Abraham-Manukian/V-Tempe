@@ -1,5 +1,6 @@
 package com.vtempe.shared.data.repo
 
+import com.vtempe.shared.domain.consent.HealthDataConsentRecord
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.russhwolf.settings.Settings
@@ -33,5 +34,24 @@ class SettingsPreferencesRepository(
 
     override fun setAnalyticsConsent(granted: Boolean) {
         settings.putBoolean(KEY_ANALYTICS_CONSENT, granted)
+    }
+
+    override fun getHealthDataConsent(): HealthDataConsentRecord? {
+        val granted = settings.getBooleanOrNull(KEY_HEALTH_CONSENT_GRANTED) ?: return null
+        val version = settings.getStringOrNull(KEY_HEALTH_CONSENT_VERSION) ?: return null
+        val decidedAt = settings.getLongOrNull(KEY_HEALTH_CONSENT_DECIDED_AT) ?: return null
+        return HealthDataConsentRecord(granted = granted, documentVersion = version, decidedAtMillis = decidedAt)
+    }
+
+    override fun setHealthDataConsent(record: HealthDataConsentRecord) {
+        settings.putBoolean(KEY_HEALTH_CONSENT_GRANTED, record.granted)
+        settings.putString(KEY_HEALTH_CONSENT_VERSION, record.documentVersion)
+        settings.putLong(KEY_HEALTH_CONSENT_DECIDED_AT, record.decidedAtMillis)
+    }
+
+    private companion object {
+        const val KEY_HEALTH_CONSENT_GRANTED = "prefs.healthDataConsent.granted"
+        const val KEY_HEALTH_CONSENT_VERSION = "prefs.healthDataConsent.version"
+        const val KEY_HEALTH_CONSENT_DECIDED_AT = "prefs.healthDataConsent.decidedAt"
     }
 }

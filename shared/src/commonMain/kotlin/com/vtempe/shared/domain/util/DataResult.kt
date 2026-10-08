@@ -25,6 +25,8 @@ sealed class DataResult<out T> {
         InvalidFormat,
         Http,
         CacheMissing,
+        /** Blocked on the device: the user has not consented to sending health data to the AI. */
+        ConsentRequired,
         Unknown
     }
 }

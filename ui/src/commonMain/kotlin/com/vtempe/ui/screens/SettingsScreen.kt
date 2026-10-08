@@ -65,6 +65,7 @@ import com.vtempe.shared.domain.model.Profile
 import com.vtempe.ui.platform.SettingsPlatformActions
 import com.vtempe.ui.screens.settings.DeleteAccountSection
 import com.vtempe.ui.screens.settings.ResetDataDialog
+import com.vtempe.ui.screens.settings.LegalSettingsSection
 import com.vtempe.ui.platform.rememberSettingsPlatformActions
 import com.vtempe.ui.util.kmpFormat
 import com.vtempe.ui.LocalBottomBarHeight
@@ -295,6 +296,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                 )
             }
+
+            LegalSettingsSection()
 
             if (state.saving) {
                 Text(stringResource(Res.string.settings_saving), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))

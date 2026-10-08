@@ -173,7 +173,12 @@ interface AnalyticsConsentPreferences {
 }
 
 /** Combined interface used by Settings and Onboarding screens. */
-interface PreferencesRepository : LanguagePreferences, AiModelPreferences, UnitPreferences, AnalyticsConsentPreferences
+interface PreferencesRepository :
+    LanguagePreferences,
+    AiModelPreferences,
+    UnitPreferences,
+    AnalyticsConsentPreferences,
+    com.vtempe.shared.domain.consent.HealthDataConsentPreferences
 
 interface ExerciseCalibrationRepository {
     suspend fun get(exerciseId: String): com.vtempe.shared.domain.exercise.ExerciseCalibrationRecord?

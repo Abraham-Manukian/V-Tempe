@@ -42,7 +42,7 @@ internal fun AppShell(backStack: List<Destination>, onBackStackChange: (List<Des
     var pendingChatPrompt by remember { mutableStateOf<String?>(null) }
     var isActiveWorkout by remember { mutableStateOf(false) }
     val isTabRoute = currentDest.isBottomNav
-    val showTopBar = currentDest !is Destination.Onboarding &&
+    val showTopBar = currentDest !is Destination.Onboarding && currentDest !is Destination.HealthConsent &&
             currentDest !is Destination.Splash && currentDest !is Destination.Welcome && !isActiveWorkout
 
     LaunchedEffect(currentDest) {

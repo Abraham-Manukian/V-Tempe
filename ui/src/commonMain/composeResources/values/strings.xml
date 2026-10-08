@@ -543,6 +543,30 @@
     <string name="sleep_notes_label">How did you sleep?</string>
     <string name="sleep_notes_hint">For example: woke up often, felt rested in the morning</string>
     <string name="nutrition_macros_unavailable">Nutrition is unavailable. Ask the coach to recalculate it for this serving.</string>
+    <string name="health_consent_title">Health data and the AI coach</string>
+    <string name="health_consent_checkbox">I consent to the processing of my health data and to its transfer abroad so the AI coach can build my plans</string>
+    <string name="health_consent_summary">To build safe workouts and meals, the AI coach sends your profile to the V-Tempe server (Google Cloud, EU) and to the AI model provider (OpenRouter and the model vendors, USA). This includes health data: injuries and limitations, health notes, allergies, weight, height, sleep and workout logs. Your name, e-mail and account ID are not sent to the AI. Without this consent the AI coach is off; the app still works with basic offline plans. You can withdraw consent anytime in Settings → Legal and consents.</string>
+    <string name="health_consent_details_show">Details</string>
+    <string name="health_consent_details_hide">Hide details</string>
+    <string name="legal_privacy_policy">Privacy policy</string>
+    <string name="legal_terms_of_use">Terms of use</string>
+    <string name="legal_health_consent_document">Full text of the consent</string>
+    <string name="health_consent_required_error">To finish, tick the consent to health data processing. The AI coach can't build your plan without it.</string>
+    <string name="health_consent_prompt_body">We've updated our documents. The AI coach sends health data to servers outside Russia, and we need your explicit consent for that. Please read and choose.</string>
+    <string name="health_consent_accept">I agree</string>
+    <string name="health_consent_decline">Not now</string>
+    <string name="health_consent_declined_title">AI coach is off</string>
+    <string name="health_consent_declined_body">Without consent, the AI coach can't generate plans or answer in chat. Your current plans, logs and offline plans stay available. You can give consent anytime in Settings → Legal and consents.</string>
+    <string name="health_consent_continue">Continue</string>
+    <string name="settings_legal_title">Legal and consents</string>
+    <string name="settings_health_consent_label">Health data consent</string>
+    <string name="settings_health_consent_granted">Given on %1$s. The AI coach is on.</string>
+    <string name="settings_health_consent_declined">Not given. AI coach features are off.</string>
+    <string name="settings_health_consent_withdraw_title">Withdraw consent?</string>
+    <string name="settings_health_consent_withdraw_body">The AI coach will stop sending your data and will no longer generate plans or answer in chat. To also erase the data stored on the server, delete your account in Settings.</string>
+    <string name="settings_health_consent_withdraw_confirm">Withdraw</string>
+    <string name="settings_health_consent_withdraw_cancel">Cancel</string>
+    <string name="chat_consent_required">The AI coach needs your consent to process health data. You can give it in Settings → Legal and consents.</string>
 </resources>
 
 

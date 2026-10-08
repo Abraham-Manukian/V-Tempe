@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiGradients
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.account.AccountSession
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
+import com.vtempe.shared.domain.consent.HealthDataConsentStatus
 import com.vtempe.ui.navigation.Destination
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
@@ -51,6 +53,14 @@ fun SplashScreen(onReady: (Destination) -> Unit = {}) {
 }
 
 expect suspend fun determineStartDestination(): Destination
+
+/**
+ * Where a user who already has a profile lands. Users onboarded before the health-data consent
+ * existed (or before its current version) are asked once before reaching Home; until they
+ * grant it, the AI gates keep their health data on the device.
+ */
+internal fun destinationForExistingProfile(consent: HealthDataConsentManager?): Destination =
+    if (consent?.status() == HealthDataConsentStatus.NOT_ASKED) Destination.HealthConsent else Destination.Home
 
 /** Launch must not fail because of sync; an unsettled state is retried on the next launch or sign-in. */
 internal suspend fun reconcileAccountData(session: AccountSession?) {

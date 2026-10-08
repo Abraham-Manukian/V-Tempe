@@ -51,6 +51,7 @@ import com.vtempe.ui.LocalAppLocaleUpdater
 import com.vtempe.ui.presenter.ONBOARDING_TOTAL_STEPS
 import com.vtempe.ui.presenter.OnboardingPresenter
 import com.vtempe.ui.presenter.OnboardingError
+import com.vtempe.ui.screens.consent.HealthConsentCheckbox
 import com.vtempe.ui.screens.onboarding.*
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
@@ -160,7 +161,14 @@ fun OnboardingScreen(
 
                         12 -> SplitStep(state, presenter)
 
-                        else -> ScheduleStep(state, presenter)
+                        else -> {
+                            ScheduleStep(state, presenter)
+                            HealthConsentCheckbox(
+                                checked = state.healthDataConsent,
+                                onCheckedChange = { checked -> presenter.update { it.copy(healthDataConsent = checked, error = null) } },
+                                textColor = onCard
+                            )
+                        }
                     }
                 }
             }
@@ -171,6 +179,7 @@ fun OnboardingScreen(
                         OnboardingError.INVALID_INPUT -> Res.string.error_invalid_input
                         OnboardingError.SAVE_FAILED -> Res.string.onboard_save_error
                         OnboardingError.GENERATION_FAILED -> Res.string.onboard_generation_error
+                        OnboardingError.CONSENT_REQUIRED -> Res.string.health_consent_required_error
                     }),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
@@ -200,6 +209,7 @@ fun OnboardingScreen(
                         if (isLastStep) presenter.save(onDone) else presenter.nextStep()
                     },
                     modifier = Modifier.weight(1.5f).heightIn(min = 56.dp),
+                    // Stays enabled without the consent so the presenter can explain why it can't finish.
                     enabled = !state.saving,
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(

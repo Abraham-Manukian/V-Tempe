@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.PreferencesRepository
@@ -21,7 +22,8 @@ class OnboardingViewModel(
     languagePrefs: LanguagePreferences,
     analytics: AnalyticsRepository,
     preferencesRepository: PreferencesRepository,
-    syncAnalyticsProfile: SyncAnalyticsProfile
+    syncAnalyticsProfile: SyncAnalyticsProfile,
+    healthDataConsent: HealthDataConsentManager
 ) : ViewModel(), OnboardingPresenter {
 
     private val delegate = OnboardingPresenterDelegate(
@@ -38,7 +40,8 @@ class OnboardingViewModel(
         },
         analytics = analytics,
         analyticsConsentPreferences = preferencesRepository,
-        syncAnalyticsProfile = syncAnalyticsProfile
+        syncAnalyticsProfile = syncAnalyticsProfile,
+        healthDataConsent = healthDataConsent
     )
 
     override val state: StateFlow<OnboardingState> get() = delegate.state

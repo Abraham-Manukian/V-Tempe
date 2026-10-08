@@ -45,6 +45,7 @@ import com.vtempe.ui.presenter.ChatPresenter
 import com.vtempe.ui.presenter.ChatSendState
 import com.vtempe.ui.screens.chat.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatScreen(
@@ -57,7 +58,11 @@ fun ChatScreen(
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
     val isLoading = state.sendState is ChatSendState.Loading
-    val errorMessage = (state.sendState as? ChatSendState.Error)?.message
+    val errorMessage = when (val sendState = state.sendState) {
+        is ChatSendState.Error -> sendState.message
+        ChatSendState.ConsentRequired -> stringResource(Res.string.chat_consent_required)
+        else -> null
+    }
 
     LaunchedEffect(initialPrompt) {
         val prompt = initialPrompt?.trim().orEmpty()

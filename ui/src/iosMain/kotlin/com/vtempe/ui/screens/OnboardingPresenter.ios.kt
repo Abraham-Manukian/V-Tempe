@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.PreferencesRepository
@@ -23,7 +24,8 @@ private class IosOnboardingPresenter(
     languagePrefs: LanguagePreferences,
     analytics: AnalyticsRepository,
     preferencesRepository: PreferencesRepository,
-    syncAnalyticsProfile: SyncAnalyticsProfile
+    syncAnalyticsProfile: SyncAnalyticsProfile,
+    healthDataConsent: HealthDataConsentManager
 ) : OnboardingPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -35,7 +37,8 @@ private class IosOnboardingPresenter(
         scope = scope,
         analytics = analytics,
         analyticsConsentPreferences = preferencesRepository,
-        syncAnalyticsProfile = syncAnalyticsProfile
+        syncAnalyticsProfile = syncAnalyticsProfile,
+        healthDataConsent = healthDataConsent
     )
     override val state get() = delegate.state
     override fun update(transform: (OnboardingState) -> OnboardingState) = delegate.update(transform)
@@ -58,7 +61,8 @@ actual fun rememberOnboardingPresenter(): OnboardingPresenter {
             languagePrefs = koin.get(),
             analytics = koin.get(),
             preferencesRepository = koin.get(),
-            syncAnalyticsProfile = koin.get()
+            syncAnalyticsProfile = koin.get(),
+            healthDataConsent = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

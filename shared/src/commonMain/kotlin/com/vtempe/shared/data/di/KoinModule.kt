@@ -2,7 +2,11 @@ package com.vtempe.shared.data.di
 
 import com.vtempe.shared.data.account.DeviceUserData
 import com.vtempe.shared.data.account.SettingsLocalDataOwnerStore
+import com.vtempe.shared.data.consent.ConsentGatedAiTrainerRepository
+import com.vtempe.shared.data.consent.ConsentGatedChatRepository
 import com.vtempe.shared.data.network.ApiClient
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.account.AccountDataCoordinator
 import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.account.DefaultAccountSession
@@ -95,25 +99,35 @@ object DI {
             })
         }
         single<ProfileRepository> { get<ProfileRepositoryDb>() }
+        // Health data leaves the device only with the user's consent (152-FZ art. 10/12): both AI
+        // repositories are wrapped in a consent gate, nothing else may talk to /ai/* directly.
+        single { HealthDataConsentManager(get<PreferencesRepository>()) }
+        single<HealthDataConsentGate> { get<HealthDataConsentManager>() }
         single<AiTrainerRepository> {
-            NetworkAiTrainerRepository(
-                api = get(),
-                languagePrefs = get(),
-                aiModelPrefs = get(),
-                cache = get(),
-                progressStore = get(),
-                sleepStore = get(),
-                weightStore = get()
+            ConsentGatedAiTrainerRepository(
+                delegate = NetworkAiTrainerRepository(
+                    api = get(),
+                    languagePrefs = get(),
+                    aiModelPrefs = get(),
+                    cache = get(),
+                    progressStore = get(),
+                    sleepStore = get(),
+                    weightStore = get()
+                ),
+                consent = get()
             )
         }
         single<ChatRepository> {
-            NetworkChatRepository(
-                api = get(),
-                cache = get(),
-                aiModelPrefs = get(),
-                progressStore = get(),
-                sleepStore = get(),
-                weightStore = get()
+            ConsentGatedChatRepository(
+                delegate = NetworkChatRepository(
+                    api = get(),
+                    cache = get(),
+                    aiModelPrefs = get(),
+                    progressStore = get(),
+                    sleepStore = get(),
+                    weightStore = get()
+                ),
+                consent = get()
             )
         }
         single<TrainingRepository> {

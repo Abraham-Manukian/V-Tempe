@@ -1,5 +1,6 @@
 package com.vtempe.ui.presenter
 
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
@@ -35,7 +36,7 @@ const val TRAINING_FOCUS_GENERAL = "GENERAL"
 const val TRAINING_FOCUS_FAT_LOSS = "FAT_LOSS"
 internal const val EQUIPMENT_NOTE_MAX_CHARS = 200
 
-enum class OnboardingError { INVALID_INPUT, SAVE_FAILED, GENERATION_FAILED }
+enum class OnboardingError { INVALID_INPUT, SAVE_FAILED, GENERATION_FAILED, CONSENT_REQUIRED }
 
 data class OnboardingState(
     val age: String = "28",
@@ -70,6 +71,9 @@ data class OnboardingState(
     val languageTag: String = "system",
     /** Opt-in for bucketed demographic analytics — asked on the last onboarding step. */
     val analyticsConsent: Boolean = false,
+    /** Required, separate consent to health data processing and its transfer abroad for the AI
+     *  coach (152-FZ art. 10/12). Never pre-checked; onboarding cannot finish without it. */
+    val healthDataConsent: Boolean = false,
     val currentStep: Int = 0,
     val saving: Boolean = false,
     val savingStep: Int = 0,  // 0=profile, 1=generating plan
@@ -96,7 +100,8 @@ class OnboardingPresenterDelegate(
     private val applyLocale: (tag: String?) -> Unit = {},
     private val analytics: AnalyticsRepository,
     private val analyticsConsentPreferences: AnalyticsConsentPreferences,
-    private val syncAnalyticsProfile: SyncAnalyticsProfile
+    private val syncAnalyticsProfile: SyncAnalyticsProfile,
+    private val healthDataConsent: HealthDataConsentManager
 ) : OnboardingPresenter {
 
     private val _state = MutableStateFlow(OnboardingState(languageTag = languagePrefs.getLanguageTag() ?: "system"))
@@ -150,6 +155,12 @@ class OnboardingPresenterDelegate(
             _state.update { it.copy(currentStep = 1, error = OnboardingError.INVALID_INPUT) }
             return
         }
+        if (!s.healthDataConsent) {
+            _state.update { it.copy(error = OnboardingError.CONSENT_REQUIRED) }
+            return
+        }
+        // Recorded before anything is sent: the AI gate checks it on the bootstrap request below.
+        healthDataConsent.grant()
         _state.update { it.copy(saving = true, savingStep = 0, error = null) }
         scope.launch {
             try {

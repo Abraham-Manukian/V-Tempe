@@ -10,6 +10,10 @@ sealed class Destination {
     object Welcome : Destination()
     @kotlinx.serialization.Serializable
     object Onboarding : Destination()
+    /** Shown once at launch to users with a profile but no decision on the current
+     *  health-data consent version (e.g. onboarded before the consent existed). */
+    @kotlinx.serialization.Serializable
+    object HealthConsent : Destination()
     @kotlinx.serialization.Serializable
     object Home : Destination()
     @kotlinx.serialization.Serializable
