@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Data Consent — V-Tempe</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1a1a1a;--muted:#5c5c66;--line:#e2e2ea;--accent:#5b3fd1;--note:#f4f1ff}
+@media (prefers-color-scheme:dark){:root{--bg:#121216;--fg:#ececf1;--muted:#a0a0ad;--line:#2c2c36;--accent:#b4a4ff;--note:#1e1a2e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px 16px 48px}
+nav{display:flex;flex-wrap:wrap;gap:8px 16px;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+nav a{color:var(--accent);text-decoration:none;font-weight:600}
+h1{font-size:1.6rem;line-height:1.3}h2{font-size:1.25rem;margin-top:2rem}
+a{color:var(--accent);overflow-wrap:anywhere}
+blockquote{margin:16px 0;padding:8px 16px;background:var(--note);border-left:4px solid var(--accent);color:var(--muted)}
+.table{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+code{font-size:.9em}
+hr{border:0;border-top:1px solid var(--line);margin:32px 0}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="index.html">Privacy</a><a href="terms.html">Terms</a><a href="health-data-consent.html">Consent</a><a href="../delete-account.html">Delete account</a><a href="../index.html">Русский</a></nav>
+<h1>Consent to processing of special categories of personal data (health data) and their cross-border transfer</h1>
+<p>Text version: 2026-10-08. Revision of [DATE].</p>
+<blockquote><p>DRAFT FOR A LAWYER. The Russian version (<code>health-data-consent.md</code>) prevails. The text version equals <code>LegalDocuments.HEALTH_DATA_CONSENT_VERSION</code> in the code; both change together, and the App then asks for consent again.</p></blockquote>
+<p>I, a user of the V-Tempe mobile app (the "App"), by ticking the box "I consent to the processing of my health data and to its transfer abroad…" or tapping "I agree", freely, of my own will and in my own interest give specific, informed, conscious and unambiguous consent under Art. 9, Art. 10(2)(1) and Art. 12 of Russian Federal Law No. 152-FZ "On Personal Data" on the following terms.</p>
+<h2>1. Operator</h2>
+<p>[OPERATOR NAME], tax ID / registration number [INN/OGRN], address: [ADDRESS], e-mail: [CONTACT E-MAIL].</p>
+<h2>2. Purpose</h2>
+<p>Creating and adjusting personal workout, nutrition and sleep plans by the AI coach and its chat replies taking my health into account, so that exercises and foods dangerous to me are excluded; keeping a server backup of this data to restore it on another device (if I am signed in).</p>
+<h2>3. Data</h2>
+<ul><li>injuries and limitations;</li><li>health notes and contraindications;</li><li>allergies and food intolerances;</li><li>height, weight, weight history, age, sex, goal, experience and daily activity level — insofar as, together with the above, they describe my physical condition;</li><li>workout log: completed sets, weights, reps, perceived effort (RPE), notes;</li><li>sleep log: dates, duration, notes;</li><li>health information I write in messages to the AI coach.</li></ul>
+<h2>4. Operations</h2>
+<p>Collection, recording, systematisation, accumulation, storage, updating, retrieval, use, transfer (including cross-border), deletion and destruction, by automated means.</p>
+<h2>5. Recipients and countries</h2>
+<div class="table"><table><thead><tr><th>Party</th><th>Address</th><th>Country</th><th>Role</th></tr></thead><tbody><tr><td>Google LLC (Google Cloud)</td><td>1600 Amphitheatre Parkway, Mountain View, CA 94043, USA</td><td>servers in Belgium (EU)</td><td>hosting the V-Tempe server and database on the operator's behalf</td></tr><tr><td>OpenRouter, Inc.</td><td>[OPENROUTER ADDRESS]</td><td>USA</td><td>routing the request to the AI model</td></tr><tr><td>AI model developers, including Anthropic PBC</td><td>[ADDRESSES; CURRENT MODEL PROVIDER LIST]</td><td>USA [verify]</td><td>generating the AI coach's reply</td></tr></tbody></table></div>
+<p>I understand that the USA does not ensure adequate protection of data subjects' rights within the meaning of Art. 12 of the Law, and that once transferred, my data may be accessible to that country's authorities under its laws.</p>
+<p>My name, e-mail, photo, account ID and IP address are not sent to the AI.</p>
+<h2>6. Term</h2>
+<p>The consent is valid until withdrawn. Data on my device is kept until I delete it (data reset, uninstall). The server backup is kept until the account is deleted. Retention at OpenRouter and model developers: [STATE].</p>
+<h2>7. Withdrawal</h2>
+<p>I may withdraw consent at any time:</p>
+<ul><li>in the App: Settings → "Legal and consents" → switch the consent off;</li><li>by e-mail to [CONTACT E-MAIL].</li></ul>
+<p>After withdrawal the App immediately stops sending my data to the AI coach and AI features are turned off. The operator stops processing and destroys the data within 30 days unless the law provides otherwise. Server data can be deleted immediately via Settings → "Delete account".</p>
+<p>I understand that without consent AI coach features are unavailable, while the other features (logs, offline plans) keep working.</p>
+<h2>8. Confirmation</h2>
+<p>Consent is given by ticking the box or tapping "I agree" in the App. The fact, date and text version of the consent are stored on my device. [LAWYER: form of consent — see README, "Written form of consent to special-category data".]</p>
+</main>
+</body>
+</html>
