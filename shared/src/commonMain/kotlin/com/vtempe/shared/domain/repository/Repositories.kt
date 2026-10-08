@@ -183,6 +183,10 @@ interface AnalyticsRepository {
     fun logEvent(name: String, params: Map<String, String> = emptyMap())
     fun setUserProperty(key: String, value: String?)
     fun recordNonFatal(throwable: Throwable, message: String? = null)
+
+    /** Turns the backend's own automatic usage collection on/off (e.g. Firebase's session and
+     *  first_open events), independent of explicit [logEvent] calls. No-op by default. */
+    fun setCollectionEnabled(enabled: Boolean) = Unit
 }
 
 /** Named analytics events tracked across the app — keep this the single source of truth. */

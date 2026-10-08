@@ -114,6 +114,8 @@ class LlmPipeline(
             }
         }
 
-private fun snippet(s: String): String? =
-        s.replace('\n', ' ').replace('\r', ' ').trim().takeIf { it.isNotEmpty() }?.take(config.rawSnippetLimit)
+    private fun snippet(s: String): String? {
+        if (config.rawSnippetLimit <= 0) return null
+        return s.replace('\n', ' ').replace('\r', ' ').trim().takeIf { it.isNotEmpty() }?.take(config.rawSnippetLimit)
+    }
 }

@@ -43,6 +43,7 @@ import com.vtempe.server.features.sync.data.repo.ExposedSyncBlobRepository
 import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
 import com.vtempe.server.features.sync.data.service.SyncService
 import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
+import java.time.Duration
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -182,15 +183,23 @@ val serverModule = module {
     // (injuries, chat replies). Off by default — opt in locally with LLM_RAW_STORE_ENABLED=true,
     // never enable it in production.
     val rawStoreEnabled = Env["LLM_RAW_STORE_ENABLED"]?.equals("true", ignoreCase = true) ?: false
+    // Even when enabled, dumps are purged after this many hours (default 24).
+    val rawStoreRetention = Env["LLM_RAW_STORE_RETENTION_HOURS"]?.toLongOrNull()?.coerceAtLeast(1L)
+        ?.let(Duration::ofHours)
+        ?: LlmRawStore.DEFAULT_RETENTION
+    // Chars of raw model output allowed into WARN logs (default 0 = none, see PipelineConfig).
+    val logSnippetChars = Env["LLM_LOG_SNIPPET_CHARS"]?.toIntOrNull()?.coerceIn(0, 2_000) ?: 0
 
     single { ResponseExtractor() }
     single { JsonSanitizer() }
     single { FeedbackComposer() }
-    single { LlmRawStore(enabled = rawStoreEnabled) }
+    single { LlmRawStore(enabled = rawStoreEnabled, retention = rawStoreRetention) }
     single { LlmErrorTracker() }
 
     single { Decoder(get()) }
-    single { PipelineConfig(maxAttempts = 3, enableRawStore = rawStoreEnabled) }
+    single {
+        PipelineConfig(maxAttempts = 3, rawSnippetLimit = logSnippetChars, enableRawStore = rawStoreEnabled)
+    }
 
     single {
         LlmPipeline(

@@ -106,7 +106,11 @@ class ChatPresenterDelegate(
                 }
                 is DataResult.Failure -> {
                     Napier.w("Chat error: ${result.message}", result.throwable)
-                    result.throwable?.let { analytics.recordNonFatal(it, "Chat send failed: ${result.message}") }
+                    // Only the machine-readable reason/status go to crash reporting — result.message
+                    // can carry the server's response body (and with it the coach's reply).
+                    result.throwable?.let {
+                        analytics.recordNonFatal(it, "Chat send failed: reason=${result.reason} code=${result.code}")
+                    }
                     _state.update { it.copy(sendState = ChatSendState.Error(result.message ?: "Unknown error")) }
                 }
             }

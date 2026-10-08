@@ -5,6 +5,7 @@ import com.vtempe.server.features.entitlement.domain.model.EntitlementStatus
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
 import com.vtempe.server.features.payments.yookassa.data.YooKassaVerificationUnavailable
+import com.vtempe.server.features.payments.yookassa.data.toLedgerPayload
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.receiveText
@@ -86,7 +87,7 @@ fun Route.registerYooKassaWebhookRoutes() {
             source = PaymentSource.YOOKASSA,
             amountMinor = amountMinor,
             currency = verifiedPayment.amount.currency,
-            rawPayload = rawBody,
+            rawPayload = verifiedPayment.toLedgerPayload(),
             expiresAt = expiresAt
         )
         if (granted) {

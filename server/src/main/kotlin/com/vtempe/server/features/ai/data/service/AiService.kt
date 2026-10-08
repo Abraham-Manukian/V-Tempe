@@ -6,6 +6,7 @@ import com.vtempe.server.features.ai.data.llm.LlmException
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.features.ai.data.privacy.withoutDirectIdentifiers
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.advice.AiAdviceRequest
@@ -102,10 +103,13 @@ class AiService(
     }
 
     private suspend fun fetchBundle(
-        profile: AiProfile,
+        rawProfile: AiProfile,
         weekIndex: Int,
         localeRaw: String?
     ): AiBootstrapResponse {
+        // Single choke point before any prompt is built: every LLM call below sees only the
+        // identifier-free profile (see DirectIdentifierRedactor).
+        val profile = rawProfile.withoutDirectIdentifiers()
         val localeTag = localeRaw?.takeIf { it.isNotBlank() } ?: DefaultLocale
         val profileHash = json.encodeToString(AiProfile.serializer(), profile).hashCode()
         val requestId = cacheKey(profile, weekIndex, localeTag)

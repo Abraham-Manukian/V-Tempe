@@ -4,6 +4,7 @@ import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.features.ai.data.privacy.withoutDirectIdentifiers
 import com.vtempe.server.features.ai.domain.model.TrainingMode
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
@@ -44,7 +45,11 @@ class ChatService(
         coerceInputValues = true
     }
 
-    suspend fun chat(req: AiChatRequest): AiChatResponse = runCatching {
+    /** Entry point: strips direct identifiers from the request before anything reaches a prompt. */
+    suspend fun chat(rawRequest: AiChatRequest): AiChatResponse =
+        chatWithoutIdentifiers(rawRequest.withoutDirectIdentifiers())
+
+    private suspend fun chatWithoutIdentifiers(req: AiChatRequest): AiChatResponse = runCatching {
         val locale = safeLocale(req.locale ?: req.profile.locale)
         val prompt = buildChatPrompt(req, locale)
         val requestId = "chat|${req.messages.size}|${req.messages.lastOrNull()?.content?.hashCode() ?: 0}"

@@ -4,8 +4,10 @@ import com.vtempe.BuildConfig
 import com.vtempe.analytics.createAnalyticsRepository
 import com.vtempe.auth.createAuthRepository
 import com.vtempe.billing.AndroidPurchasesRepository
+import com.vtempe.shared.data.analytics.ConsentGatedAnalyticsRepository
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.AuthRepository
+import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.PurchasesRepository
 import org.koin.core.qualifier.named
 import com.vtempe.ui.vm.AuthViewModel
@@ -29,7 +31,13 @@ object AppModule {
     val module = module {
         // Android-specific DI overrides
         single<PurchasesRepository> { AndroidPurchasesRepository(androidContext()) }
-        single<AnalyticsRepository> { createAnalyticsRepository(androidContext()) }
+        // Every analytics call honours the user's opt-in (see ConsentGatedAnalyticsRepository).
+        single<AnalyticsRepository> {
+            ConsentGatedAnalyticsRepository(
+                delegate = createAnalyticsRepository(androidContext()),
+                consent = get<PreferencesRepository>()
+            )
+        }
         single<AuthRepository> { createAuthRepository() }
         single(named("googleWebClientId")) { BuildConfig.GOOGLE_WEB_CLIENT_ID }
 
