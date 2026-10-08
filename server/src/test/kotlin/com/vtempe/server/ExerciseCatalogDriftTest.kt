@@ -113,7 +113,7 @@ class ExerciseCatalogDriftTest {
             "leg_raise", "mountain_climber", "muscle_up", "nordic_curl", "pike_pushup", "pistol_squat",
             "reverse_curl", "reverse_lunge", "romanian_deadlift", "rowing_machine", "russian_twist",
             "side_plank", "single_leg_deadlift", "skater_jump", "skater_lunge", "sprint",
-            "stair_climb", "step_up", "stretching", "sumo_deadlift", "sumo_squat", "superman_row",
+            "stair_climb", "step_up", "stretching", "sumo_deadlift", "sumo_squat",
             "swim", "toes_to_bar", "tricep_kickback", "tricep_pushdown", "upright_row", "v_up",
             "wall_sit", "wide_pullup", "wide_pushup", "world_greatest_stretch"
         )

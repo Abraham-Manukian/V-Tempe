@@ -925,6 +925,45 @@ object ExerciseLibrary {
             )
         ),
         ExerciseDefinition(
+            id = "superman_row",
+            aliases = setOf("prone_row", "superman_pull"),
+            name = LocalizedText("Superman Row", "Тяга в супермене"),
+            muscleGroups = listOf("upper_back", "rear_delts", "lower_back"),
+            difficulty = 1,
+            visualFamily = ExerciseVisualFamily.PULL,
+            calibrationKind = ExerciseCalibrationKind.BODYWEIGHT_REPS,
+            calibrationHint = LocalizedText(
+                "Lie face down on a mat; no equipment needed.",
+                "Ляг лицом вниз на коврик; оборудование не нужно."
+            ),
+            imagePrompt = "",
+            technique = ExerciseTechnique(
+                summary = LocalizedText(
+                    "A no-equipment prone pull that trains the upper back, rear delts and spinal erectors.",
+                    "Тяга лёжа на животе без оборудования: нагружает верх спины, задние дельты и разгибатели спины."
+                ),
+                focusEn = listOf("Upper back", "Rear delts", "Lower back"),
+                focusRu = listOf("Верх спины", "Задние дельты", "Поясница"),
+                keyCue = LocalizedText(
+                    "Pull your elbows back to your ribs and squeeze your shoulder blades together.",
+                    "Тяни локти к рёбрам и своди лопатки."
+                ),
+                stepsEn = listOf(
+                    "Lie face down with your arms extended overhead.",
+                    "Lift your chest and arms slightly off the floor, keeping your neck long.",
+                    "Pull your elbows back toward your ribs as if rowing, squeezing your shoulder blades.",
+                    "Reach your arms forward again without lowering your chest."
+                ),
+                stepsRu = listOf(
+                    "Ляг лицом вниз, руки вытянуты вперёд над головой.",
+                    "Слегка оторви грудь и руки от пола, шея длинная.",
+                    "Потяни локти назад к рёбрам, как в тяге, сводя лопатки.",
+                    "Снова вытяни руки вперёд, не опуская грудь."
+                ),
+                defaultRestSeconds = 45
+            )
+        ),
+        ExerciseDefinition(
             id = "doorway_row",
             aliases = setOf("door_frame_row"),
             name = LocalizedText("Doorway Row", "Тяга в дверном проёме"),
