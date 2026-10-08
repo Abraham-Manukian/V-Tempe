@@ -42,6 +42,19 @@ enum class GuestDataChoice {
     REPLACE_WITH_DEVICE_DATA
 }
 
+sealed interface AccountDeletionOutcome {
+    /** Server data, the account itself and the device data are gone; the user is signed out. */
+    data object Deleted : AccountDeletionOutcome
+
+    /** The account's last sign-in is too old to delete it. Server data may already be erased; the
+     *  device copy is uploaded again on the next settle unless the user re-authenticates and retries. */
+    data object NeedsReauthentication : AccountDeletionOutcome
+
+    /** Deletion did not complete (offline, server error). The account still exists and stays
+     *  usable, with the same recovery as [NeedsReauthentication]; retrying is always safe. */
+    data object Failed : AccountDeletionOutcome
+}
+
 sealed interface SignOutOutcome {
     data object SignedOut : SignOutOutcome
 

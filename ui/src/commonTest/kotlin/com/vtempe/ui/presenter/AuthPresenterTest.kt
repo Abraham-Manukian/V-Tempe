@@ -2,6 +2,7 @@ package com.vtempe.ui.presenter
 
 import com.vtempe.shared.data.network.dto.EntitlementDto
 import com.vtempe.shared.domain.account.AccountDataState
+import com.vtempe.shared.domain.account.AccountDeletionOutcome
 import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.account.GuestDataChoice
 import com.vtempe.shared.domain.repository.AuthErrorCode
@@ -9,6 +10,7 @@ import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.ReauthCredential
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -168,6 +170,8 @@ class AuthPresenterTest {
         override suspend fun signOut() { authState.value = null }
         override suspend fun idToken(): String? = null
         override suspend fun idTokenFor(uid: String): String? = null
+        override suspend fun reauthenticate(credential: ReauthCredential) = Unit
+        override suspend fun deleteCurrentUser() { authState.value = null }
     }
 
     private class FakeSession(private val settleImmediately: Boolean = true) : AccountSession {
@@ -189,6 +193,7 @@ class AuthPresenterTest {
         override fun dismissSignOutWarning() { dismissals++ }
         override suspend fun reconcile() = Unit
         override suspend fun resetUserData() = Unit
+        override suspend fun deleteAccount() = AccountDeletionOutcome.Deleted
     }
 
     private companion object {

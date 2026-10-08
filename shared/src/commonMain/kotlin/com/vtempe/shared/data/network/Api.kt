@@ -11,6 +11,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -75,6 +76,15 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
                 bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 contentType(ContentType.Application.Json)
                 setBody(body)
+            }.status.isSuccess()
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrDefault(false)
+
+    /** For DELETE endpoints that respond 204 No Content on success; reports whether the call succeeded. */
+    suspend fun deleteNoContent(path: String, bearerToken: String? = null): Boolean =
+        runCatching {
+            httpClient.delete("$baseUrl$path") {
+                bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
             }.status.isSuccess()
         }.onFailure { if (it is CancellationException) throw it }
             .getOrDefault(false)

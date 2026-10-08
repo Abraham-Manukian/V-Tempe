@@ -7,6 +7,7 @@ import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.repository.ReauthCredential
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
@@ -40,6 +41,10 @@ private class IosSettingsPresenter(
     override fun refresh() = delegate.refresh()
     override fun save(profile: com.vtempe.shared.domain.model.Profile) = delegate.save(profile)
     override fun reset(onDone: () -> Unit) = delegate.reset(onDone)
+    override fun deleteAccount(onDone: () -> Unit) = delegate.deleteAccount(onDone)
+    override fun reauthenticateAndDeleteAccount(credential: ReauthCredential, onDone: () -> Unit) =
+        delegate.reauthenticateAndDeleteAccount(credential, onDone)
+    override fun dismissAccountDeletion() = delegate.dismissAccountDeletion()
     override fun setUnits(units: String) = delegate.setUnits(units)
     override fun setLanguage(tag: String?) = delegate.setLanguage(tag)
     override fun setAiModelMode(mode: com.vtempe.shared.domain.model.AiModelMode) = delegate.setAiModelMode(mode)

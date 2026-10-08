@@ -5,7 +5,9 @@ import com.vtempe.server.features.sync.domain.port.SyncBlobRecord
 import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -45,4 +47,10 @@ class ExposedSyncBlobRepository(private val database: Database) : SyncBlobReposi
                     )
                 }
         }
+
+    override suspend fun deleteAll(userId: String) {
+        newSuspendedTransaction(Dispatchers.IO, database) {
+            SyncBlobs.deleteWhere { SyncBlobs.userId eq userId }
+        }
+    }
 }

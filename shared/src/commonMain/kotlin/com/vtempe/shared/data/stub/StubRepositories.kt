@@ -9,6 +9,7 @@ import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PurchasesRepository
+import com.vtempe.shared.domain.repository.ReauthCredential
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,6 +80,12 @@ class StubAuthRepository : AuthRepository {
 
     override suspend fun idToken(): String? = null
     override suspend fun idTokenFor(uid: String): String? = null
+
+    override suspend fun reauthenticate(credential: ReauthCredential): Unit =
+        throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
+
+    override suspend fun deleteCurrentUser(): Unit =
+        throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
 }
 
 /**

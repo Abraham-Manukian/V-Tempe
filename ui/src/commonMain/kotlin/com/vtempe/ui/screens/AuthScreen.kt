@@ -402,11 +402,12 @@ private fun SignedInContent(
  *  pulling in for this one line. */
 private fun String.toDisplayDate(): String = substringBefore('T')
 
-private fun AuthErrorCode.toStringRes() = when (this) {
+internal fun AuthErrorCode.toStringRes() = when (this) {
     AuthErrorCode.INVALID_CREDENTIALS -> Res.string.auth_error_invalid_credentials
     AuthErrorCode.WEAK_PASSWORD -> Res.string.auth_error_weak_password
     AuthErrorCode.EMAIL_IN_USE -> Res.string.auth_error_email_in_use
     AuthErrorCode.NETWORK -> Res.string.auth_error_network
     AuthErrorCode.UNAVAILABLE -> Res.string.auth_error_unavailable
     AuthErrorCode.UNKNOWN -> Res.string.auth_error_generic
+    AuthErrorCode.REQUIRES_RECENT_LOGIN -> Res.string.auth_error_requires_recent_login
 }

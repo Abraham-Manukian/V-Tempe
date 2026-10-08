@@ -1,6 +1,9 @@
 package com.vtempe.shared.domain.account
 
+import com.vtempe.shared.domain.repository.AuthErrorCode
+import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
+import com.vtempe.shared.domain.repository.RemoteAccountRepository
 import com.vtempe.shared.domain.repository.SyncRepository
 
 /**
@@ -14,7 +17,8 @@ class AccountDataCoordinator(
     private val auth: AuthRepository,
     private val owner: LocalDataOwnerStore,
     private val localData: LocalUserData,
-    private val sync: SyncRepository
+    private val sync: SyncRepository,
+    private val remoteAccount: RemoteAccountRepository
 ) {
     suspend fun onSignedIn(uid: String): AccountDataOutcome {
         val currentOwner = owner.ownerUid()
@@ -24,9 +28,7 @@ class AccountDataCoordinator(
         }
         if (currentOwner != null) {
             // Another account's data: remove it before anything else, even if the fetch below fails.
-            localData.clearUserData()
-            owner.setOwnerUid(null)
-            owner.setFullPushPending(false)
+            clearDeviceData()
         }
 
         val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
@@ -70,11 +72,7 @@ class AccountDataCoordinator(
             return SignOutOutcome.Unsynced
         }
         auth.signOut()
-        if (currentOwner != null) {
-            localData.clearUserData()
-            owner.setOwnerUid(null)
-            owner.setFullPushPending(false)
-        }
+        if (currentOwner != null) clearDeviceData()
         return SignOutOutcome.SignedOut
     }
 
@@ -88,6 +86,48 @@ class AccountDataCoordinator(
         localData.clearUserData()
         val uid = auth.authState.value?.uid ?: return
         if (owner.ownerUid() == uid) uploadDeviceData(uid)
+    }
+
+    /**
+     * Deletes the signed-in account: its server data first (that call needs the account's token),
+     * then the account itself, then every piece of user data on the device. Stops at the first
+     * failure, so the account is never gone while its server data survives. Retrying is safe.
+     */
+    suspend fun deleteAccount(): AccountDeletionOutcome {
+        val uid = auth.authState.value?.uid ?: return AccountDeletionOutcome.Failed
+        val ownsDeviceData = owner.ownerUid() == uid
+        // Detach first: an upload landing after the server wipe would bring the data back.
+        if (ownsDeviceData) owner.setOwnerUid(null)
+        var outcome: AccountDeletionOutcome = AccountDeletionOutcome.Failed
+        try {
+            outcome = deleteServerDataThenAccount(uid)
+        } finally {
+            if (outcome != AccountDeletionOutcome.Deleted && ownsDeviceData) {
+                // The account lives on, but its server copy may already be erased: upload the
+                // device's copy again on the next settle (a successful retry cancels this).
+                owner.setOwnerUid(uid)
+                owner.setFullPushPending(true)
+            }
+        }
+        if (outcome == AccountDeletionOutcome.Deleted) clearDeviceData()
+        return outcome
+    }
+
+    private suspend fun deleteServerDataThenAccount(uid: String): AccountDeletionOutcome {
+        if (!remoteAccount.deleteAccountData(uid)) return AccountDeletionOutcome.Failed
+        return try {
+            auth.deleteCurrentUser()
+            AccountDeletionOutcome.Deleted
+        } catch (error: AuthException) {
+            if (error.code == AuthErrorCode.REQUIRES_RECENT_LOGIN) AccountDeletionOutcome.NeedsReauthentication
+            else AccountDeletionOutcome.Failed
+        }
+    }
+
+    private suspend fun clearDeviceData() {
+        localData.clearUserData()
+        owner.setOwnerUid(null)
+        owner.setFullPushPending(false)
     }
 
     private suspend fun uploadDeviceData(uid: String) {

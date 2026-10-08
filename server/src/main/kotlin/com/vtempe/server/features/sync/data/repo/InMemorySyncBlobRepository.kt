@@ -18,4 +18,8 @@ class InMemorySyncBlobRepository : SyncBlobRepository {
         blobs.entries
             .filter { it.key.first == userId }
             .associate { it.key.second to it.value }
+
+    override suspend fun deleteAll(userId: String) {
+        blobs.keys.removeIf { it.first == userId }
+    }
 }

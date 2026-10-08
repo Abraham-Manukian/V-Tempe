@@ -1,6 +1,7 @@
 package com.vtempe.server.app.di
 
 import com.vtempe.server.config.Env
+import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.OpenRouterLLMClient
@@ -270,6 +271,7 @@ val serverModule = module {
         if (database != null) ExposedSyncBlobRepository(database) else InMemorySyncBlobRepository()
     }
     single { SyncService(repository = get()) }
+    single { AccountDeletionService(syncBlobs = get(), entitlements = get()) }
     single {
         YooKassaClient(
             shopId = Env["YOOKASSA_SHOP_ID"]?.takeIf { it.isNotBlank() },

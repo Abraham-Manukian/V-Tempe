@@ -2,6 +2,7 @@
 
 import com.vtempe.server.app.di.serverModule
 import com.vtempe.server.config.Env
+import com.vtempe.server.features.account.api.registerAccountRoutes
 import com.vtempe.server.features.ai.api.registerAiRoutes
 import com.vtempe.server.features.auth.UserIdKey
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
@@ -19,6 +20,7 @@ import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.path
 import io.ktor.server.request.uri
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
@@ -89,8 +91,10 @@ fun Application.module() {
     // proves "this is our app build", the Firebase token proves "this is a specific person".
     val firebaseTokenVerifier: FirebaseTokenVerifier by inject()
     intercept(ApplicationCallPipeline.Plugins) {
-        val path = call.request.uri
-        if (path.startsWith("/me/")) {
+        // path(), not uri: "/me" itself (DELETE /me, account deletion) must match too, and a
+        // query string must not let "/me?..." slip past the check.
+        val path = call.request.path()
+        if (path == "/me" || path.startsWith("/me/")) {
             val authHeader = call.request.headers["Authorization"]
             val idToken = authHeader?.removePrefix("Bearer ")?.takeIf { it != authHeader }
             val userId = idToken?.let { firebaseTokenVerifier.verify(it) }
@@ -109,6 +113,7 @@ fun Application.module() {
         }
         registerEntitlementRoutes()
         registerSyncRoutes()
+        registerAccountRoutes()
         registerYooKassaWebhookRoutes()
         get("/health") { call.respondText("OK") }
     }

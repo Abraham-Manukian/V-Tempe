@@ -1,12 +1,15 @@
 package com.vtempe.ui.presenter
 
+import com.vtempe.shared.domain.account.AccountDeletionOutcome
 import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.repository.ReauthCredential
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.usecase.SyncAnalyticsProfile
 import io.github.aakira.napier.Napier
@@ -24,7 +27,8 @@ data class SettingsState(
     val aiModelMode: AiModelMode = AiModelMode.PAID,
     val analyticsConsent: Boolean = false,
     val authUser: AuthUser? = null,
-    val resetting: Boolean = false
+    val resetting: Boolean = false,
+    val deletion: AccountDeletionUiState = AccountDeletionUiState.Idle
 )
 
 interface SettingsPresenter {
@@ -32,6 +36,12 @@ interface SettingsPresenter {
     fun refresh()
     fun save(profile: Profile)
     fun reset(onDone: () -> Unit)
+    /** Deletes the account on the server, the account itself and all device data; [onDone] runs
+     *  only after a complete deletion. */
+    fun deleteAccount(onDone: () -> Unit)
+    /** Answers [AccountDeletionUiState.NeedsReauthentication]: signs in again, then retries. */
+    fun reauthenticateAndDeleteAccount(credential: ReauthCredential, onDone: () -> Unit)
+    fun dismissAccountDeletion()
     fun setUnits(units: String)
     fun setLanguage(tag: String?)
     fun setAiModelMode(mode: AiModelMode)
@@ -94,6 +104,53 @@ class SettingsPresenterDelegate(
             onDone()
         }
     }
+
+    override fun deleteAccount(onDone: () -> Unit) =
+        runDeletion(onDone) { accountSession.deleteAccount() }
+
+    override fun reauthenticateAndDeleteAccount(credential: ReauthCredential, onDone: () -> Unit) =
+        runDeletion(onDone) {
+            authRepository.reauthenticate(credential)
+            accountSession.deleteAccount()
+        }
+
+    override fun dismissAccountDeletion() {
+        if (_state.value.deletion != AccountDeletionUiState.InProgress) {
+            _state.update { it.copy(deletion = AccountDeletionUiState.Idle) }
+        }
+    }
+
+    private fun runDeletion(onDone: () -> Unit, step: suspend () -> AccountDeletionOutcome) {
+        if (_state.value.deletion == AccountDeletionUiState.InProgress) return
+        _state.update { it.copy(deletion = AccountDeletionUiState.InProgress) }
+        scope.launch {
+            val next = try {
+                when (step()) {
+                    AccountDeletionOutcome.Deleted -> {
+                        _state.value = SettingsState()
+                        onDone()
+                        return@launch
+                    }
+                    AccountDeletionOutcome.NeedsReauthentication -> reauthenticationNeeded(error = null)
+                    AccountDeletionOutcome.Failed -> AccountDeletionUiState.Failed
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (rejected: AuthException) {
+                // Only re-authentication throws this: let the user try signing in again.
+                reauthenticationNeeded(rejected)
+            } catch (error: Exception) {
+                Napier.e("Account deletion failed", error)
+                AccountDeletionUiState.Failed
+            }
+            _state.update { it.copy(deletion = next) }
+        }
+    }
+
+    private fun reauthenticationNeeded(error: AuthException?) = AccountDeletionUiState.NeedsReauthentication(
+        method = authRepository.authState.value?.signInMethod,
+        error = error?.code
+    )
 
     override fun setUnits(units: String) {
         preferencesRepository.setUnits(units)

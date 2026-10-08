@@ -5,6 +5,7 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.AccountDeletionUiState
 import com.vtempe.ui.presenter.SettingsPresenter
 import com.vtempe.ui.presenter.SettingsState
 
@@ -62,6 +63,7 @@ import com.vtempe.core.designsystem.theme.AppThemeColor
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.ui.platform.SettingsPlatformActions
+import com.vtempe.ui.screens.settings.DeleteAccountSection
 import com.vtempe.ui.screens.settings.ResetDataDialog
 import com.vtempe.ui.platform.rememberSettingsPlatformActions
 import com.vtempe.ui.util.kmpFormat
@@ -306,7 +308,7 @@ fun SettingsScreen(
                     contentColor = AiPalette.OnDeepAccent
                 ),
                 shape = MaterialTheme.shapes.large,
-                enabled = !state.saving && !state.resetting
+                enabled = !state.saving && !state.resetting && state.deletion != AccountDeletionUiState.InProgress
             ) {
                 if (state.resetting) {
                     CircularProgressIndicator(Modifier.size(18.dp), color = AiPalette.OnDeepAccent, strokeWidth = 2.dp)
@@ -324,7 +326,16 @@ fun SettingsScreen(
                     onDismiss = { confirmReset = false }
                 )
             }
-            
+            if (state.authUser != null) {
+                DeleteAccountSection(
+                    deletion = state.deletion,
+                    enabled = !state.saving && !state.resetting,
+                    onDelete = { presenter.deleteAccount { platformActions.restartApp() } },
+                    onReauthenticate = { presenter.reauthenticateAndDeleteAccount(it) { platformActions.restartApp() } },
+                    onDismiss = presenter::dismissAccountDeletion
+                )
+            }
+
             Spacer(Modifier.height(bottomBarHeight + 16.dp))
         }
     }

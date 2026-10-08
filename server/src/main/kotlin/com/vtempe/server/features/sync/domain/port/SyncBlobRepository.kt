@@ -10,4 +10,7 @@ interface SyncBlobRepository {
 
     /** Every domain currently stored for [userId], keyed by domain name. */
     suspend fun pullAll(userId: String): Map<String, SyncBlobRecord>
+
+    /** Removes every domain stored for [userId]. A no-op when nothing is stored. */
+    suspend fun deleteAll(userId: String)
 }

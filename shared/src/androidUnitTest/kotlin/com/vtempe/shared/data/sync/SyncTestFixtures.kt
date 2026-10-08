@@ -8,6 +8,7 @@ import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.repo.AiResponseCache
 import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
+import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SleepStore
@@ -24,8 +25,11 @@ import com.vtempe.shared.domain.repository.SyncDomain
 import com.vtempe.shared.data.network.dto.SyncBlobDto
 import com.vtempe.shared.data.network.dto.SyncPullResponseDto
 import com.vtempe.shared.data.network.dto.SyncPushRequestDto
+import com.vtempe.shared.domain.repository.AuthErrorCode
+import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
+import com.vtempe.shared.domain.repository.ReauthCredential
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -85,7 +89,8 @@ internal class TestDevice {
             profiles, AiResponseCache(settings), workouts, sleep, weight, chat,
             ExerciseCalibrationSettingsRepository(settings)
         ),
-        sync = sync
+        sync = sync,
+        remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)
     )
 
     /** Profile "<name>-profile", workout "<name>-workout", a weight and a private chat message. */
@@ -121,6 +126,10 @@ internal class TestDevice {
 /** Firebase stand-in: one current user at a time, token = "token-<uid>". */
 internal class FakeAuthRepository : AuthRepository {
     override val authState = MutableStateFlow<AuthUser?>(null)
+    /** False: the last sign-in is too old for deleteCurrentUser(), until reauthenticate(). */
+    var recentLogin = true
+    var failDeletion = false
+    val deletedUids = mutableListOf<String>()
     fun signInAs(uid: String) { authState.value = AuthUser(uid, "$uid@example.test") }
     override suspend fun signUp(email: String, password: String) = error("unused")
     override suspend fun signIn(email: String, password: String) = error("unused")
@@ -130,6 +139,13 @@ internal class FakeAuthRepository : AuthRepository {
     override suspend fun idToken(): String? = authState.value?.let { "token-${it.uid}" }
     override suspend fun idTokenFor(uid: String): String? =
         authState.value?.takeIf { it.uid == uid }?.let { "token-${it.uid}" }
+    override suspend fun reauthenticate(credential: ReauthCredential) { recentLogin = true }
+    override suspend fun deleteCurrentUser() {
+        if (failDeletion) throw AuthException(AuthErrorCode.NETWORK, "offline")
+        if (!recentLogin) throw AuthException(AuthErrorCode.REQUIRES_RECENT_LOGIN, "stale sign-in")
+        deletedUids += checkNotNull(authState.value).uid
+        authState.value = null
+    }
 }
 
 /**
@@ -155,6 +171,10 @@ internal class FakeSyncServer {
             when {
                 failRequests -> respond("", HttpStatusCode.ServiceUnavailable)
                 uid == null -> respond("", HttpStatusCode.Unauthorized)
+                request.method == HttpMethod.Delete -> {
+                    blobs.remove(uid)
+                    respond("", HttpStatusCode.NoContent)
+                }
                 request.method == HttpMethod.Put -> {
                     val domain = request.url.encodedPath.substringAfterLast('/')
                     val body = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()

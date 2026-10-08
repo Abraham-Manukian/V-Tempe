@@ -403,6 +403,7 @@
     <string name="auth_error_network">Network error, please try again</string>
     <string name="auth_error_unavailable">Sign-in isn't available in this build yet</string>
     <string name="auth_error_generic">Something went wrong, please try again</string>
+    <string name="auth_error_requires_recent_login">Please sign in again to continue</string>
     <string name="auth_continue_with_google">Continue with Google</string>
     <string name="auth_continue_with_apple">Continue with Apple</string>
     <string name="auth_or_divider">or</string>
@@ -447,6 +448,16 @@
     <string name="settings_reset_confirm_message_account">All your data will be deleted from this device and from your account: profile, plans, workout progress, sleep, weight and coach chat. You stay signed in. This can't be undone.</string>
     <string name="settings_reset_confirm">Delete everything</string>
     <string name="settings_reset_cancel">Cancel</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_account_confirm_title">Delete your account?</string>
+    <string name="settings_delete_account_confirm_message">Your account and all its data will be permanently deleted, both on our servers and on this device: profile, plans, workout progress, sleep, weight and coach chat. An active subscription ends. Payment records are kept only as long as the law requires. This can't be undone.</string>
+    <string name="settings_delete_account_confirm">Delete account</string>
+    <string name="settings_delete_account_reauth_title">Confirm it's you</string>
+    <string name="settings_delete_account_reauth_message">For your security, sign in again to delete your account.</string>
+    <string name="settings_delete_account_reauth_unsupported">For your security, sign out, sign in again and then delete your account.</string>
+    <string name="settings_delete_account_failed_title">Account not deleted</string>
+    <string name="settings_delete_account_failed_message">We couldn't delete your account. Check your connection and try again.</string>
+    <string name="settings_delete_account_ok">OK</string>
     <!-- Progress extra -->
     <string name="progress_summary_title">Overall</string>
     <string name="progress_metric_workouts">Workouts</string>

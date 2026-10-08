@@ -22,22 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.vtempe.shared.domain.repository.AuthErrorCode
+import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AuthPresenter
 import com.vtempe.ui.presenter.CREDENTIAL_PICKER_TIMEOUT_MS
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.stringResource
-import org.koin.core.context.GlobalContext
-import org.koin.core.qualifier.named
 
 /** Android's half of the sign-in options — Google via Credential Manager (Google's current
  *  recommended API, replacing the deprecated GoogleSignInClient). No Apple button here: Sign in
@@ -87,36 +79,12 @@ actual fun SocialSignInButtons(presenter: AuthPresenter) {
     }
 }
 
-/** Returns the Google ID token, or null if the user cancelled or no web client id is configured
- *  (see app-android/build.gradle.kts GOOGLE_WEB_CLIENT_ID). Reports real failures to [presenter]
- *  itself since they never touch [com.vtempe.shared.domain.repository.AuthRepository]. */
-private suspend fun requestGoogleIdToken(context: Context, presenter: AuthPresenter): String? {
-    // GlobalContext, not KoinProvider — KoinProvider.koin is only ever assigned on iOS (see its
-    // kdoc); on Android, Koin is started via the standard androidContext()/startKoin{} path and
-    // lives in GlobalContext, so KoinProvider.koin is always null here. Using it silently made
-    // this always resolve to a blank id and report AuthErrorCode.UNAVAILABLE.
-    val webClientId = GlobalContext.getOrNull()?.get<String>(named("googleWebClientId")).orEmpty()
-    if (webClientId.isBlank()) {
-        presenter.reportError(AuthErrorCode.UNAVAILABLE)
-        return null
-    }
-
-    val option = GetSignInWithGoogleOption.Builder(webClientId)
-        .build()
-    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-
-    return try {
-        val result = CredentialManager.create(context).getCredential(context, request)
-        GoogleIdTokenCredential.createFrom(result.credential.data).idToken
-    } catch (e: GetCredentialCancellationException) {
-        null // user closed the picker — not an error
-    } catch (e: GetCredentialException) {
-        android.util.Log.w("GoogleSignIn", "Credential request failed: ${e.type}")
-        presenter.reportError(AuthErrorCode.UNKNOWN)
-        null
-    } catch (e: GoogleIdTokenParsingException) {
-        android.util.Log.w("GoogleSignIn", "Google ID credential could not be parsed")
-        presenter.reportError(AuthErrorCode.UNKNOWN)
+/** Returns the Google ID token, or null if the user cancelled or the request failed. Reports real
+ *  failures to [presenter] itself since they never touch [com.vtempe.shared.domain.repository.AuthRepository]. */
+private suspend fun requestGoogleIdToken(context: Context, presenter: AuthPresenter): String? =
+    try {
+        requestGoogleIdToken(context)
+    } catch (e: AuthException) {
+        presenter.reportError(e.code)
         null
     }
-}

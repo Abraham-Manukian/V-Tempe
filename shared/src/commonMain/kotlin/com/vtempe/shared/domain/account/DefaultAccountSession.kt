@@ -4,6 +4,7 @@ import com.vtempe.shared.domain.repository.AuthRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,6 +88,26 @@ class DefaultAccountSession(
             }
         }.join()
     }
+
+    override suspend fun deleteAccount(): AccountDeletionOutcome =
+        // On the app scope, like resetUserData: leaving Settings must not abandon a half-done deletion.
+        scope.async {
+            mutex.withLock {
+                val outcome = try {
+                    coordinator.deleteAccount()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Napier.e(tag = "Account", message = "account deletion failed", throwable = error)
+                    AccountDeletionOutcome.Failed
+                }
+                if (outcome == AccountDeletionOutcome.Deleted) {
+                    _state.value = AccountDataState.Idle
+                    _generation.value++
+                }
+                outcome
+            }
+        }.await()
 
     private fun settle(step: suspend () -> AccountDataState) {
         _state.value = AccountDataState.Syncing

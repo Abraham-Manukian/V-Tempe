@@ -29,6 +29,7 @@ import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
 import com.vtempe.shared.data.repo.NetworkEntitlementRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
+import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.stub.NoOpAnalyticsRepository
 import com.vtempe.shared.data.stub.StubAdviceRepository
 import com.vtempe.shared.data.stub.StubAuthRepository
@@ -148,7 +149,8 @@ object DI {
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
         single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get()) }
-        single { AccountDataCoordinator(get(), get(), get(), get()) }
+        single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
+        single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }
         single<AnalyticsRepository> { NoOpAnalyticsRepository() }
         single<AuthRepository> { StubAuthRepository() }

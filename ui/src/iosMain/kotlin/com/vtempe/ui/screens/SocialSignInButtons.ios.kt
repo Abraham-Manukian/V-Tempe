@@ -141,7 +141,7 @@ private val nonceCharset = (('0'..'9') + ('A'..'Z') + ('a'..'z') + listOf('-', '
 /** The nonce's only job is being unpredictable enough to prevent an intercepted Apple identity
  *  token from being replayed, so — unlike [com.vtempe.ui.util.randomNonce], which is fine with
  *  [kotlin.random.Random] for lower-stakes uses — this one uses the platform CSPRNG. */
-private fun secureRandomNonce(length: Int = 32): String = memScoped {
+internal fun secureRandomNonce(length: Int = 32): String = memScoped {
     val bytes = allocArray<ByteVar>(length)
     check(SecRandomCopyBytes(kSecRandomDefault, length.convert(), bytes) == 0) {
         "Secure random generator unavailable"
@@ -156,7 +156,7 @@ private fun secureRandomNonce(length: Int = 32): String = memScoped {
 // a time (the button disables itself while loading), so a single top-level slot is enough.
 private var activeAppleSignIn: Pair<ASAuthorizationController, AppleSignInDelegate>? = null
 
-private suspend fun requestAppleIdToken(rawNonce: String): String? = suspendCancellableCoroutine { cont ->
+internal suspend fun requestAppleIdToken(rawNonce: String): String? = suspendCancellableCoroutine { cont ->
     check(activeAppleSignIn == null) { "Apple sign-in is already in progress" }
     val provider = ASAuthorizationAppleIDProvider()
     val request = provider.createRequest().apply {

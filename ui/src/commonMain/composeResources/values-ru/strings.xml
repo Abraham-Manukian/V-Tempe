@@ -386,6 +386,7 @@
     <string name="auth_error_network">Ошибка сети, попробуйте ещё раз</string>
     <string name="auth_error_unavailable">Вход пока недоступен в этой сборке</string>
     <string name="auth_error_generic">Что-то пошло не так, попробуйте ещё раз</string>
+    <string name="auth_error_requires_recent_login">Чтобы продолжить, войди ещё раз</string>
     <string name="auth_continue_with_google">Продолжить через Google</string>
     <string name="auth_continue_with_apple">Продолжить через Apple</string>
     <string name="auth_or_divider">или</string>
@@ -439,6 +440,16 @@
     <string name="settings_reset_confirm_message_account">Все твои данные удалятся с устройства и из аккаунта: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Вход в аккаунт сохранится. Отменить это нельзя.</string>
     <string name="settings_reset_confirm">Удалить всё</string>
     <string name="settings_reset_cancel">Отмена</string>
+    <string name="settings_delete_account">Удалить аккаунт</string>
+    <string name="settings_delete_account_confirm_title">Удалить аккаунт?</string>
+    <string name="settings_delete_account_confirm_message">Аккаунт и все его данные будут удалены навсегда — на наших серверах и на этом устройстве: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Активная подписка прекратится. Записи о платежах хранятся только столько, сколько требует закон. Отменить это нельзя.</string>
+    <string name="settings_delete_account_confirm">Удалить аккаунт</string>
+    <string name="settings_delete_account_reauth_title">Подтверди, что это ты</string>
+    <string name="settings_delete_account_reauth_message">Для безопасности войди ещё раз, чтобы удалить аккаунт.</string>
+    <string name="settings_delete_account_reauth_unsupported">Для безопасности выйди из аккаунта, войди снова и повтори удаление.</string>
+    <string name="settings_delete_account_failed_title">Аккаунт не удалён</string>
+    <string name="settings_delete_account_failed_message">Не удалось удалить аккаунт. Проверь подключение и попробуй ещё раз.</string>
+    <string name="settings_delete_account_ok">OK</string>
     <!-- Progress extra -->
     <string name="progress_summary_title">Общий итог</string>
     <string name="progress_metric_workouts">Тренировки</string>

@@ -31,4 +31,8 @@ interface AccountSession {
 
     /** Deletes all user data (see [AccountDataCoordinator.resetUserData]). Completes even if the caller is cancelled. */
     suspend fun resetUserData()
+
+    /** Deletes the signed-in account everywhere (see [AccountDataCoordinator.deleteAccount]).
+     *  Completes even if the caller is cancelled. */
+    suspend fun deleteAccount(): AccountDeletionOutcome
 }
