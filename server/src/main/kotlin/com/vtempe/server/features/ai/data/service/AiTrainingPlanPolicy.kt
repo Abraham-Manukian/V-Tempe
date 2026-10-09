@@ -452,14 +452,22 @@ private fun uniqueWorkoutId(
 }
 
 /**
- * Returns true when the last [DELOAD_SIGNAL_WEEKS] workouts consistently show poor performance.
+ * Returns true when the newest [DELOAD_SIGNAL_WEEKS] workouts consistently show poor performance.
  * Triggers deload independently of the calendar-based fallback in SplitParamsFactory.
  * Poor performance = completion below threshold OR RPE above threshold.
+ *
+ * "Newest" is decided by each entry's date, never by the array order (VT-AUD-016): the client
+ * sends history newest-first, so taking the tail used to judge the OLDEST entries. Entries
+ * without a valid ISO date are ignored.
  */
 internal fun shouldForceDeload(recentWorkouts: List<com.vtempe.server.shared.dto.profile.AiRecentWorkout>): Boolean {
     val C = com.vtempe.server.features.ai.data.service.split.TrainingConstants
-    if (recentWorkouts.size < C.DELOAD_SIGNAL_WEEKS) return false
-    val lastN = recentWorkouts.takeLast(C.DELOAD_SIGNAL_WEEKS)
+    val newestFirst = recentWorkouts
+        .mapNotNull { w -> runCatching { LocalDate.parse(w.date.trim()) }.getOrNull()?.let { it to w } }
+        .sortedByDescending { it.first }
+        .map { it.second }
+    if (newestFirst.size < C.DELOAD_SIGNAL_WEEKS) return false
+    val lastN = newestFirst.take(C.DELOAD_SIGNAL_WEEKS)
     return lastN.all { w ->
         w.completionRate < C.DELOAD_COMPLETION_TRIGGER ||
             (w.averageRpe != null && w.averageRpe > C.DELOAD_RPE_TRIGGER)
