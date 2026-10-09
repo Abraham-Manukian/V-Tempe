@@ -70,7 +70,7 @@ val serverModule = module {
     val connectTimeoutMs = Env["OPENROUTER_CONNECT_TIMEOUT_MS"]?.toLongOrNull() ?: 20_000L
     val topP = Env["OPENROUTER_TOP_P"]?.toDoubleOrNull()
     val maxTokens = Env["OPENROUTER_MAX_TOKENS"]?.toIntOrNull()
-    val retryAttempts = Env["OPENROUTER_RETRY_ATTEMPTS"]?.toIntOrNull()?.coerceAtLeast(1) ?: 2
+    val retryAttempts = Env["OPENROUTER_RETRY_ATTEMPTS"]?.toIntOrNull()?.coerceIn(1, 5) ?: 2
 
     val paidKey = Env["OPENROUTER_API_KEY"]?.takeIf { it.isNotBlank() }
     val paidModel = Env["OPENROUTER_MODEL"]?.takeIf { it.isNotBlank() } ?: DEFAULT_PAID_MODEL
