@@ -99,10 +99,20 @@ class TrainingRepositoryDb(
         progressStore.save(progress)
     }
 
+    override suspend fun updateWorkoutProgress(workoutId: String, transform: (WorkoutProgress) -> WorkoutProgress) {
+        progressStore.update(workoutId, transform)
+    }
+
     override suspend fun recentWorkoutSummaries(limit: Int): List<WorkoutSummary> =
         progressStore.recentSummaries(limit)
 
     private suspend fun persistPlan(plan: TrainingPlan) {
+        // The version being replaced is still in the DB: bind its legacy progress to its own
+        // exercises first, so the new version cannot inherit results by position (VT-AUD-020).
+        val previous = withContext(Dispatchers.IO) {
+            db.workoutQueries.selectWorkoutsWithSetsByWeek(plan.weekIndex.toLong()).executeAsList().toWorkoutDomainList()
+        }
+        progressStore.bindLegacyRecords(previous)
         withContext(Dispatchers.IO) {
             db.workoutQueries.transaction {
                 db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())

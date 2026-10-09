@@ -117,6 +117,24 @@ data class Exercise(
     val contraindications: List<String> = emptyList(),
 )
 
+/** What the user actually did in one set of an exercise. */
+@Serializable
+data class SetResult(
+    val reps: Int,
+    val weightKg: Double? = null,
+    val rpe: Double? = null,
+)
+
+/**
+ * Progress of ONE planned exercise (all its sets) within a workout — named "set" for history.
+ *
+ * [exerciseId] binds the record to the exercise it was done for, so a regenerated or edited plan
+ * that moves or replaces exercises never inherits someone else's results (VT-AUD-020); null only
+ * in records written before that field existed. [setResults] keeps every completed set
+ * (VT-AUD-019). [completedSetsCount] and the actual* fields are kept in step with it — the last
+ * set — for older app versions reading the same synced snapshot. Build and change records only
+ * through [com.vtempe.shared.domain.training.WorkoutProgressEditor].
+ */
 @Serializable
 data class PerformedSet(
     val setIndex: Int,
@@ -124,7 +142,9 @@ data class PerformedSet(
     val completedSetsCount: Int = 0,
     val actualReps: Int? = null,
     val actualWeightKg: Double? = null,
-    val actualRpe: Double? = null
+    val actualRpe: Double? = null,
+    val exerciseId: String? = null,
+    val setResults: List<SetResult> = emptyList(),
 )
 
 @Serializable

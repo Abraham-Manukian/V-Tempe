@@ -20,6 +20,8 @@ interface TrainingRepository {
     fun observeWorkoutsByWeek(weekIndex: Int): Flow<List<Workout>>
     fun observeWorkoutProgress(): Flow<Map<String, WorkoutProgress>>
     suspend fun saveWorkoutProgress(progress: WorkoutProgress)
+    /** Atomically applies [transform] to the stored progress of [workoutId] (read-modify-write). */
+    suspend fun updateWorkoutProgress(workoutId: String, transform: (WorkoutProgress) -> WorkoutProgress)
     suspend fun recentWorkoutSummaries(limit: Int = 6): List<WorkoutSummary>
     suspend fun savePlan(plan: TrainingPlan)
     suspend fun hasPlan(weekIndex: Int): Boolean

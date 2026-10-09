@@ -36,10 +36,9 @@ private class IosWorkoutPresenter(
     override fun refresh() = delegate.refresh()
     override fun select(workoutId: String) = delegate.select(workoutId)
     override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) = delegate.addSet(exerciseId, reps, weight, rpe)
-    override fun updatePerformedSet(workoutId: String, setIndex: Int, completed: Boolean, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
-        delegate.updatePerformedSet(workoutId, setIndex, completed, actualReps, actualWeightKg, actualRpe)
-    override fun markSetDone(workoutId: String, exerciseIndex: Int, totalSets: Int, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
-        delegate.markSetDone(workoutId, exerciseIndex, totalSets, actualReps, actualWeightKg, actualRpe)
+    override fun markSetDone(workoutId: String, exerciseIndex: Int, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
+        delegate.markSetDone(workoutId, exerciseIndex, actualReps, actualWeightKg, actualRpe)
+    override fun undoSetDone(workoutId: String, exerciseIndex: Int) = delegate.undoSetDone(workoutId, exerciseIndex)
     override fun updateNotes(workoutId: String, notes: String) = delegate.updateNotes(workoutId, notes)
     override fun updateRestSeconds(workoutId: String, restSeconds: Int) = delegate.updateRestSeconds(workoutId, restSeconds)
     override fun submitFeedback(workoutId: String) = delegate.submitFeedback(workoutId)

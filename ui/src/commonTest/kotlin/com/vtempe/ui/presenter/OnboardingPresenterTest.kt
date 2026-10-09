@@ -240,6 +240,7 @@ class OnboardingPresenterTest {
             override fun observeWorkoutsByWeek(weekIndex: Int) = observeWorkouts()
             override fun observeWorkoutProgress() = MutableStateFlow(emptyMap<String, WorkoutProgress>())
             override suspend fun saveWorkoutProgress(progress: WorkoutProgress) = Unit
+            override suspend fun updateWorkoutProgress(workoutId: String, transform: (WorkoutProgress) -> WorkoutProgress) = Unit
             override suspend fun recentWorkoutSummaries(limit: Int) = emptyList<WorkoutSummary>()
         }
         val nutrition = object : NutritionRepository {

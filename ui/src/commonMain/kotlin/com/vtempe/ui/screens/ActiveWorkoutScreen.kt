@@ -64,6 +64,7 @@ import com.vtempe.shared.domain.model.ExtraWorkoutSet
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
+import com.vtempe.shared.domain.training.WorkoutProgressEditor
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.ui.GlassTopBarContainer
 import com.vtempe.ui.Res
@@ -81,8 +82,8 @@ internal fun ActiveWorkoutScreen(
     bottomBarHeight: Dp,
     onBack: () -> Unit,
     onAddSet: (String, Int, Double?, Double?) -> Unit,
-    onResultChanged: (Int, Boolean, Int?, Double?, Double?) -> Unit,
-    onSetDone: (Int, Int, Int?, Double?, Double?) -> Unit,
+    onUndoSet: (Int) -> Unit,
+    onSetDone: (Int, Int?, Double?, Double?) -> Unit,
     onNotesChanged: (String) -> Unit,
     onRestSecondsChanged: (Int) -> Unit,
     onSubmit: () -> Unit,
@@ -112,9 +113,11 @@ internal fun ActiveWorkoutScreen(
         if (restRemaining <= 0) isRestRunning = false
     }
 
+    // Only records of this plan's exercises count — results of replaced exercises stay history.
+    val performedByIndex = remember(workout, progress) { WorkoutProgressEditor.performedFor(workout, progress) }
     val totalSetsAcrossExercises = workout.sets.sumOf { it.sets.coerceAtLeast(1) }
-    val doneSetsAcrossExercises = progress.performedSets.sumOf { it.completedSetsCount }
-    val completedExercises = progress.performedSets.count { it.completed }
+    val doneSetsAcrossExercises = performedByIndex.values.sumOf { it.completedSetsCount }
+    val completedExercises = performedByIndex.values.count { it.completed }
     val progressFraction = if (totalSetsAcrossExercises == 0) 0f
     else doneSetsAcrossExercises.toFloat() / totalSetsAcrossExercises.toFloat()
 
@@ -166,7 +169,7 @@ internal fun ActiveWorkoutScreen(
                     ExerciseRow(
                         index = index,
                         set = set,
-                        performed = progress.performedSets.firstOrNull { it.setIndex == index },
+                        performed = performedByIndex[index],
                         onClick = { selectedSetIndex = index }
                     )
                 }
@@ -204,15 +207,13 @@ internal fun ActiveWorkoutScreen(
         SetDetailSheet(
             setIndex = idx,
             plannedSet = selectedSet,
-            performed = progress.performedSets.firstOrNull { it.setIndex == idx },
+            performed = performedByIndex[idx],
             coachTrainerId = coachTrainerId,
             restSeconds = progress.restSeconds,
             onDismiss = { selectedSetIndex = null },
-            onResultChanged = { completed, reps, weight, rpe ->
-                onResultChanged(idx, completed, reps, weight, rpe)
-            },
+            onUndoSet = { onUndoSet(idx) },
             onSetDone = { reps, weight, rpe ->
-                onSetDone(idx, selectedSet.sets.coerceAtLeast(1), reps, weight, rpe)
+                onSetDone(idx, reps, weight, rpe)
                 restRemaining = progress.restSeconds
                 isRestRunning = true
                 // Sheet stays open — auto-closes when exercise.completed=true via LaunchedEffect

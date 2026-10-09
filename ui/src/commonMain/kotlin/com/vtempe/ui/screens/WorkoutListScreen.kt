@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
+import com.vtempe.shared.domain.training.WorkoutProgressEditor
 import com.vtempe.ui.Res
 import com.vtempe.ui.*
 import com.vtempe.ui.util.kmpFormat
@@ -194,7 +196,8 @@ internal fun WorkoutOverviewCard(
     selected: Boolean,
     onOpen: () -> Unit
 ) {
-    val completedCount = progress.performedSets.count { it.completed }
+    val performedByIndex = remember(workout, progress) { WorkoutProgressEditor.performedFor(workout, progress) }
+    val completedCount = performedByIndex.values.count { it.completed }
     val progressValue = if (workout.sets.isEmpty()) 0f
     else completedCount.toFloat() / workout.sets.size.toFloat()
 
@@ -252,7 +255,7 @@ internal fun WorkoutOverviewCard(
 
             // Compact exercise preview rows
             workout.sets.take(4).forEachIndexed { index, set ->
-                val done = progress.performedSets.any { it.setIndex == index && it.completed }
+                val done = performedByIndex[index]?.completed == true
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)

@@ -71,11 +71,9 @@ fun WorkoutScreen(
                 onAddSet = { exerciseId, reps, weight, rpe ->
                     presenter.addSet(exerciseId, reps, weight, rpe)
                 },
-                onResultChanged = { setIndex, completed, reps, weight, rpe ->
-                    presenter.updatePerformedSet(detailWorkout.id, setIndex, completed, reps, weight, rpe)
-                },
-                onSetDone = { exerciseIndex, totalSets, reps, weight, rpe ->
-                    presenter.markSetDone(detailWorkout.id, exerciseIndex, totalSets, reps, weight, rpe)
+                onUndoSet = { exerciseIndex -> presenter.undoSetDone(detailWorkout.id, exerciseIndex) },
+                onSetDone = { exerciseIndex, reps, weight, rpe ->
+                    presenter.markSetDone(detailWorkout.id, exerciseIndex, reps, weight, rpe)
                 },
                 onNotesChanged = { presenter.updateNotes(detailWorkout.id, it) },
                 onRestSecondsChanged = { presenter.updateRestSeconds(detailWorkout.id, it) },

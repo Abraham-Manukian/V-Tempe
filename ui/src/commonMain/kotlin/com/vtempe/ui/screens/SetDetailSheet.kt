@@ -73,7 +73,7 @@ internal fun SetDetailSheet(
     coachTrainerId: String,
     restSeconds: Int,
     onDismiss: () -> Unit,
-    onResultChanged: (Boolean, Int?, Double?, Double?) -> Unit,
+    onUndoSet: () -> Unit,
     onSetDone: (Int?, Double?, Double?) -> Unit,
     onUseSuggestedRest: (Int) -> Unit,
     onAskCoach: (String) -> Unit
@@ -407,9 +407,7 @@ internal fun SetDetailSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
-                    onClick = {
-                        onResultChanged(false, reps, weight, rpe)
-                    }
+                    onClick = onUndoSet
                 ) {
                     Text(
                         stringResource(Res.string.workout_mark_not_done),

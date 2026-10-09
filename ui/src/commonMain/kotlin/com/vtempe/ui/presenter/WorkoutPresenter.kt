@@ -3,13 +3,14 @@ package com.vtempe.ui.presenter
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.ExtraWorkoutSet
-import com.vtempe.shared.domain.model.PerformedSet
+import com.vtempe.shared.domain.model.SetResult
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
+import com.vtempe.shared.domain.training.WorkoutProgressEditor
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.usecase.LogWorkoutSet
@@ -44,23 +45,17 @@ interface WorkoutPresenter {
     fun refresh()
     fun select(workoutId: String)
     fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?)
-    fun updatePerformedSet(
-        workoutId: String,
-        setIndex: Int,
-        completed: Boolean,
-        actualReps: Int?,
-        actualWeightKg: Double?,
-        actualRpe: Double?
-    )
-    /** Increments completedSetsCount for the exercise. Marks exercise done when count reaches totalSets. */
+    /** Records one completed set of the exercise at [exerciseIndex] with what was actually done;
+     *  the exercise is done once all its planned sets are. Extra taps beyond that are ignored. */
     fun markSetDone(
         workoutId: String,
         exerciseIndex: Int,
-        totalSets: Int,
         actualReps: Int?,
         actualWeightKg: Double?,
         actualRpe: Double?
     )
+    /** Undoes the last completed set of the exercise at [exerciseIndex]. */
+    fun undoSetDone(workoutId: String, exerciseIndex: Int)
     fun updateNotes(workoutId: String, notes: String)
     fun updateRestSeconds(workoutId: String, restSeconds: Int)
     fun submitFeedback(workoutId: String)
@@ -130,60 +125,37 @@ class WorkoutPresenterDelegate(
         }
     }
 
-    override fun updatePerformedSet(
-        workoutId: String,
-        setIndex: Int,
-        completed: Boolean,
-        actualReps: Int?,
-        actualWeightKg: Double?,
-        actualRpe: Double?
-    ) {
-        scope.launch {
-            val current = _state.value.progress[workoutId] ?: WorkoutProgress(workoutId)
-            val sets = current.performedSets.toMutableList()
-            val idx = sets.indexOfFirst { it.setIndex == setIndex }
-            val existing = sets.getOrNull(idx)
-            val updated = PerformedSet(setIndex, completed, existing?.completedSetsCount ?: 0, actualReps, actualWeightKg, actualRpe)
-            if (idx >= 0) sets[idx] = updated else sets.add(updated)
-            val newProgress = current.copy(
-                performedSets = sets,
-                updatedAtEpochMs = Clock.System.now().toEpochMilliseconds()
-            )
-            runCatching { trainingRepository.saveWorkoutProgress(newProgress) }
-                .onFailure { Napier.e("updatePerformedSet failed", it) }
-        }
-    }
-
     override fun markSetDone(
         workoutId: String,
         exerciseIndex: Int,
-        totalSets: Int,
         actualReps: Int?,
         actualWeightKg: Double?,
         actualRpe: Double?
     ) {
+        val workout = _state.value.workouts.firstOrNull { it.id == workoutId } ?: return
+        val planned = workout.sets.getOrNull(exerciseIndex) ?: return
+        val result = SetResult(
+            reps = actualReps ?: planned.reps,
+            weightKg = actualWeightKg?.takeIf { it.isFinite() && it >= 0.0 },
+            rpe = actualRpe,
+        )
         scope.launch {
-            val current = _state.value.progress[workoutId] ?: WorkoutProgress(workoutId)
-            val sets = current.performedSets.toMutableList()
-            val idx = sets.indexOfFirst { it.setIndex == exerciseIndex }
-            val existing = sets.getOrNull(idx)
-            val newCount = (existing?.completedSetsCount ?: 0) + 1
-            val isComplete = newCount >= totalSets
-            val updated = PerformedSet(
-                setIndex = exerciseIndex,
-                completed = isComplete,
-                completedSetsCount = newCount,
-                actualReps = actualReps,
-                actualWeightKg = actualWeightKg,
-                actualRpe = actualRpe
-            )
-            if (idx >= 0) sets[idx] = updated else sets.add(updated)
-            val newProgress = current.copy(
-                performedSets = sets,
-                updatedAtEpochMs = Clock.System.now().toEpochMilliseconds()
-            )
-            runCatching { trainingRepository.saveWorkoutProgress(newProgress) }
-                .onFailure { Napier.e("markSetDone failed", it) }
+            runCatching {
+                trainingRepository.updateWorkoutProgress(workoutId) {
+                    WorkoutProgressEditor.markSetDone(it, workout, exerciseIndex, result)
+                }
+            }.onFailure { Napier.e("markSetDone failed", it) }
+        }
+    }
+
+    override fun undoSetDone(workoutId: String, exerciseIndex: Int) {
+        val workout = _state.value.workouts.firstOrNull { it.id == workoutId } ?: return
+        scope.launch {
+            runCatching {
+                trainingRepository.updateWorkoutProgress(workoutId) {
+                    WorkoutProgressEditor.undoLastSet(it, workout, exerciseIndex)
+                }
+            }.onFailure { Napier.e("undoSetDone failed", it) }
         }
     }
 

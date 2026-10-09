@@ -2,16 +2,19 @@ package com.vtempe.shared.data.repo
 
 import com.russhwolf.settings.Settings
 import com.vtempe.shared.db.AppDatabase
-import com.vtempe.shared.domain.model.ExercisePerformance
 import com.vtempe.shared.domain.model.ExtraWorkoutSet
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.SyncDomain
+import com.vtempe.shared.domain.training.WorkoutHistory
+import com.vtempe.shared.domain.training.WorkoutProgressEditor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -30,12 +33,36 @@ class WorkoutProgressStore(
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val serializer = MapSerializer(String.serializer(), WorkoutProgress.serializer())
     private val cache = MutableStateFlow(load())
+    /** Serializes read-modify-write so two quick taps can never both start from the same state. */
+    private val writeLock = Mutex()
 
     fun observe(): Flow<Map<String, WorkoutProgress>> = cache.asStateFlow()
 
     fun current(): Map<String, WorkoutProgress> = cache.value
 
-    suspend fun save(progress: WorkoutProgress) {
+    suspend fun save(progress: WorkoutProgress) = writeLock.withLock { write(progress) }
+
+    /** Atomically applies [transform] to the latest stored progress of [workoutId]. */
+    suspend fun update(workoutId: String, transform: (WorkoutProgress) -> WorkoutProgress) = writeLock.withLock {
+        val current = cache.value[workoutId] ?: WorkoutProgress(workoutId = workoutId)
+        val updated = transform(current)
+        if (updated != current) write(updated.copy(updatedAtEpochMs = nowEpochMillis()))
+    }
+
+    /**
+     * Before [workouts] are overwritten by a new plan version, ties their legacy progress records
+     * (written before records carried an exercise id) to the exercises they were done for, so
+     * the new version cannot inherit them by position (VT-AUD-020).
+     */
+    suspend fun bindLegacyRecords(workouts: List<Workout>) = writeLock.withLock {
+        workouts.forEach { workout ->
+            val current = cache.value[workout.id] ?: return@forEach
+            val bound = WorkoutProgressEditor.bindLegacyRecords(current, workout)
+            if (bound != current) write(bound)
+        }
+    }
+
+    private fun write(progress: WorkoutProgress) {
         val updated = cache.value.toMutableMap()
         updated[progress.workoutId] = progress
         cache.value = updated
@@ -43,19 +70,15 @@ class WorkoutProgressStore(
         onLocalChange(SyncDomain.WORKOUT_PROGRESS)
     }
 
-    suspend fun appendExtraSet(workoutId: String, set: WorkoutSet) {
-        val currentProgress = cache.value[workoutId] ?: WorkoutProgress(workoutId = workoutId)
-        save(
-            currentProgress.copy(
-                extraSets = currentProgress.extraSets + ExtraWorkoutSet(
-                    exerciseId = set.exerciseId,
-                    reps = set.reps,
-                    weightKg = set.weightKg,
-                    rpe = set.rpe
-                ),
-                updatedAtEpochMs = nowEpochMillis(),
-                submitted = false
-            )
+    suspend fun appendExtraSet(workoutId: String, set: WorkoutSet) = update(workoutId) { currentProgress ->
+        currentProgress.copy(
+            extraSets = currentProgress.extraSets + ExtraWorkoutSet(
+                exerciseId = set.exerciseId,
+                reps = set.reps,
+                weightKg = set.weightKg,
+                rpe = set.rpe
+            ),
+            submitted = false
         )
     }
 
@@ -81,57 +104,7 @@ class WorkoutProgressStore(
         return cache.value.values
             .mapNotNull { progress ->
                 val workout = workoutsById[progress.workoutId] ?: return@mapNotNull null
-                val completedItems = progress.performedSets.count { it.completed }
-                if (completedItems == 0 && progress.extraSets.isEmpty() && progress.notes.isBlank()) {
-                    return@mapNotNull null
-                }
-
-                val totalVolume = progress.performedSets
-                    .filter { it.completed }
-                    .sumOf { entry ->
-                        val planned = workout.sets.getOrNull(entry.setIndex)
-                        val reps = entry.actualReps ?: planned?.reps ?: 0
-                        val weight = entry.actualWeightKg ?: planned?.weightKg ?: 0.0
-                        reps * weight
-                    } + progress.extraSets.sumOf { extra ->
-                    extra.reps * (extra.weightKg ?: 0.0)
-                }
-
-                val rpeValues = buildList {
-                    progress.performedSets.filter { it.completed }.forEach { entry ->
-                        val planned = workout.sets.getOrNull(entry.setIndex)
-                        val rpe = entry.actualRpe ?: planned?.rpe
-                        if (rpe != null) add(rpe)
-                    }
-                    progress.extraSets.forEach { extra ->
-                        val rpe = extra.rpe
-                        if (rpe != null) add(rpe)
-                    }
-                }
-
-                val exercisePerformances = progress.performedSets
-                    .filter { it.completed }
-                    .mapNotNull { entry ->
-                        val planned = workout.sets.getOrNull(entry.setIndex) ?: return@mapNotNull null
-                        ExercisePerformance(
-                            exerciseId = planned.exerciseId,
-                            weightKg = entry.actualWeightKg ?: planned.weightKg,
-                            reps = entry.actualReps ?: planned.reps,
-                        )
-                    }
-                    .distinctBy { it.exerciseId }
-
-                WorkoutSummary(
-                    workoutId = workout.id,
-                    date = workout.date.toString(),
-                    completionRate = if (workout.sets.isEmpty()) 0.0 else completedItems.toDouble() / workout.sets.size.toDouble(),
-                    completedItems = completedItems,
-                    plannedItems = workout.sets.size,
-                    totalVolumeKg = totalVolume,
-                    averageRpe = rpeValues.takeIf { it.isNotEmpty() }?.average(),
-                    notes = progress.notes.trim(),
-                    exercises = exercisePerformances,
-                )
+                WorkoutHistory.summarize(workout, progress)
             }
             .sortedByDescending { it.date }
             .take(limit)
