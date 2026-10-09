@@ -246,6 +246,9 @@ data class SleepEntry(val date: String, val durationMinutes: Int, val notes: Str
 
 const val MAX_SLEEP_NOTE_LENGTH = 500
 
+/** Longest chat message the coach accepts; the server answers 400 `message_too_long` beyond it. */
+const val MAX_CHAT_MESSAGE_LENGTH = 4_000
+
 /** One body-weight measurement, used in the AI profile to track progress trends. */
 @Serializable
 data class WeightEntry(val date: String, val weightKg: Double)

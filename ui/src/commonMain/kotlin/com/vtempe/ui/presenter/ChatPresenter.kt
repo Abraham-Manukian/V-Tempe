@@ -1,5 +1,6 @@
 package com.vtempe.ui.presenter
 
+import com.vtempe.shared.domain.model.MAX_CHAT_MESSAGE_LENGTH
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.ChatHistoryStore
 import com.vtempe.shared.domain.model.CoachTrainerIds
@@ -68,7 +69,7 @@ class ChatPresenterDelegate(
     }
 
     override fun updateInput(text: String) {
-        _state.update { it.copy(input = text, sendState = ChatSendState.Idle) }
+        _state.update { it.copy(input = text.take(MAX_CHAT_MESSAGE_LENGTH), sendState = ChatSendState.Idle) }
     }
 
     override fun send() {

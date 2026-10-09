@@ -4,6 +4,9 @@ import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
+import com.vtempe.server.features.ai.api.AiInputRejected
+import com.vtempe.server.features.ai.api.AiRequestLimits
+import com.vtempe.server.features.ai.data.privacy.boundedForPrompt
 import com.vtempe.server.features.ai.data.privacy.withoutDirectIdentifiers
 import com.vtempe.server.features.ai.domain.model.TrainingMode
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
@@ -45,13 +48,19 @@ class ChatService(
         coerceInputValues = true
     }
 
-    /** Entry point: strips direct identifiers from the request before anything reaches a prompt. */
+    /** Entry point: bounds the request (VT-AUD-010), then strips direct identifiers — the
+     *  redactor never sees more text than the prompt can use. */
     suspend fun chat(rawRequest: AiChatRequest): AiChatResponse =
-        chatWithoutIdentifiers(rawRequest.withoutDirectIdentifiers())
+        chatWithoutIdentifiers(rawRequest.boundedForPrompt().withoutDirectIdentifiers())
 
     private suspend fun chatWithoutIdentifiers(req: AiChatRequest): AiChatResponse = runCatching {
         val locale = safeLocale(req.locale ?: req.profile.locale)
         val prompt = buildChatPrompt(req, locale)
+        // Final guard before anything is paid for: the plans the client attached are the only
+        // part not cut field by field, so the whole prompt gets a ceiling too.
+        if (prompt.length > AiRequestLimits.MAX_PROMPT_CHARS) {
+            throw AiInputRejected(io.ktor.http.HttpStatusCode.PayloadTooLarge, "request_too_large")
+        }
         val requestId = "chat|${req.messages.size}|${req.messages.lastOrNull()?.content?.hashCode() ?: 0}"
 
         val response = withTimeout(LlmTimeoutMs) {

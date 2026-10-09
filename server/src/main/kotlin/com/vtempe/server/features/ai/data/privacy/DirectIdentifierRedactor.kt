@@ -20,8 +20,6 @@ object DirectIdentifierRedactor {
     const val PHONE_PLACEHOLDER = "[phone]"
     const val HANDLE_PLACEHOLDER = "[handle]"
 
-    private val EMAIL = Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}")
-
     // "+<country><9..14 more digits>" with common separators, e.g. "+7 (900) 123-45-67", "+44 20 7946 0958".
     private val INTERNATIONAL_PHONE = Regex("(?<![\\w+])\\+\\d(?:[\\s().-]*\\d){9,14}(?!\\d)")
 
@@ -33,12 +31,69 @@ object DirectIdentifierRedactor {
 
     fun redact(text: String): String {
         if (text.isEmpty()) return text
-        return text
-            .replace(EMAIL, EMAIL_PLACEHOLDER)
+        return redactEmails(text)
             .replace(INTERNATIONAL_PHONE, PHONE_PLACEHOLDER)
             .replace(RU_DOMESTIC_PHONE, PHONE_PLACEHOLDER)
             .replace(HANDLE, HANDLE_PLACEHOLDER)
     }
+
+    /**
+     * Replaces e-mail addresses in ONE linear pass (VT-AUD-011).
+     *
+     * Same matches as the former `[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}`
+     * regex, but that pattern, unanchored, re-scanned the rest of a long letter run from every
+     * starting position before failing on the missing `@` — quadratic time on input like 20 000
+     * letters. Here only an `@` starts work: the local part is the run of local-part characters
+     * right before it and the domain the run right after it; runs between two `@` are disjoint,
+     * so every character is visited a bounded number of times.
+     */
+    private fun redactEmails(text: String): String {
+        var at = text.indexOf('@')
+        if (at < 0) return text
+        val out = StringBuilder(text.length)
+        var copiedUpTo = 0 // text before this index is already in [out]
+        while (at >= 0) {
+            var start = at
+            while (start > copiedUpTo && isLocalPartChar(text[start - 1])) start--
+            val end = if (start < at) emailDomainEnd(text, at + 1) else -1
+            if (end > 0) {
+                out.append(text, copiedUpTo, start).append(EMAIL_PLACEHOLDER)
+                copiedUpTo = end
+                at = text.indexOf('@', end)
+            } else {
+                at = text.indexOf('@', at + 1)
+            }
+        }
+        return out.append(text, copiedUpTo, text.length).toString()
+    }
+
+    /**
+     * End (exclusive) of the domain starting at [from], or -1. Mirrors the regex's greedy
+     * backtracking: labels `[A-Za-z0-9-]+` joined by single dots, at least two of them, and the
+     * last one cut to its leading ASCII letters, which must number two or more; the most labels
+     * that satisfy this win.
+     */
+    private fun emailDomainEnd(text: String, from: Int): Int {
+        val labelStarts = ArrayList<Int>()
+        var i = from
+        while (i < text.length && isLabelChar(text[i])) {
+            labelStarts += i
+            while (i < text.length && isLabelChar(text[i])) i++
+            if (i + 1 < text.length && text[i] == '.' && isLabelChar(text[i + 1])) i++ else break
+        }
+        for (k in labelStarts.indices.reversed()) {
+            if (k == 0) break
+            var letters = labelStarts[k]
+            while (letters < text.length && text[letters].isAsciiLetter()) letters++
+            if (letters - labelStarts[k] >= 2) return letters
+        }
+        return -1
+    }
+
+    private fun isLocalPartChar(c: Char) = c.isAsciiLetterOrDigit() || c == '.' || c == '_' || c == '%' || c == '+' || c == '-'
+    private fun isLabelChar(c: Char) = c.isAsciiLetterOrDigit() || c == '-'
+    private fun Char.isAsciiLetter() = this in 'a'..'z' || this in 'A'..'Z'
+    private fun Char.isAsciiLetterOrDigit() = isAsciiLetter() || this in '0'..'9'
 }
 
 /** Same profile with every user-typed free-text field passed through [DirectIdentifierRedactor]. */

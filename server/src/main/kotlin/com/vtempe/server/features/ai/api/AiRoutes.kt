@@ -3,6 +3,8 @@ package com.vtempe.server.features.ai.api
 import com.vtempe.server.features.ai.access.AiAccessPlugin
 import com.vtempe.server.features.ai.access.AiAccessResolver
 import com.vtempe.server.features.ai.access.authorizedProfile
+import com.vtempe.server.features.ai.data.privacy.boundedForPrompt
+import com.vtempe.server.features.ai.data.privacy.latestUserMessage
 import com.vtempe.server.features.ai.domain.usecase.BootstrapUseCase
 import com.vtempe.server.features.ai.domain.usecase.ChatUseCase
 import com.vtempe.server.features.ai.domain.usecase.NutritionUseCase
@@ -15,7 +17,8 @@ import com.vtempe.server.shared.dto.nutrition.AiNutritionRequest
 import com.vtempe.server.shared.dto.training.AiTrainingRequest
 import io.ktor.server.application.call
 import io.ktor.server.application.install
-import io.ktor.server.request.receive
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
@@ -32,28 +35,55 @@ fun Route.registerAiRoutes() {
 
     route("/ai") {
         // Access is enforced on this subtree, not by URI prefix — see AiAccessPlugin. Every
-        // handler then replaces the client's llmMode with the server-resolved tier.
+        // handler then reads the body within AiRequestLimits, replaces the client's llmMode with
+        // the server-resolved tier and bounds every free-text field before any use case runs.
         install(AiAccessPlugin) { resolver = accessResolver }
 
         post("/training") {
-            val req = call.receive<AiTrainingRequest>().let { it.copy(profile = call.authorizedProfile(it.profile)) }
-            call.respond(training.execute(req))
+            call.respondAi {
+                val req = call.receiveBounded<AiTrainingRequest>()
+                training.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+            }
         }
         post("/nutrition") {
-            val req = call.receive<AiNutritionRequest>().let { it.copy(profile = call.authorizedProfile(it.profile)) }
-            call.respond(nutrition.execute(req))
+            call.respondAi {
+                val req = call.receiveBounded<AiNutritionRequest>()
+                nutrition.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+            }
         }
         post("/sleep") {
-            val req = call.receive<AiAdviceRequest>().let { it.copy(profile = call.authorizedProfile(it.profile)) }
-            call.respond(sleep.execute(req))
+            call.respondAi {
+                val req = call.receiveBounded<AiAdviceRequest>()
+                sleep.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+            }
         }
         post("/chat") {
-            val req = call.receive<AiChatRequest>().let { it.copy(profile = call.authorizedProfile(it.profile)) }
-            call.respond(chat.execute(req))
+            call.respondAi {
+                val req = call.receiveBounded<AiChatRequest>()
+                // The typed message is refused, not silently cut: the coach must answer what the
+                // user actually wrote. The app limits its composer to the same length.
+                if (req.latestUserMessage().length > AiRequestLimits.MAX_CHAT_MESSAGE_CHARS) {
+                    throw AiInputRejected(HttpStatusCode.BadRequest, "message_too_long")
+                }
+                chat.execute(req.copy(profile = call.authorizedProfile(req.profile)).boundedForPrompt())
+            }
         }
         post("/bootstrap") {
-            val req = call.receive<AiBootstrapRequest>().let { it.copy(profile = call.authorizedProfile(it.profile)) }
-            call.respond(bootstrap.execute(req))
+            call.respondAi {
+                val req = call.receiveBounded<AiBootstrapRequest>()
+                bootstrap.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+            }
         }
     }
+}
+
+/** Responds with the handler's result, or with the status and code of a rejected input. */
+private suspend inline fun <reified T : Any> ApplicationCall.respondAi(handler: () -> T) {
+    val result = try {
+        handler()
+    } catch (rejected: AiInputRejected) {
+        respond(rejected.status, mapOf("error" to rejected.code))
+        return
+    }
+    respond(result)
 }
