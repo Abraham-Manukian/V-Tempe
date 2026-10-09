@@ -1,21 +1,28 @@
 package com.vtempe.server.features.ai.data.service
 
 import com.vtempe.server.shared.dto.bootstrap.AiBootstrapResponse
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Coach-bundle cache + in-flight request dedup for [AiService], as an injectable Koin
- * singleton rather than a JVM-static `companion object`. AiService is itself already a Koin
- * `single`, so within one process this doesn't change runtime behavior — but a companion
- * object silently shares state with any AiService constructed outside Koin (e.g. in a test),
- * and hides what should be an explicit collaborator. This class is also the seam for a future
- * Redis/Memorystore-backed implementation if cross-instance (horizontal scaling) dedup ever
- * becomes worth the cost — see ARCHITECTURE_SECURITY_BACKLOG.md item N1.
+ * singleton rather than a JVM-static `companion object`. This class is also the seam for a
+ * future Redis/Memorystore-backed implementation if cross-instance dedup ever becomes worth the
+ * cost — see ARCHITECTURE_SECURITY_BACKLOG.md item N1.
+ *
+ * Memory is bounded (VT-AUD-006): at most [maxEntries] finished bundles are kept (least recently
+ * used evicted first), and expired ones are dropped on every write whether or not their key is
+ * ever requested again. In-flight generations are never evicted.
+ *
+ * Every in-flight generation is finished exactly once (VT-AUD-007): [complete], [fail] or
+ * [abandon] only touch the entry of THEIR generation (the deferred handed out by
+ * [lockInFlight]), so a late cleanup can never remove a newer owner's entry. All operations are
+ * short, non-suspending critical sections, so cleanup also runs while a coroutine is cancelled.
  */
-class BundleCache {
+class BundleCache(
+    private val maxEntries: Int = 256,
+    /** Monotonic milliseconds; tests pass a fake clock. */
+    private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
+) {
     companion object {
         const val BundleCacheTtlMs = 30 * 60 * 1000L
         const val FallbackCacheTtlMs = 2 * 60 * 1000L
@@ -26,78 +33,62 @@ class BundleCache {
         val isOwner: Boolean
     )
 
-    private data class CacheEntry(
-        val bundle: AiBootstrapResponse,
-        val timestamp: Long,
-        val ttlMs: Long
-    )
+    /** Completes waiters of a generation whose owner was cancelled: they should start their own. */
+    class GenerationAbandoned : IllegalStateException("bundle generation abandoned by its owner")
 
-    private val entries = ConcurrentHashMap<String, CacheEntry>()
-    private val mutex = Mutex()
-    private val inFlight = ConcurrentHashMap<String, CompletableDeferred<AiBootstrapResponse>>()
+    private class CacheEntry(val bundle: AiBootstrapResponse, val expiresAtMs: Long)
 
-    private fun isFresh(entry: CacheEntry, now: Long = System.currentTimeMillis()): Boolean =
-        now - entry.timestamp <= entry.ttlMs
-
-    suspend fun loadIfFresh(requestId: String): AiBootstrapResponse? {
-        val now = System.currentTimeMillis()
-        return mutex.withLock {
-            entries[requestId]?.let { entry ->
-                if (isFresh(entry, now)) {
-                    entry.bundle
-                } else {
-                    entries.remove(requestId)
-                    null
-                }
-            }
-        }
+    private val lock = Any()
+    private val entries = object : LinkedHashMap<String, CacheEntry>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, CacheEntry>): Boolean = size > maxEntries
     }
+    private val inFlight = HashMap<String, CompletableDeferred<AiBootstrapResponse>>()
+
+    fun loadIfFresh(requestId: String): AiBootstrapResponse? = synchronized(lock) { freshEntry(requestId) }
 
     /**
      * Returns a [PendingBundle] the caller can await. If nobody else is generating this
-     * request, the caller becomes the owner ([PendingBundle.isOwner] = true) and must call
-     * [store] once it has a result.
+     * request, the caller becomes the owner ([PendingBundle.isOwner] = true) and must finish it
+     * with exactly one of [complete], [fail] or [abandon].
      */
-    suspend fun lockInFlight(requestId: String): PendingBundle {
-        return mutex.withLock {
-            entries[requestId]?.let { entry ->
-                if (isFresh(entry)) {
-                    return@withLock PendingBundle(
-                        deferred = CompletableDeferred<AiBootstrapResponse>().apply { complete(entry.bundle) },
-                        isOwner = false
-                    )
-                }
-                entries.remove(requestId)
-            }
-
-            val existing = inFlight[requestId]
-            if (existing != null) {
-                PendingBundle(deferred = existing, isOwner = false)
-            } else {
-                val created = CompletableDeferred<AiBootstrapResponse>()
-                inFlight[requestId] = created
-                PendingBundle(deferred = created, isOwner = true)
-            }
+    fun lockInFlight(requestId: String): PendingBundle = synchronized(lock) {
+        freshEntry(requestId)?.let { cached ->
+            return@synchronized PendingBundle(CompletableDeferred(cached), isOwner = false)
         }
+        inFlight[requestId]?.let { return@synchronized PendingBundle(it, isOwner = false) }
+        val created = CompletableDeferred<AiBootstrapResponse>()
+        inFlight[requestId] = created
+        PendingBundle(created, isOwner = true)
     }
 
-    /** Stores [bundle] for [requestId] and completes any waiter registered via [lockInFlight]. */
-    suspend fun store(requestId: String, bundle: AiBootstrapResponse, ttlMs: Long) {
-        mutex.withLock {
-            entries[requestId] = CacheEntry(bundle = bundle, timestamp = System.currentTimeMillis(), ttlMs = ttlMs)
-            inFlight.remove(requestId)?.complete(bundle)
+    /** Caches [bundle] for [ttlMs] and hands it to every waiter of [generation]. */
+    fun complete(requestId: String, generation: CompletableDeferred<AiBootstrapResponse>, bundle: AiBootstrapResponse, ttlMs: Long) {
+        synchronized(lock) {
+            val now = clock()
+            entries.values.removeIf { it.expiresAtMs <= now }
+            entries[requestId] = CacheEntry(bundle, now + ttlMs)
+            inFlight.remove(requestId, generation)
         }
+        generation.complete(bundle)
     }
 
-    /**
-     * The owner MUST call this if it's giving up without calling [store] (e.g. rethrowing an
-     * unexpected error instead of falling back). Without it, the in-flight [CompletableDeferred]
-     * is never completed — every concurrent waiter from [lockInFlight], and every future request
-     * for the same [requestId] until the process restarts, would join it and hang forever.
-     */
-    suspend fun fail(requestId: String, error: Throwable) {
-        mutex.withLock {
-            inFlight.remove(requestId)?.completeExceptionally(error)
-        }
+    /** Ends [generation] with [error]; its waiters receive the same error. */
+    fun fail(requestId: String, generation: CompletableDeferred<AiBootstrapResponse>, error: Throwable) {
+        synchronized(lock) { inFlight.remove(requestId, generation) }
+        generation.completeExceptionally(error)
+    }
+
+    /** Ends [generation] because its owner was cancelled; waiters take over (see [GenerationAbandoned]). */
+    fun abandon(requestId: String, generation: CompletableDeferred<AiBootstrapResponse>) =
+        fail(requestId, generation, GenerationAbandoned())
+
+    internal fun cachedCount(): Int = synchronized(lock) { entries.size }
+    internal fun inFlightCount(): Int = synchronized(lock) { inFlight.size }
+
+    private fun freshEntry(requestId: String): AiBootstrapResponse? {
+        val entry = entries[requestId] ?: return null
+        if (entry.expiresAtMs > clock()) return entry.bundle
+        entries.remove(requestId)
+        return null
     }
 }

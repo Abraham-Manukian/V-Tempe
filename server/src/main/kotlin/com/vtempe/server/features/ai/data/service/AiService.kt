@@ -123,14 +123,55 @@ class AiService(
             profileHash
         )
 
-        val cached = bundleCache.loadIfFresh(requestId)
-        if (cached != null) return cached
-
-        val pendingState = bundleCache.lockInFlight(requestId)
-        if (!pendingState.isOwner) {
-            return pendingState.deferred.await()
+        while (true) {
+            bundleCache.loadIfFresh(requestId)?.let { return it }
+            val pending = bundleCache.lockInFlight(requestId)
+            if (!pending.isOwner) {
+                try {
+                    return pending.deferred.await()
+                } catch (abandoned: BundleCache.GenerationAbandoned) {
+                    continue // the owner was cancelled; this request generates instead
+                }
+            }
+            return ownBundleGeneration(requestId, pending.deferred) {
+                generateBundle(profile, weekIndex, localeTag, requestId)
+            }
         }
+    }
 
+    /** A bundle together with how long it may be served from the cache. */
+    private class GeneratedBundle(val bundle: AiBootstrapResponse, val ttlMs: Long)
+
+    /**
+     * Runs the owner's whole generation — prompt preparation, LLM, decomposed and fallback paths —
+     * and finishes the shared in-flight entry exactly once, whatever happens (VT-AUD-007):
+     * cached and handed to waiters on success, the same error on failure, and handed back to the
+     * waiters on cancellation so one of them generates instead of everybody waiting for nothing.
+     */
+    private suspend fun ownBundleGeneration(
+        requestId: String,
+        generation: kotlinx.coroutines.CompletableDeferred<AiBootstrapResponse>,
+        generate: suspend () -> GeneratedBundle,
+    ): AiBootstrapResponse {
+        val result = try {
+            generate()
+        } catch (cancelled: CancellationException) {
+            bundleCache.abandon(requestId, generation)
+            throw cancelled
+        } catch (error: Throwable) {
+            bundleCache.fail(requestId, generation, error)
+            throw error
+        }
+        bundleCache.complete(requestId, generation, result.bundle, result.ttlMs)
+        return result.bundle
+    }
+
+    private suspend fun generateBundle(
+        profile: AiProfile,
+        weekIndex: Int,
+        localeTag: String,
+        requestId: String,
+    ): GeneratedBundle {
         val locale = safeLocale(localeTag)
         val measurementSystem = measurementSystemLabel(locale)
         val weightUnit = if (measurementSystem.startsWith("imperial")) "pounds" else "kilograms"
@@ -145,10 +186,7 @@ class AiService(
                 locale = locale,
                 requestId = requestId
             )
-            if (decomposed != null) {
-                bundleCache.store(requestId, decomposed, BundleCache.BundleCacheTtlMs)
-                return decomposed
-            }
+            if (decomposed != null) return GeneratedBundle(decomposed, BundleCache.BundleCacheTtlMs)
             logger.warn("Decomposed-first bundle generation failed, falling back to monolithic requestId={}", requestId)
         }
 
@@ -213,9 +251,10 @@ class AiService(
                 feedbackSuffix = restrictionsFeedback,
             )
 
-            val normalized = normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
-            bundleCache.store(requestId, normalized, BundleCache.BundleCacheTtlMs)
-            normalized
+            GeneratedBundle(
+                normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex),
+                BundleCache.BundleCacheTtlMs
+            )
         } catch (t: Throwable) {
             // Same narrowing as runWithFallback (see LlmFallbackPolicy.isExpectedLlmFailure) —
             // this catch is the REAL swallow point for training()/nutrition()/sleep()/bundle():
@@ -224,13 +263,10 @@ class AiService(
             // only for whatever throws BEFORE this try block. Without this check here too, a
             // genuine bug (NPE in normalizeBundle, a broken validator, etc.) would silently
             // become "the AI must have been slow" for every one of those four entry points.
-            if (t is CancellationException && t !is TimeoutCancellationException) {
-                bundleCache.fail(requestId, t)
-                throw t
-            }
+            // The in-flight entry is finished by ownBundleGeneration for every exit, including these.
+            if (t is CancellationException && t !is TimeoutCancellationException) throw t
             if (!isExpectedLlmFailure(t)) {
                 logger.error("Unexpected error generating coach bundle requestId={} — not falling back, surfacing as failure", requestId, t)
-                bundleCache.fail(requestId, t)
                 throw t
             }
             val decomposed = if (!decomposedAttempted && shouldAttemptDecomposedGeneration(t)) {
@@ -244,10 +280,7 @@ class AiService(
             } else {
                 null
             }
-            if (decomposed != null) {
-                bundleCache.store(requestId, decomposed, BundleCache.BundleCacheTtlMs)
-                return decomposed
-            }
+            if (decomposed != null) return GeneratedBundle(decomposed, BundleCache.BundleCacheTtlMs)
 
             val fallbackBundle = normalizeBundle(
                 AiBootstrapResponse(
@@ -261,8 +294,7 @@ class AiService(
             )
             logger.warn("LLM bundle fallback activated for requestId={}", requestId, t)
             AiQualityMetrics.recordFallback(logger, "coach-bundle", t)
-            bundleCache.store(requestId, fallbackBundle, BundleCache.FallbackCacheTtlMs)
-            fallbackBundle
+            GeneratedBundle(fallbackBundle, BundleCache.FallbackCacheTtlMs)
         }
     }
 
