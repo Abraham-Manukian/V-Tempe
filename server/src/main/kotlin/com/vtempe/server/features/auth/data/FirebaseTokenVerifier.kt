@@ -4,6 +4,7 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
+import com.vtempe.server.features.auth.IdTokenVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URI
@@ -17,12 +18,11 @@ import org.slf4j.LoggerFactory
  * verification only needs the project's PUBLIC signing keys plus the expected `aud`/`iss`
  * claims (the project id) — both fetched/checked here, no secret required.
  *
- * Degrades gracefully when [projectId] is null (FIREBASE_PROJECT_ID unset) — mirrors how
- * APP_SECRET being unset leaves the AI routes open rather than crashing the app: [verify]
- * simply always returns null, so every request under /me is rejected as unauthenticated until
- * the owner creates a Firebase project and sets the env var.
+ * Fails closed when [projectId] is null (FIREBASE_PROJECT_ID unset): [verify] simply always
+ * returns null, so every request under /me — and every signed-in /ai call — is rejected as
+ * unauthenticated until the owner creates a Firebase project and sets the env var.
  */
-class FirebaseTokenVerifier(private val projectId: String?) {
+class FirebaseTokenVerifier(private val projectId: String?) : IdTokenVerifier {
     private val logger = LoggerFactory.getLogger(FirebaseTokenVerifier::class.java)
 
     private val jwkProvider = projectId?.let {
@@ -43,7 +43,7 @@ class FirebaseTokenVerifier(private val projectId: String?) {
      *  suspend + Dispatchers.IO: on a JWKS cache miss (rare — cached for 10h), the underlying
      *  jwks-rsa provider does a synchronous HTTP fetch; calling this directly from a Ktor
      *  request-pipeline coroutine would otherwise block a Netty event-loop thread. */
-    suspend fun verify(idToken: String): String? {
+    override suspend fun verify(idToken: String): String? {
         val projectId = this.projectId ?: return null
         val provider = jwkProvider ?: return null
         return withContext(Dispatchers.IO) {

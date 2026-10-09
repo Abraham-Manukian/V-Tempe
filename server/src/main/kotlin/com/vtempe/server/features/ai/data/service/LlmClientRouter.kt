@@ -1,13 +1,15 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.access.LlmTier
 import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.shared.dto.profile.AiProfile
 import org.slf4j.Logger
 
 /**
  * Routes a generation request to the paid LLM client, falling back to the free client on an
- * expected failure (see [shouldFallbackToFree] in LlmFallbackPolicy.kt) — or straight to free
- * if the profile explicitly opted into `llmMode = "free"`.
+ * expected failure (see [shouldFallbackToFree] in LlmFallbackPolicy.kt). The paid client is used
+ * only for `llmMode = "paid"`, which the AI routes set solely when the server granted that tier
+ * (see AiAccessResolver); "free", null and unknown values all go straight to free.
  *
  * Extracted out of AiService (item A5, God object) — this was ALSO byte-identical duplicated
  * logic in ChatService (a second instance of the same A5/N1-style copy-paste this backlog
@@ -30,7 +32,7 @@ class LlmClientRouter(
         schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema? = null,
     ): String {
         val mode = profile.llmMode?.trim()?.lowercase()
-        if (mode == "free") return freeLlmClient.generateJson(prompt, schema)
+        if (mode != LlmTier.PAID.wireValue) return freeLlmClient.generateJson(prompt, schema)
 
         return runCatching {
             paidLlmClient.generateJson(prompt, schema)

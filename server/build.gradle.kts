@@ -33,6 +33,7 @@ dependencies {
     implementation(libs.auth0.java.jwt)
     implementation(libs.auth0.jwks.rsa)
 
+    testImplementation(libs.ktor.server.test.host)
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

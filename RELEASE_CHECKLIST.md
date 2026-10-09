@@ -11,8 +11,13 @@
 
 - [x] **Задеплоить Ktor-сервер** — ✅ сервер живой на Cloud Run, подтверждено прямыми запросами (2026-07-01/02).
 
-- [x] **Аутентификация на `/ai/*` эндпоинтах** — ✅ `X-App-Token` проверка есть в `Application.kt`
-  (`intercept(ApplicationCallPipeline.Plugins)`, сверяет с `APP_SECRET`).
+- [x] **Аутентификация на `/ai/*` эндпоинтах** — ✅ `AiAccessPlugin` на поддереве `route("/ai")`
+  (`features/ai/access`, VT-AUD-002–005): `X-App-Token` = `APP_SECRET` (без секрета AI отвечает 503;
+  dev-обход только явным `AI_ALLOW_MISSING_APP_SECRET=true`), присланный `Authorization` обязан быть
+  валидным Firebase ID token (иначе 401), без него — гость (`AI_GUEST_ACCESS`, по умолчанию `true`).
+  Платная модель — только по серверной политике `AI_PAID_ACCESS`: `entitlement` (по умолчанию),
+  `authenticated` или `everyone` (сейчас в `cloudbuild.yaml` — этап тестирования).
+  **Перед продажей подписок** переключить `AI_PAID_ACCESS` на `entitlement`.
 
 - [x] **Rate limiting на API** — ✅ Ktor `RateLimit` плагин установлен, 30 req/min на `/ai/*`.
 

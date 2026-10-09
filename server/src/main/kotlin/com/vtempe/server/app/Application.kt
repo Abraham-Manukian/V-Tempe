@@ -3,6 +3,7 @@
 import com.vtempe.server.app.di.serverModule
 import com.vtempe.server.config.Env
 import com.vtempe.server.features.account.api.registerAccountRoutes
+import com.vtempe.server.features.ai.access.AiAccessConfig
 import com.vtempe.server.features.ai.api.registerAiRoutes
 import com.vtempe.server.features.auth.UserIdKey
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
@@ -21,12 +22,10 @@ import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.path
-import io.ktor.server.request.uri
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
-import java.security.MessageDigest
 import kotlin.time.Duration.Companion.minutes
 
 fun main() {
@@ -65,30 +64,21 @@ fun Application.module() {
         }
     }
 
-    // Token-based protection for /ai/* routes.
-    // Set APP_SECRET in .env.local; if absent, routes remain open (local dev fallback).
-    val appSecret = Env["APP_SECRET"]?.takeIf { it.isNotBlank() }
-    if (appSecret == null) {
-        log.warn("APP_SECRET is not set — /ai/* endpoints are unprotected!")
+    // /ai/* access (app token, Firebase session, paid tier) is enforced by AiAccessPlugin on the
+    // AI route subtree itself — see registerAiRoutes. Only the configuration is reported here.
+    val aiAccess: AiAccessConfig by inject()
+    when {
+        aiAccess.appSecret != null -> Unit
+        aiAccess.allowMissingAppSecret ->
+            log.warn("APP_SECRET is not set and ${AiAccessConfig.ALLOW_MISSING_APP_SECRET}=true — /ai/* skips the app token check (dev only)")
+        else -> log.error("APP_SECRET is not set — /ai/* endpoints answer 503 until it is configured")
     }
-    intercept(ApplicationCallPipeline.Plugins) {
-        val path = call.request.uri
-        if (path.startsWith("/ai/") && appSecret != null) {
-            val token = call.request.headers["X-App-Token"]
-            val tokenBytes = token?.toByteArray()
-            val secretBytes = appSecret.toByteArray()
-            val matches = tokenBytes != null && MessageDigest.isEqual(tokenBytes, secretBytes)
-            if (!matches) {
-                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
-                finish()
-            }
-        }
-    }
+    log.info("AI access: paid tier policy={}, guests={}", aiAccess.paidAccessPolicy, aiAccess.guestAccessEnabled)
 
     // Per-user auth for /me/* routes (entitlement, and future per-user data) — a Firebase ID
     // token in the Authorization header, verified against the project's public keys (see
-    // FirebaseTokenVerifier). This is independent of the /ai/* APP_SECRET check above: APP_SECRET
-    // proves "this is our app build", the Firebase token proves "this is a specific person".
+    // FirebaseTokenVerifier). APP_SECRET proves "this is our app build", the Firebase token
+    // proves "this is a specific person".
     val firebaseTokenVerifier: FirebaseTokenVerifier by inject()
     intercept(ApplicationCallPipeline.Plugins) {
         // path(), not uri: "/me" itself (DELETE /me, account deletion) must match too, and a

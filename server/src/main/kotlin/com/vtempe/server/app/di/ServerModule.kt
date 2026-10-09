@@ -16,6 +16,8 @@ import com.vtempe.server.features.ai.data.llm.pipeline.PipelineConfig
 import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmErrorTracker
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmRawStore
+import com.vtempe.server.features.ai.access.AiAccessConfig
+import com.vtempe.server.features.ai.access.AiAccessResolver
 import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
 import com.vtempe.server.features.ai.data.service.BundleCache
 import com.vtempe.server.features.ai.data.resolver.DefaultTrainingPlanResolver
@@ -33,6 +35,7 @@ import com.vtempe.server.features.ai.domain.usecase.SleepUseCase
 import com.vtempe.server.features.ai.domain.usecase.TrainingUseCase
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
+import com.vtempe.server.features.auth.IdTokenVerifier
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
 import com.vtempe.server.features.entitlement.data.db.DatabaseFactory
 import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementRepository
@@ -254,16 +257,28 @@ val serverModule = module {
 
     // --- Auth / Entitlement (payments feature) ---
     // FIREBASE_PROJECT_ID unset -> FirebaseTokenVerifier.verify() always returns null, every
-    // /me/* request is rejected as unauthenticated. DATABASE_URL unset -> falls back to an
-    // in-memory entitlement store that never survives a restart. Both degrade the same way
-    // APP_SECRET being unset does: the app still boots, the feature is just inert until the
-    // owner configures it (see docs in FirebaseTokenVerifier/DatabaseFactory).
+    // /me/* request (and signed-in /ai/* call) is rejected as unauthenticated. DATABASE_URL
+    // unset -> falls back to an in-memory entitlement store that never survives a restart. The
+    // app still boots, the feature is just inert until the owner configures it (see docs in
+    // FirebaseTokenVerifier/DatabaseFactory).
     single { FirebaseTokenVerifier(projectId = Env["FIREBASE_PROJECT_ID"]?.takeIf { it.isNotBlank() }) }
+    single<IdTokenVerifier> { get<FirebaseTokenVerifier>() }
     single<EntitlementRepository> {
         val database = DatabaseFactory.connectOrNull()
         if (database != null) ExposedEntitlementRepository(database) else InMemoryEntitlementRepository()
     }
     single { EntitlementService(repository = get()) }
+
+    // --- AI access (app token + Firebase session + paid tier policy, see AiAccessResolver) ---
+    single { AiAccessConfig.from { key -> Env[key] } }
+    single {
+        val entitlements: EntitlementService = get()
+        AiAccessResolver(
+            config = get(),
+            idTokenVerifier = get(),
+            hasPaidEntitlement = entitlements::isActiveOrGrace
+        )
+    }
     // DatabaseFactory.connectOrNull() memoizes its result, so this shares the same connection
     // pool as EntitlementRepository above rather than opening a second one.
     single<SyncBlobRepository> {
