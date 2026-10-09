@@ -583,17 +583,24 @@ class PersonalizationTest {
     fun `real gym equipment still keeps a literal weightKg`() {
         val gymProfile = profile(weeklySchedule = mapOf("Mon" to true))
             .copy(equipment = listOf("barbell", "dumbbells", "bench"), trainingMode = "GYM")
-        val aiPlan = AiTrainingResponse(
+        fun plan(vararg sets: AiSet) = AiTrainingResponse(
             weekIndex = 0,
-            workouts = listOf(
-                AiWorkout(id = "w1", label = "Full Body A", date = "2026-07-06", sets = listOf(
-                    AiSet(exerciseId = "bench", reps = 6, weightKg = 60.0, rpe = 7.0)
-                ))
-            )
+            workouts = listOf(AiWorkout(id = "w1", label = "Full Body A", date = "2026-07-06", sets = sets.toList()))
         )
-        val normalized = normalizeTrainingPlan(aiPlan, gymProfile)
-        val firstSet = normalized.workouts.first().sets.first()
-        assertEquals(60.0, firstSet.weightKg, "real gym equipment should keep the AI's literal weight, got ${firstSet.weightKg}")
+        // The skeleton decides the exercise; find which one lands in the first slot.
+        val firstSlot = normalizeTrainingPlan(plan(AiSet("bench", 6, null, 7.0)), gymProfile)
+            .workouts.first().sets.first().exerciseId
+
+        val sameExercise = normalizeTrainingPlan(plan(AiSet(firstSlot, 6, 60.0, 7.0)), gymProfile)
+        assertEquals(60.0, sameExercise.workouts.first().sets.first().weightKg,
+            "real gym equipment should keep the AI's literal weight for the same exercise")
+
+        // VT-AUD-015: a weight written for a different exercise never moves onto this slot.
+        val otherId = if (firstSlot == "bench") "deadlift" else "bench"
+        val otherExercise = normalizeTrainingPlan(plan(AiSet(otherId, 6, 60.0, 7.0)), gymProfile)
+        val first = otherExercise.workouts.first().sets.first()
+        assertEquals(firstSlot, first.exerciseId)
+        assertEquals(null, first.weightKg, "weight of '$otherId' must not be assigned to '$firstSlot'")
     }
 
     // ── cacheKey: SHA-256 collision-resistance (was 32-bit String.hashCode()) ─────

@@ -1,6 +1,8 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.service.split.ExerciseRestrictions
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
+import com.vtempe.server.features.ai.domain.model.MovementPattern
 import com.vtempe.server.features.ai.domain.model.DurationUnit
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
@@ -68,9 +70,14 @@ internal fun normalizeTrainingPlan(
      * never find them via observeWorkoutsByWeek(requestedWeekIndex).
      */
     enforcedWeekIndex: Int? = null,
-    mode: NormalizationMode = NormalizationMode.GENERATE
+    mode: NormalizationMode = NormalizationMode.GENERATE,
+    catalog: ExerciseCatalog = builtInExerciseCatalog,
 ): AiTrainingResponse {
     val resolvedWeekIndex = enforcedWeekIndex ?: plan.weekIndex
+    // One set of injury rules for every selection path below (VT-AUD-014): the ids of every
+    // catalog exercise whose id OR movement pattern is banned seed each resolver exclusion.
+    val restrictions = ExerciseRestrictions.forInjuries(profile?.injuries.orEmpty())
+    val disallowedIds = restrictions.disallowedIds(catalog)
     val weekStart = expectedWeekStart(resolvedWeekIndex)
     val usedWorkoutIds = mutableSetOf<String>()
 
@@ -79,7 +86,7 @@ internal fun normalizeTrainingPlan(
     // EDIT mode skips the skeleton entirely so the resolver-based branch below runs, preserving
     // the AI's edited exercise selection instead of overwriting it.
     val skeletonData = if (mode == NormalizationMode.EDIT) null else profile?.let {
-        computeSkeletonData(it, resolvedWeekIndex, trainingPlanResolver)
+        computeSkeletonData(it, resolvedWeekIndex, trainingPlanResolver, disallowedIds)
     }
     val skeletonLabels = skeletonData?.map { it.label } ?: emptyList()
     val skeletonExercises = skeletonData?.map { it.exerciseIds } ?: emptyList()
@@ -108,21 +115,21 @@ internal fun normalizeTrainingPlan(
                     profile = profile,
                     resolver = trainingPlanResolver,
                     bandsOnlyEquipment = bandsOnlyEquipment,
+                    disallowedIds = disallowedIds,
+                    catalog = catalog,
                 )
             } else if (preResolved != null) {
-                // Skeleton-driven: exercise IDs are authoritative.
-                // Weight is kept only when AI chose the same exercise — otherwise null,
-                // because 70kg deadlift ≠ 70kg barbell row.
+                // Skeleton-driven: exercise IDs are authoritative. A weight belongs to one
+                // exercise (VT-AUD-015): it is taken only from the AI set that names this same
+                // canonical exercise (aliases included, any position) — 70kg deadlift ≠ 70kg row.
+                // Reps/RPE may still come from the positional slot; RPE is capped below.
                 preResolved.mapIndexed { slotIndex, exerciseId ->
-                    val aiSet = workout.sets.getOrNull(slotIndex)
-                    val aiExerciseMatches = aiSet != null &&
-                        normalizeExerciseToken(aiSet.exerciseId) == exerciseId
-                    val reps = clampRepsForUnit(exerciseId, aiSet?.reps?.coerceAtLeast(1) ?: 8)
+                    val sameExercise = workout.sets.firstOrNull { canonicalExerciseId(it.exerciseId, catalog) == exerciseId }
+                    val aiSet = sameExercise ?: workout.sets.getOrNull(slotIndex)
+                    val reps = clampRepsForUnit(exerciseId, aiSet?.reps?.coerceAtLeast(1) ?: 8, catalog)
                     val weight = when {
-                        isBodyweightOnly(exerciseId) || bandsOnlyEquipment -> null
-                        // In skeleton path we override the exercise ID ourselves, so AI's weight
-                        // is always the intended slot weight — use it regardless of exercise match.
-                        else -> aiSet?.weightKg?.takeIf { it >= 0.0 }
+                        isBodyweightOnly(exerciseId, catalog) || bandsOnlyEquipment -> null
+                        else -> sameExercise?.weightKg.validLoadKg()
                     }
                     val aiRpe = aiSet?.rpe?.takeIf { it > 0.0 } ?: 7.5
                     // Clamp to the skeleton's computed RPE ceiling — this is what actually
@@ -136,9 +143,7 @@ internal fun normalizeTrainingPlan(
                 }.take(MaxSetsPerWorkout)
             } else {
                 // No skeleton available — fall back to resolver-based flow.
-                val usedExerciseIds = com.vtempe.server.features.ai.data.service.split.InjuryFilter
-                    .bannedExerciseIds(profile?.injuries.orEmpty())
-                    .toMutableSet()
+                val usedExerciseIds = disallowedIds.toMutableSet()
                 workout.sets
                     .mapIndexedNotNull { setIndex, set ->
                         val canonical = trainingPlanResolver.resolveExerciseId(
@@ -150,9 +155,12 @@ internal fun normalizeTrainingPlan(
                             rotationSeed = (index * 31) + setIndex
                         ) ?: return@mapIndexedNotNull null
                         usedExerciseIds += canonical
-                        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1))
-                        val weight = if (isBodyweightOnly(canonical) || bandsOnlyEquipment) null
-                                     else set.weightKg?.takeIf { it >= 0.0 }
+                        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1), catalog)
+                        // The resolver may have swapped the exercise; the AI's load only belongs
+                        // to the exercise it actually named (VT-AUD-015).
+                        val weight = if (isBodyweightOnly(canonical, catalog) || bandsOnlyEquipment ||
+                            canonicalExerciseId(set.exerciseId, catalog) != canonical
+                        ) null else set.weightKg.validLoadKg()
                         val rpe = set.rpe?.takeIf { it > 0.0 }
                         AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe)
                     }
@@ -160,24 +168,64 @@ internal fun normalizeTrainingPlan(
                     .take(MaxSetsPerWorkout)
             }
 
+            // Nothing usable came back: substitute ONE exercise that obeys the same restrictions,
+            // equipment and catalog — or none at all; an empty workout is dropped below instead
+            // of inventing an id or quietly lifting a ban (VT-AUD-014).
             val safeSets = normalizedSets.ifEmpty {
-                val fallback = trainingPlanResolver.resolveExerciseId(
-                    rawToken = "pattern:knee_dominant",
-                    trainingModeRaw = profile?.trainingMode,
-                    userExperienceLevel = profile?.experienceLevel ?: 3,
-                    equipment = profile?.equipment.orEmpty(),
-                    rotationSeed = index
-                ) ?: "lunge"
-                listOf(AiSet(fallback, reps = 8, weightKg = null, rpe = 7.0))
+                listOfNotNull(
+                    restrictionSafeFallbackSet(profile, trainingPlanResolver, catalog, restrictions, disallowedIds, index)
+                )
             }
 
             val label = skeletonLabels.getOrNull(index) ?: workout.label.trimDayPrefix()
 
             AiWorkout(id = safeId, label = label, date = safeDate, sets = safeSets)
         }
+        .filter { it.sets.isNotEmpty() }
 
     return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
 }
+
+/** Fallback order when a workout came back empty: the slot the old code always used first. */
+private val FallbackPatterns = listOf(
+    MovementPattern.KNEE_DOMINANT,
+    MovementPattern.HINGE,
+    MovementPattern.HORIZONTAL_PULL,
+    MovementPattern.CORE,
+    MovementPattern.MOBILITY,
+)
+
+private fun restrictionSafeFallbackSet(
+    profile: AiProfile?,
+    resolver: TrainingPlanResolver,
+    catalog: ExerciseCatalog,
+    restrictions: ExerciseRestrictions,
+    disallowedIds: Set<String>,
+    seed: Int,
+): AiSet? {
+    val supported = catalog.supportedExerciseIds()
+    return FallbackPatterns.asSequence()
+        .filter { it !in restrictions.bannedPatterns }
+        .mapNotNull { pattern ->
+            resolver.resolveExerciseId(
+                rawToken = pattern.token,
+                trainingModeRaw = profile?.trainingMode,
+                equipment = profile?.equipment.orEmpty(),
+                usedExerciseIds = disallowedIds,
+                rotationSeed = seed,
+                userExperienceLevel = profile?.experienceLevel ?: 3,
+            )
+        }
+        .firstOrNull { id -> id in supported && restrictions.allows(id, catalog) }
+        ?.let { id -> AiSet(id, reps = clampRepsForUnit(id, 8, catalog), weightKg = null, rpe = 7.0) }
+}
+
+/** Catalog id for an id or alias; the normalized token when the catalog does not know it. */
+internal fun canonicalExerciseId(raw: String, catalog: ExerciseCatalog = builtInExerciseCatalog): String =
+    catalog.findByIdOrAlias(raw)?.id ?: normalizeExerciseToken(raw)
+
+/** A usable load in kg: finite and non-negative, otherwise unknown (null). */
+internal fun Double?.validLoadKg(): Double? = this?.takeIf { it.isFinite() && it >= 0.0 }
 
 /**
  * EDIT-mode set normalization: keep whatever the AI returned, only validating it against the
@@ -192,10 +240,10 @@ private fun normalizeEditSets(
     profile: AiProfile?,
     resolver: TrainingPlanResolver,
     bandsOnlyEquipment: Boolean,
+    disallowedIds: Set<String>,
     catalog: ExerciseCatalog = builtInExerciseCatalog,
 ): List<AiSet> {
-    val banned = com.vtempe.server.features.ai.data.service.split.InjuryFilter
-        .bannedExerciseIds(profile?.injuries.orEmpty())
+    val banned = disallowedIds
     val usedExerciseIds = banned.toMutableSet()
 
     return sets.mapNotNull { set ->
@@ -215,9 +263,10 @@ private fun normalizeEditSets(
 
         if (canonical in banned) return@mapNotNull null
 
-        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1))
-        val weight = if (isBodyweightOnly(canonical) || bandsOnlyEquipment) null
-        else set.weightKg?.takeIf { it >= 0.0 }
+        val reps = clampRepsForUnit(canonical, set.reps.coerceAtLeast(1), catalog)
+        val weight = if (isBodyweightOnly(canonical, catalog) || bandsOnlyEquipment ||
+            canonicalExerciseId(set.exerciseId, catalog) != canonical
+        ) null else set.weightKg.validLoadKg()
         val rpe = set.rpe?.takeIf { it > 0.0 }
         val setsCount = set.sets.coerceIn(1, 10)
         AiSet(exerciseId = canonical, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount)
@@ -242,7 +291,8 @@ private data class SkeletonSessionData(
 private fun computeSkeletonData(
     profile: AiProfile,
     weekIndex: Int,
-    resolver: TrainingPlanResolver
+    resolver: TrainingPlanResolver,
+    disallowedIds: Set<String>,
 ): List<SkeletonSessionData> {
     val trainingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         .filter { profile.weeklySchedule[it] == true }
@@ -273,12 +323,10 @@ private fun computeSkeletonData(
         ).mapIndexed { si, skeleton ->
             val label = skeleton.label.trimDayPrefix()
             // Body-part injury bans are handled by InjuryFilter.applyTo() rebuilding the
-            // skeleton's slots. Free-text bans that name a specific exercise/equipment
-            // ("нельзя брусья") don't map to a MovementPattern, so seed the resolver's
-            // used-id exclusion set with them directly.
-            val usedInSession = com.vtempe.server.features.ai.data.service.split.InjuryFilter
-                .bannedExerciseIds(profile.injuries)
-                .toMutableSet()
+            // skeleton's slots; every exercise the unified restrictions disallow (by id or by
+            // any movement pattern — "нельзя брусья", a knee-banned squat variant) seeds the
+            // resolver's exclusion set so no slot can resolve to it.
+            val usedInSession = disallowedIds.toMutableSet()
             if (forceDeload) {
                 usedInSession += usedByLabelThisWeek[label].orEmpty()
             }
@@ -325,12 +373,12 @@ internal fun validateTrainingPlan(
     if (plan.workouts.isEmpty()) return "workouts array must contain at least one workout"
     if (plan.workouts.any { it.sets.isEmpty() }) return "each workout must include at least one set"
 
-    val forbiddenExercises = InjuryRestrictions.allForbiddenFor(injuries)
-    if (forbiddenExercises.isNotEmpty()) {
+    val restrictions = ExerciseRestrictions.forInjuries(injuries)
+    if (!restrictions.isEmpty) {
         plan.workouts.forEachIndexed { wi, workout ->
             workout.sets.forEachIndexed { si, set ->
-                val id = normalizeExerciseToken(set.exerciseId)
-                if (id in forbiddenExercises) {
+                if (!restrictions.allows(set.exerciseId, exerciseCatalog)) {
+                    val id = normalizeExerciseToken(set.exerciseId)
                     return "workout[$wi].sets[$si].exerciseId '$id' is contraindicated for the user's injuries"
                 }
             }

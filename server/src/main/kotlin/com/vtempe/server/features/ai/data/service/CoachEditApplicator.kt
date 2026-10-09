@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.data.service.split.ExerciseRestrictions
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.shared.dto.chat.CoachEditOp
@@ -120,14 +121,21 @@ class CoachEditApplicator(
                     rejections += "cannot swap to '${op.newExerciseId ?: "?"}' — not a known exercise"
                     return plan to false
                 }
+                if (!allowedForInjuries(replacement, profile)) {
+                    rejections += "cannot swap to '$replacement' — contraindicated for the user's injuries"
+                    return plan to false
+                }
                 editWorkoutSets { workout ->
                     var did = false
                     val sets = workout.sets.map { set ->
                         if (normalizeExerciseToken(set.exerciseId) != target) return@map set
                         did = true
+                        // A load belongs to one exercise (VT-AUD-015): a different exercise starts
+                        // without a weight until the user or the coach sets one for it.
+                        val sameExercise = canonicalExerciseId(set.exerciseId, catalog) == replacement
                         set.copy(
                             exerciseId = replacement,
-                            weightKg = if (isBodyweightOnly(replacement)) null else set.weightKg,
+                            weightKg = if (isBodyweightOnly(replacement, catalog) || !sameExercise) null else set.weightKg,
                         )
                     }
                     workout.copy(sets = dedupeSets(sets)) to did
@@ -135,8 +143,8 @@ class CoachEditApplicator(
             }
 
             CoachEditOpType.SET_WEIGHT -> mutateMatchingSets(op, ::editWorkoutSets) { set, id ->
-                if (isBodyweightOnly(id)) set.copy(weightKg = null)
-                else set.copy(weightKg = op.weightKg?.takeIf { it >= 0.0 })
+                if (isBodyweightOnly(id, catalog)) set.copy(weightKg = null)
+                else set.copy(weightKg = op.weightKg.validLoadKg())
             }
 
             CoachEditOpType.SET_REPS -> mutateMatchingSets(op, ::editWorkoutSets) { set, id ->
@@ -158,6 +166,10 @@ class CoachEditApplicator(
                     rejections += "cannot add '${op.newExerciseId ?: op.exerciseId ?: "?"}' — not a known exercise"
                     return plan to false
                 }
+                if (!allowedForInjuries(newId, profile)) {
+                    rejections += "cannot add '$newId' — contraindicated for the user's injuries"
+                    return plan to false
+                }
                 if (op.workoutId == null) {
                     rejections += "add_exercise needs a workoutId"
                     return plan to false
@@ -169,7 +181,7 @@ class CoachEditApplicator(
                         val newSet = AiSet(
                             exerciseId = newId,
                             reps = op.reps?.let { clampRepsForUnit(newId, it.coerceAtLeast(1)) } ?: 8,
-                            weightKg = if (isBodyweightOnly(newId)) null else op.weightKg?.takeIf { it >= 0.0 },
+                            weightKg = if (isBodyweightOnly(newId, catalog)) null else op.weightKg.validLoadKg(),
                             rpe = op.rpe?.takeIf { it > 0.0 } ?: 7.5,
                             sets = op.sets?.coerceIn(1, 10) ?: 3,
                         )
@@ -220,6 +232,9 @@ class CoachEditApplicator(
             workout.copy(sets = sets) to did
         }
     }
+
+    private fun allowedForInjuries(exerciseId: String, profile: AiProfile?): Boolean =
+        ExerciseRestrictions.forInjuries(profile?.injuries.orEmpty()).allows(exerciseId, catalog)
 
     private fun dedupeSets(sets: List<AiSet>): List<AiSet> =
         sets.distinctBy { normalizeExerciseToken(it.exerciseId) }.take(MaxSetsPerWorkout)

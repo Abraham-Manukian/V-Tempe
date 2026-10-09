@@ -449,7 +449,7 @@ internal fun validateChatResponse(
         }
     }
     response.trainingPlan?.let { plan ->
-        validateTrainingPlan(plan, exerciseCatalog)?.let { errors += "trainingPlan: $it" }
+        validateTrainingPlan(plan, exerciseCatalog, profile.injuries)?.let { errors += "trainingPlan: $it" }
     }
     response.nutritionPlan?.let { plan ->
         errors += validateNutritionPlan(plan, profile, locale).map { "nutritionPlan: $it" }

@@ -1,0 +1,32 @@
+# Offline training pool shared by the client planner (shared OfflineExercisePool) and pinned to the server catalog.
+# id	primary pattern	secondary patterns (;)	equipment, any of (;)	difficulty	priority
+bodyweight_squat	KNEE_DOMINANT			1	12
+kettlebell_goblet_squat	KNEE_DOMINANT		kettlebell	2	20
+squat	KNEE_DOMINANT		barbell;rack	3	10
+split_squat	SINGLE_LEG	KNEE_DOMINANT		2	18
+lunge	SINGLE_LEG	KNEE_DOMINANT		2	10
+glute_bridge	HINGE			1	25
+bodyweight_good_morning	HINGE			1	26
+hip_thrust	HINGE			2	20
+deadlift	HINGE		barbell	3	10
+knee_pushup	HORIZONTAL_PUSH			1	25
+pushup	HORIZONTAL_PUSH			1	20
+db_bench_press	HORIZONTAL_PUSH		dumbbells;bench	2	15
+bench	HORIZONTAL_PUSH		bench;barbell;dumbbells	2	10
+superman_row	HORIZONTAL_PULL			1	45
+doorway_row	HORIZONTAL_PULL			1	30
+table_row	HORIZONTAL_PULL			2	28
+dumbbell_row	HORIZONTAL_PULL		dumbbells	2	15
+row	HORIZONTAL_PULL		barbell;dumbbells;bands;trx	3	10
+negative_pullup	VERTICAL_PULL		pullup_bar	2	25
+pullup	VERTICAL_PULL		pullup_bar;trx	3	10
+pike_pushup_elevated	VERTICAL_PUSH	HORIZONTAL_PUSH		3	25
+ohp	VERTICAL_PUSH		barbell;dumbbells;bands;kettlebell	3	10
+plank	CORE			1	10
+bird_dog	CORE			1	26
+heel_touch	CORE			1	36
+reverse_crunch	CORE			2	30
+cobra_stretch	MOBILITY			1	32
+childs_pose	MOBILITY			1	34
+hip_circle	MOBILITY			1	42
+thoracic_rotation	MOBILITY	CORE		1	36

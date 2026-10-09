@@ -401,12 +401,12 @@ class AiService(
             },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
-                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
+                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog)
                 validateTrainingPlan(normalized, exerciseCatalog, profile?.injuries.orEmpty())?.let(::listOf) ?: emptyList()
             },
             extractionMode = ExtractionMode.FirstJsonObject
         )
-        return normalizeTrainingPlan(generated, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
+        return normalizeTrainingPlan(generated, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog)
     }
 
     private suspend fun generateNutritionSection(

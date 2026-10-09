@@ -59,12 +59,21 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
         }
         AiWorkout(id = id, date = date, sets = sets)
     }
-    return normalizeTrainingPlan(
+    val plan = normalizeTrainingPlan(
         plan = AiTrainingResponse(req.weekIndex, workouts),
         profile = req.profile,
         trainingPlanResolver = builtInTrainingPlanResolver
     )
+    // Every slot was banned or impossible with this equipment: refuse rather than invent one.
+    if (plan.workouts.isEmpty()) {
+        throw NoSafeTrainingPlanException("No exercise fits the user's injuries and equipment")
+    }
+    return plan
 }
+
+/** No workout can be built within the user's injury restrictions and equipment. Surfaced as an
+ *  error instead of a plan that ignores them. */
+internal class NoSafeTrainingPlanException(message: String) : IllegalStateException(message)
 
 internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
     val locale = safeLocale(req.locale ?: req.profile.locale)

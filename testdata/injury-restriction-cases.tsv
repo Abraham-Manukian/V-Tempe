@@ -1,0 +1,35 @@
+# Injury restriction contract: server ExerciseRestrictions and client ExerciseRestrictions must agree on every row.
+# injury text	exercise id (from offline-training-pool.tsv)	expected: allowed | banned
+knee pain	bodyweight_squat	banned
+knee pain	lunge	banned
+knee pain	split_squat	banned
+knee pain	glute_bridge	allowed
+knee pain	pushup	allowed
+lower back hernia	deadlift	banned
+lower back hernia	glute_bridge	banned
+lower back hernia	row	banned
+lower back hernia	squat	banned
+lower back hernia	dumbbell_row	allowed
+shoulder impingement	ohp	banned
+shoulder impingement	pike_pushup_elevated	banned
+shoulder impingement	bench	allowed
+wrist	pushup	banned
+wrist	plank	banned
+wrist	bird_dog	allowed
+tennis elbow	row	banned
+tennis elbow	dumbbell_row	banned
+tennis elbow	squat	allowed
+neck	squat	banned
+neck	ohp	banned
+neck	plank	allowed
+ankle sprain	lunge	banned
+ankle sprain	bodyweight_squat	allowed
+hip	hip_thrust	banned
+hip	glute_bridge	banned
+hip	bench	allowed
+нельзя брусья	pushup	allowed
+болит колено	squat	banned
+грыжа поясницы	deadlift	banned
+грыжа поясницы	plank	allowed
+боль в плече	ohp	banned
+	deadlift	allowed
