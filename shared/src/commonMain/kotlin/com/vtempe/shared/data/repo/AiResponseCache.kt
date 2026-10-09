@@ -19,38 +19,52 @@ private const val KEY_CHAT = "cache_chat_response"
 private const val KEY_BUNDLE_VERSION = "cache_bundle_version"
 private const val KEY_BUNDLE_TIMESTAMP = "cache_bundle_timestamp"
 private const val KEY_PLAN_EPOCH = "coach_plan_epoch_ms"
+private const val KEY_SUFFIX = ".request_key"
 
 class AiResponseCache(
     private val settings: Settings,
     private val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 ) : CoachCacheRepository {
-    fun storeTraining(dto: TrainingPlanDto) {
-        settings.putString(KEY_TRAINING, json.encodeToString(dto))
+    // Every cached response is stored with the key of the request it answered (VT-AUD-021):
+    // week, locale and profile. An offline fallback is served only for the SAME key, so a
+    // network failure for a new week or after a profile change (new allergy, new equipment)
+    // can never return an old week's or old profile's plan as a success. A plan saved locally
+    // for another week than the cached request is stored without a key and never served.
+
+    fun storeTraining(dto: TrainingPlanDto, key: String? = null) =
+        store(KEY_TRAINING, json.encodeToString(dto), key ?: sameWeekKey(KEY_TRAINING, dto.weekIndex))
+
+    fun lastTraining(key: String): TrainingPlanDto? =
+        load(KEY_TRAINING, key)?.let { runCatching { json.decodeFromString<TrainingPlanDto>(it) }.getOrNull() }
+
+    fun storeNutrition(dto: NutritionPlanDto, key: String? = null) =
+        store(KEY_NUTRITION, json.encodeToString(dto), key ?: sameWeekKey(KEY_NUTRITION, dto.weekIndex))
+
+    fun lastNutrition(key: String): NutritionPlanDto? =
+        load(KEY_NUTRITION, key)?.let { runCatching { json.decodeFromString<NutritionPlanDto>(it) }.getOrNull() }
+
+    fun storeAdvice(dto: AdviceDto, key: String? = null) = store(KEY_ADVICE, json.encodeToString(dto), key)
+
+    fun lastAdvice(key: String): AdviceDto? =
+        load(KEY_ADVICE, key)?.let { runCatching { json.decodeFromString<AdviceDto>(it) }.getOrNull() }
+
+    fun storeBundle(dto: AiBootstrapResponseDto, key: String? = null) = store(KEY_BUNDLE, json.encodeToString(dto), key)
+
+    fun lastBundle(key: String): AiBootstrapResponseDto? =
+        load(KEY_BUNDLE, key)?.let { runCatching { json.decodeFromString<AiBootstrapResponseDto>(it) }.getOrNull() }
+
+    private fun store(slot: String, payload: String, key: String?) {
+        settings.putString(slot, payload)
+        if (key != null) settings.putString(slot + KEY_SUFFIX, key) else settings.remove(slot + KEY_SUFFIX)
     }
 
-    fun lastTraining(): TrainingPlanDto? =
-        settings.getStringOrNull(KEY_TRAINING)?.let { runCatching { json.decodeFromString<TrainingPlanDto>(it) }.getOrNull() }
+    /** A plan saved locally (chat edit, bootstrap save) for the week the cached response was
+     *  for keeps that response's key: a local save changes the plan, not the profile. */
+    private fun sameWeekKey(slot: String, weekIndex: Int): String? =
+        settings.getStringOrNull(slot + KEY_SUFFIX)?.takeIf { it.startsWith("$weekIndex|") }
 
-    fun storeNutrition(dto: NutritionPlanDto) {
-        settings.putString(KEY_NUTRITION, json.encodeToString(dto))
-    }
-
-    fun lastNutrition(): NutritionPlanDto? =
-        settings.getStringOrNull(KEY_NUTRITION)?.let { runCatching { json.decodeFromString<NutritionPlanDto>(it) }.getOrNull() }
-
-    fun storeAdvice(dto: AdviceDto) {
-        settings.putString(KEY_ADVICE, json.encodeToString(dto))
-    }
-
-    fun lastAdvice(): AdviceDto? =
-        settings.getStringOrNull(KEY_ADVICE)?.let { runCatching { json.decodeFromString<AdviceDto>(it) }.getOrNull() }
-
-    fun storeBundle(dto: AiBootstrapResponseDto) {
-        settings.putString(KEY_BUNDLE, json.encodeToString(dto))
-    }
-
-    fun lastBundle(): AiBootstrapResponseDto? =
-        settings.getStringOrNull(KEY_BUNDLE)?.let { runCatching { json.decodeFromString<AiBootstrapResponseDto>(it) }.getOrNull() }
+    private fun load(slot: String, key: String): String? =
+        settings.getStringOrNull(slot)?.takeIf { settings.getStringOrNull(slot + KEY_SUFFIX) == key }
 
     override fun bundleVersion(): Int? = settings.getIntOrNull(KEY_BUNDLE_VERSION)
 
@@ -74,10 +88,10 @@ class AiResponseCache(
     }
 
     override fun clearAll() {
-        settings.remove(KEY_TRAINING)
-        settings.remove(KEY_NUTRITION)
-        settings.remove(KEY_ADVICE)
-        settings.remove(KEY_BUNDLE)
+        listOf(KEY_TRAINING, KEY_NUTRITION, KEY_ADVICE, KEY_BUNDLE).forEach {
+            settings.remove(it)
+            settings.remove(it + KEY_SUFFIX)
+        }
         settings.remove(KEY_CHAT)
         clearBundleMetadata()
         // KEY_PLAN_EPOCH intentionally kept — week count must survive cache clears
