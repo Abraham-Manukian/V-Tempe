@@ -100,7 +100,14 @@ class NutritionRepositoryDb(
 
     override suspend fun deleteWeeksFrom(weekIndex: Int) {
         withContext(Dispatchers.Default) {
-            db.nutritionQueries.deleteMealsFromWeek(weekIndex.toLong())
+            val q = db.nutritionQueries
+            q.transaction {
+                q.deleteIngredientsFromWeek(weekIndex.toLong())
+                q.deleteMealsFromWeek(weekIndex.toLong())
+                q.deleteMealByDayFromWeek(weekIndex.toLong())
+                q.deleteOrphanMeals()
+                q.deleteOrphanIngredients()
+            }
         }
         // If the current active week was nuked, clear the flow too
         if (activeWeekIndex >= weekIndex) planFlow.value = null
@@ -108,29 +115,39 @@ class NutritionRepositoryDb(
 
     private suspend fun persistPlan(plan: NutritionPlan) {
         withContext(Dispatchers.Default) {
-            // Note: only DB writes here — flow update is below, outside IO context
-            db.nutritionQueries.deleteMealsForWeek(plan.weekIndex.toLong())
-            plan.mealsByDay.forEach { (day, meals) ->
-                meals.forEachIndexed { idx, meal ->
-                    val mealId = "m_${plan.weekIndex}_${day}_${idx}"
-                    db.nutritionQueries.insertMeal(
-                        mealId,
-                        meal.name,
-                        meal.kcal.toLong(),
-                        meal.macros.proteinGrams.toLong(),
-                        meal.macros.fatGrams.toLong(),
-                        meal.macros.carbsGrams.toLong(),
-                        meal.recipe,
-                    )
-                    db.nutritionQueries.deleteIngredientsForMeal(mealId)
-                    meal.ingredients.forEach { ingredient ->
-                        val clean = ingredient.trim()
-                        if (clean.isNotEmpty()) {
-                            db.nutritionQueries.insertMealIngredient(mealId, clean)
+            // The whole week is replaced in ONE transaction (VT-AUD-033): a failure anywhere
+            // rolls back to the previous complete week instead of leaving half a new one, and
+            // the old week's meals and ingredients are removed, not just unlinked (VT-AUD-034).
+            // The flow below is updated only after the commit succeeded.
+            val week = plan.weekIndex.toLong()
+            db.nutritionQueries.transaction {
+                db.nutritionQueries.deleteIngredientsOfWeek(week)
+                db.nutritionQueries.deleteMealsOfWeek(week)
+                db.nutritionQueries.deleteMealsForWeek(week)
+                plan.mealsByDay.forEach { (day, meals) ->
+                    meals.forEachIndexed { idx, meal ->
+                        val mealId = "m_${plan.weekIndex}_${day}_${idx}"
+                        db.nutritionQueries.insertMeal(
+                            mealId,
+                            meal.name,
+                            meal.kcal.toLong(),
+                            meal.macros.proteinGrams.toLong(),
+                            meal.macros.fatGrams.toLong(),
+                            meal.macros.carbsGrams.toLong(),
+                            meal.recipe,
+                        )
+                        db.nutritionQueries.deleteIngredientsForMeal(mealId)
+                        meal.ingredients.forEach { ingredient ->
+                            val clean = ingredient.trim()
+                            if (clean.isNotEmpty()) {
+                                db.nutritionQueries.insertMealIngredient(mealId, clean)
+                            }
                         }
+                        db.nutritionQueries.insertMealByDay(plan.weekIndex.toLong(), day, idx.toLong(), mealId)
                     }
-                    db.nutritionQueries.insertMealByDay(plan.weekIndex.toLong(), day, idx.toLong(), mealId)
                 }
+                db.nutritionQueries.deleteOrphanMeals()
+                db.nutritionQueries.deleteOrphanIngredients()
             }
         }
         // Only update the observable flow for the week currently on screen.

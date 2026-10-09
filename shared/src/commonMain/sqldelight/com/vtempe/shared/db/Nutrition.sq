@@ -65,7 +65,31 @@ DELETE FROM MealIngredient;
 deleteAllMeals:
 DELETE FROM Meal;
 
--- Deletes all meals (+ ingredients via CASCADE, + MealByDay via CASCADE)
--- for weeks >= given index. Used to invalidate stale pre-fetched future weeks.
+-- Foreign keys are not enabled on this database, so ON DELETE CASCADE never fires: every
+-- delete below removes ingredients, meals and day links explicitly, in that order, and is run
+-- inside one transaction by NutritionRepositoryDb (VT-AUD-033, VT-AUD-034).
+
+deleteIngredientsOfWeek:
+DELETE FROM MealIngredient WHERE mealId IN (SELECT mealId FROM MealByDay WHERE weekIndex = ?);
+
+deleteMealsOfWeek:
+DELETE FROM Meal WHERE id IN (SELECT mealId FROM MealByDay WHERE weekIndex = ?);
+
+deleteIngredientsFromWeek:
+DELETE FROM MealIngredient WHERE mealId IN (SELECT mealId FROM MealByDay WHERE weekIndex >= ?);
+
+-- Meals (+ their ingredients and day links) for weeks >= given index. Used to invalidate stale
+-- pre-fetched future weeks.
 deleteMealsFromWeek:
 DELETE FROM Meal WHERE id IN (SELECT mealId FROM MealByDay WHERE weekIndex >= ?);
+
+deleteMealByDayFromWeek:
+DELETE FROM MealByDay WHERE weekIndex >= ?;
+
+-- Rows no week links to any more: leftovers of shrunk plans, including ones written before
+-- these explicit deletes existed.
+deleteOrphanMeals:
+DELETE FROM Meal WHERE id NOT IN (SELECT mealId FROM MealByDay);
+
+deleteOrphanIngredients:
+DELETE FROM MealIngredient WHERE mealId NOT IN (SELECT id FROM Meal);
