@@ -105,23 +105,31 @@ private val lactoseFreeMarkers = setOf(
 /**
  * General-purpose negation detector for allergen keywords.
  *
- * Returns true when the allergen keyword (found at [matchIdx] in [text]) is preceded within
- * [windowChars] characters by a negation word ("без" / "no" / "without"), with NO positive
- * connector (" с " / " with " / comma) appearing between that negation and the keyword.
+ * Returns true when the allergen keyword (found at [matchIdx], [matchLength] chars long, in
+ * [text]) is preceded within [windowChars] characters by a negation word ("без" / "no" /
+ * "without"), with NO positive connector (" с " / " with " / comma) appearing between that
+ * negation and the keyword — or when the keyword itself carries a free-from label.
  *
  * Returns true  (allergen-FREE → do NOT flag):
  *   "без орехов"                             "без" directly before "орех"
  *   "без молока и орехов"                    "без" before "орех", no "с" in between
  *   "Изолят протеина (без молока и орехов)"  same
  *   "protein bar without nuts and dairy"     "without" before "nuts"
- *   "gluten-free bread"                      explicit free-label
+ *   "gluten-free bread"                      free-from label attached to the keyword
+ *   "non-dairy creamer", "vegan cheese"      label directly before the keyword
  *
  * Returns false (allergen IS present → flag violation):
  *   "каша без сахара с орехами"  "с" between "без" and "орех" breaks negation context
  *   "грецкие орехи с мёдом"      no negation before "орех"
  *   "молоко 3.2%"                no negation at all
+ *   "gluten-free bread with peanut butter"   the label belongs to "gluten", not to "peanut"
  */
-private fun isKeywordNegatedInContext(text: String, matchIdx: Int, windowChars: Int = 48): Boolean {
+private fun isKeywordNegatedInContext(
+    text: String,
+    matchIdx: Int,
+    matchLength: Int,
+    windowChars: Int = 48
+): Boolean {
     val contextBefore = text.substring((matchIdx - windowChars).coerceAtLeast(0), matchIdx)
 
     // Russian "без" (without)
@@ -140,31 +148,42 @@ private fun isKeywordNegatedInContext(text: String, matchIdx: Int, windowChars: 
         }
     }
 
-    // Explicit *-free labels anywhere in the full ingredient text
-    return text.contains("-free") || text.contains("non-dairy") || text.contains("vegan")
+    // Free-from labels count only when attached to THIS keyword ("peanut-free", "nut free",
+    // "non-dairy", "vegan cheese"). A label elsewhere in the text says nothing about it.
+    val wordEnd = text.indexOfAny(charArrayOf(' ', ',', ';', '(', ')'), matchIdx + matchLength)
+        .let { if (it == -1) text.length else it }
+    val restOfWord = text.substring(matchIdx + matchLength, wordEnd)
+    if (restOfWord.endsWith("free") || text.substring(wordEnd).trimStart().startsWith("free")) return true
+    val previous = previousWord(text, matchIdx)
+    // Exactly "non-"/"non" (as in "non-dairy"): "non-fat milk" is still milk.
+    return previous == "non-" || previous == "non" || previous.startsWith("vegan") || previous.startsWith("веган") ||
+        previous.startsWith("plant-based")
 }
 
-private val plantDairyAlternativeMarkers = setOf(
-    // English — full phrases
-    "almond milk", "soy milk", "oat milk", "coconut milk", "rice milk",
-    "plant milk", "vegan milk", "plant cream", "oat cream", "coconut cream",
-    "plant yogurt", "coconut yogurt", "soy yogurt", "dairy-free", "non-dairy",
-    // Russian — root forms that match all grammatical cases:
-    // "кокосов" → кокосовое/кокосовым/кокосовые молоко/молоком/сливки/йогурт
-    "кокосов",
-    // "растительн" → растительное/растительным/растительные/растительный
-    "растительн",
-    // "овсян" → овсяное/овсяным/овсяные молоко/сливки
-    "овсян",
-    // "миндальн" → миндальное/миндальным молоко
-    "миндальн",
-    // "рисов" → рисовое/рисовым молоко
-    "рисов",
-    // "соев" → соевое/соевым молоко/йогурт
-    "соев",
-    // "ореховое молоко" and similar nut milks
-    "ореховое молок", "ореховым молок"
+/** The word (or word part, as in "non-" of "non-dairy") directly before [matchIdx]. */
+private fun previousWord(text: String, matchIdx: Int): String {
+    val before = text.substring(0, matchIdx).trimEnd()
+    return before.substring(before.indexOfLast { it == ' ' || it in ",;()" } + 1)
+}
+
+/**
+ * Words that turn the dairy keyword RIGHT AFTER them into a plant-based alternative:
+ * "oat milk", "coconut cream", "овсяное молоко", "кокосовым молоком". Matched per occurrence
+ * (see [isPlantDairyAlternativeAt]) — "рисовая лапша с сыром" still contains cheese.
+ */
+private val plantDairyAlternativePrefixes = listOf(
+    "almond", "soy", "oat", "coconut", "rice", "plant", "vegan", "cashew",
+    // Russian roots match every grammatical case: "кокосовое/кокосовым", "овсяное/овсяным", …
+    "кокосов", "растительн", "овсян", "миндальн", "рисов", "соев", "орехов"
 )
+
+/** True when the word directly before the dairy keyword at [matchIdx] names a plant base or
+ *  a dairy-free label ("oat milk", "non-dairy creamer", "кокосовым молоком"). */
+private fun isPlantDairyAlternativeAt(text: String, matchIdx: Int): Boolean {
+    val previous = previousWord(text, matchIdx)
+    return plantDairyAlternativePrefixes.any { previous.startsWith(it) } ||
+        previous in setOf("dairy-free", "milk-free", "non-dairy")
+}
 
 internal fun buildNutritionRestrictions(profile: AiProfile): NutritionRestrictions {
     val allergyLines = (profile.allergies + profile.healthNotes)
@@ -350,8 +369,10 @@ internal fun validateNutritionPlanQuality(
     profile: AiProfile,
     locale: Locale
 ): List<String> {
+    // Safety first and in full (VT-AUD-027): quality warnings and the report-size cap below
+    // must never decide whether the allergen scan runs or whether its findings survive.
+    val safetyErrors = nutritionSafetyViolations(plan, buildNutritionRestrictions(profile))
     val errors = mutableListOf<String>()
-    val restrictions = buildNutritionRestrictions(profile)
     val frequencyRange = goalMealRange(profile.goal)
 
     // Pre-computed daily calorie target — used to flag (non-critically) days whose meals
@@ -444,45 +465,17 @@ internal fun validateNutritionPlanQuality(
         }
     }
 
-    if (!restrictions.isEmpty) {
-        qualityDays.forEach { day ->
-            if (errors.size >= maxValidationErrors) return@forEach
-            val meals = plan.mealsByDay[day].orEmpty()
-            meals.forEachIndexed { mealIndex, meal ->
-                if (errors.size >= maxValidationErrors) return@forEachIndexed
-
-                // Primary check: use LLM-provided allergenTags (language-agnostic)
-                if (meal.allergenTags.isNotEmpty()) {
-                    val forbiddenTags = meal.allergenTags
-                        .mapNotNull { tagName ->
-                            runCatching { FoodRestrictionTag.valueOf(tagName) }.getOrNull()
-                        }
-                        .filter { it in restrictions.tags }
-                    forbiddenTags.forEach { tag ->
-                        errors += "allergen restriction violation in $day meal[$mealIndex]: " +
-                            "LLM tagged '${tag.name}' which is forbidden for this user"
-                    }
-                } else {
-                    // Fallback: keyword-based check for old responses without allergenTags
-                    val nameViolation = restrictionViolationReason(meal.name, restrictions)
-                    if (nameViolation != null) {
-                        errors += "allergen restriction violation in $day meal[$mealIndex].name: $nameViolation"
-                    }
-                    meal.ingredients.forEachIndexed { ingredientIndex, ingredient ->
-                        if (errors.size >= maxValidationErrors) return@forEachIndexed
-                        val ingredientViolation = restrictionViolationReason(ingredient, restrictions)
-                        if (ingredientViolation != null) {
-                            errors += "allergen restriction violation in $day meal[$mealIndex].ingredients[$ingredientIndex]: $ingredientViolation"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return errors.distinct().take(maxValidationErrors)
+    // Only the length of the feedback is capped; safety findings come first, so any plan with
+    // a forbidden food always carries at least one critical error.
+    return (safetyErrors + errors).distinct().take(maxValidationErrors)
 }
 
+/**
+ * Makes the fixed fallback templates comply with the user's restrictions (VT-AUD-028): a
+ * forbidden ingredient is swapped only for a candidate that is itself allowed, a meal with no
+ * allowed ingredient left is dropped, and every returned meal passes the safety gate. The
+ * result may be empty — callers must treat that as "no safe fallback", never fill it back in.
+ */
 internal fun sanitizeTemplateMealsForRestrictions(
     meals: List<AiMeal>,
     profile: AiProfile?,
@@ -496,7 +489,7 @@ internal fun sanitizeTemplateMealsForRestrictions(
         listOf("рис", "киноа", "овощи", "фрукты", "нут", "семена тыквы")
     } else {
         listOf("rice", "quinoa", "vegetables", "fruit", "chickpeas", "pumpkin seeds")
-    }
+    }.filter { restrictionViolationReason(it, restrictions) == null }
     val safeNames = if (locale.language.equals("ru", ignoreCase = true)) {
         listOf("Сбалансированный завтрак", "Сбалансированный обед", "Сбалансированный ужин", "Перекус")
     } else {
@@ -504,21 +497,15 @@ internal fun sanitizeTemplateMealsForRestrictions(
     }
 
     var replacementIndex = 0
-    return meals.mapIndexed { mealIndex, meal ->
-        val adjustedIngredients = meal.ingredients.map { ingredient ->
-            if (restrictionViolationReason(ingredient, restrictions) == null) {
-                ingredient
-            } else {
-                val replacement = replacements[replacementIndex % replacements.size]
-                replacementIndex += 1
-                replacement
+    return meals.mapIndexedNotNull { mealIndex, meal ->
+        val safeIngredients = meal.ingredients.mapNotNull { ingredient ->
+            when {
+                restrictionViolationReason(ingredient, restrictions) == null -> ingredient
+                replacements.isEmpty() -> null
+                else -> replacements[replacementIndex++ % replacements.size]
             }
         }.filter { it.isNotBlank() }.distinct()
-
-        val safeIngredients = when {
-            adjustedIngredients.isNotEmpty() -> adjustedIngredients
-            else -> listOf(replacements[replacementIndex++ % replacements.size])
-        }
+        if (safeIngredients.isEmpty()) return@mapIndexedNotNull null
 
         val safeName = if (restrictionViolationReason(meal.name, restrictions) != null) {
             safeNames[mealIndex % safeNames.size]
@@ -527,7 +514,7 @@ internal fun sanitizeTemplateMealsForRestrictions(
         }
 
         meal.copy(name = safeName, ingredients = safeIngredients)
-    }
+    }.filter { mealSafetyViolations(it, restrictions).isEmpty() }
 }
 
 private fun goalMealRange(goalRaw: String): MealFrequencyRange {
@@ -591,49 +578,70 @@ private fun canonicalText(raw: String): String = sanitizeText(raw).lowercase(Loc
 private fun containsAny(text: String, needles: Set<String>): Boolean =
     needles.any { needle -> text.contains(needle) }
 
-private fun restrictionViolationReason(raw: String, restrictions: NutritionRestrictions): String? {
+/** Safe words that merely contain a forbidden keyword: buckwheat is gluten-free, eggplant has
+ *  no egg, "мороженое"/"дрожжи" are not rye. */
+private val safeCompounds: Map<String, Set<String>> = mapOf(
+    "wheat" to setOf("buckwheat"),
+    "egg" to setOf("eggplant"),
+    "nut" to setOf("nutmeg", "butternut"),
+    "рож" to setOf("морож", "дрожж")
+)
+
+/** Every start index of [needle] in [text], except inside a known safe compound word. */
+private fun occurrencesOf(text: String, needle: String): Sequence<Int> =
+    generateSequence(text.indexOf(needle).takeIf { it >= 0 }) { prev ->
+        text.indexOf(needle, prev + 1).takeIf { it >= 0 }
+    }.filterNot { idx ->
+        safeCompounds[needle].orEmpty().any { compound ->
+            val offset = compound.indexOf(needle)
+            idx - offset >= 0 && text.startsWith(compound, idx - offset)
+        }
+    }
+
+/**
+ * Why [raw] breaks [restrictions], or null when it complies. Every occurrence of every forbidden
+ * keyword/term is examined: a negated or plant-based first mention ("peanut-free granola") must
+ * not hide a later real one ("… with peanut butter").
+ */
+internal fun restrictionViolationReason(raw: String, restrictions: NutritionRestrictions): String? {
     val text = canonicalText(raw)
     if (text.isBlank()) return null
 
     restrictions.customTerms.forEach { term ->
-        if (term.isNotBlank() && text.contains(term)) {
-            val termIdx = text.indexOf(term)
+        if (term.isBlank()) return@forEach
+        // Dairy/lactose custom terms are not violated by a plant-based alternative
+        // e.g. user has "молоко" allergy but "миндальное молоко" / "растительное молоко" is fine
+        val isDairyTerm = tagKeywords[FoodRestrictionTag.Dairy].orEmpty().any { term.contains(it) } ||
+            tagKeywords[FoodRestrictionTag.Lactose].orEmpty().any { term.contains(it) }
 
-            // Skip if the term is negated in context ("\u0431\u0435\u0437 \u043c\u043e\u043b\u043e\u043a\u0430", "no milk", etc.)
-            if (isKeywordNegatedInContext(text, termIdx)) return@forEach
+        val lactoseTerm = term.contains("lactos") || term.contains("лактоз")
+        val allowLactoseFreeTerm = restrictions.allowLactoseFreeAlternatives &&
+            lactoseTerm && lactoseFreeMarkers.any { text.contains(it) }
+        if (allowLactoseFreeTerm) return@forEach
 
-            // Skip dairy/lactose custom terms when the ingredient is a plant-based alternative
-            // e.g. user has "\u043c\u043e\u043b\u043e\u043a\u043e" allergy but "\u043c\u0438\u043d\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e" / "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e" is fine
-            val isDairyTerm = tagKeywords[FoodRestrictionTag.Dairy].orEmpty().any { term.contains(it) } ||
-                tagKeywords[FoodRestrictionTag.Lactose].orEmpty().any { term.contains(it) }
-            if (isDairyTerm && plantDairyAlternativeMarkers.any { text.contains(it) }) return@forEach
-
-            val lactoseTerm = term.contains("lactos") || term.contains("\u043b\u0430\u043a\u0442\u043e\u0437")
-            val allowLactoseFreeTerm = restrictions.allowLactoseFreeAlternatives &&
-                lactoseTerm && lactoseFreeMarkers.any { text.contains(it) }
-            if (allowLactoseFreeTerm) return@forEach
-
-            return "forbidden term '$term' in '$raw'"
+        // Skip occurrences negated in context ("без молока", "no milk", etc.)
+        val present = occurrencesOf(text, term).any { idx ->
+            !isKeywordNegatedInContext(text, idx, term.length) &&
+                !(isDairyTerm && isPlantDairyAlternativeAt(text, idx))
         }
+        if (present) return "forbidden term '$term' in '$raw'"
     }
 
     restrictions.tags.forEach { tag ->
-        val keywords = tagKeywords[tag].orEmpty()
-        val match = keywords.firstOrNull { keyword -> text.contains(keyword) } ?: return@forEach
-        val matchIdx = text.indexOf(match)
-
         val isDairyFamilyTag = tag == FoodRestrictionTag.Lactose || tag == FoodRestrictionTag.Dairy
-        val isNegated        = isKeywordNegatedInContext(text, matchIdx)
-        val hasPlantAlt      = isDairyFamilyTag && plantDairyAlternativeMarkers.any { text.contains(it) }
-        val lactoseFreeOk    = restrictions.allowLactoseFreeAlternatives &&
+        val lactoseFreeOk = restrictions.allowLactoseFreeAlternatives &&
             tag == FoodRestrictionTag.Lactose &&
             lactoseFreeMarkers.any { text.contains(it) }
+        if (lactoseFreeOk) return@forEach
 
-        if (!lactoseFreeOk && !isNegated && !hasPlantAlt) {
-            return "${tag.name} keyword '$match' in '$raw'"
+        tagKeywords[tag].orEmpty().forEach { keyword ->
+            val present = occurrencesOf(text, keyword).any { idx ->
+                !isKeywordNegatedInContext(text, idx, keyword.length) &&
+                    !(isDairyFamilyTag && isPlantDairyAlternativeAt(text, idx))
+            }
+            if (present) return "${tag.name} keyword '$keyword' in '$raw'"
         }
     }
 
     return null
 }
-

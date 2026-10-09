@@ -47,6 +47,7 @@ class CoachEditApplicator(
             return Result(null, null, false, false, emptyList())
         }
         val rejections = mutableListOf<String>()
+        val restrictions = profile?.let(::buildNutritionRestrictions) ?: NutritionRestrictions.None
 
         var training = currentTraining
         var trainingTouched = false
@@ -74,7 +75,7 @@ class CoachEditApplicator(
                         rejections += "no current nutrition plan to edit for '${op.op}'"
                         return@forEach
                     }
-                    val (updated, changed) = applyNutritionOp(type, op, nutrition!!, rejections)
+                    val (updated, changed) = applyNutritionOp(type, op, nutrition!!, restrictions, rejections)
                     nutrition = updated
                     if (changed) nutritionTouched = true
                 }
@@ -260,6 +261,7 @@ class CoachEditApplicator(
         type: CoachEditOpType,
         op: CoachEditOp,
         plan: AiNutritionResponse,
+        restrictions: NutritionRestrictions,
         rejections: MutableList<String>,
     ): Pair<AiNutritionResponse, Boolean> {
         val dayKey = op.day?.let { canonicalDayKey(it) }
@@ -273,6 +275,10 @@ class CoachEditApplicator(
         if (type == CoachEditOpType.ADD_MEAL) {
             val meal = buildMealFromOp(op) ?: run {
                 rejections += "add_meal needs a name, ingredients and complete non-negative macros with positive energy"
+                return plan to false
+            }
+            if (mealSafetyViolations(meal, restrictions).isNotEmpty()) {
+                rejections += "cannot add '${meal.name}' — it contains a food the user must avoid"
                 return plan to false
             }
             meals.add(meal)
@@ -343,6 +349,14 @@ class CoachEditApplicator(
         }
 
         if (!changed) return plan to false
+        // A chat edit is the user's coach changing a plan that already passed the safety gate:
+        // it may keep whatever the meal already had, but never introduce a forbidden food.
+        if (updatedMeal != null &&
+            (mealSafetyViolations(updatedMeal, restrictions) - mealSafetyViolations(meal, restrictions)).isNotEmpty()
+        ) {
+            rejections += "cannot change '${meal.name}' — the edit adds a food the user must avoid"
+            return plan to false
+        }
         if (updatedMeal == null) {
             meals.removeAt(mealIndex)
         } else {

@@ -1,0 +1,44 @@
+# Shared food-restriction contract: server (AiNutritionSafetyPolicy) and client (shared/domain/nutrition) must agree on every row.
+# allergies (';'-separated)	dietary preferences (';'-separated)	food text	expected: violation | ok
+peanut allergy		peanut butter	violation
+peanut allergy		rice with vegetables	ok
+peanut allergy		gluten-free bread with peanut butter	violation
+peanut allergy		peanut-free granola	ok
+peanut allergy		peanut-free granola with peanut butter	violation
+peanut allergy		serve without peanuts	ok
+аллергия на арахис		арахисовая паста	violation
+аллергия на арахис		без арахиса	ok
+milk allergy		oat milk	ok
+milk allergy		кокосовое молоко	ok
+milk allergy		non-dairy creamer	ok
+milk allergy		dairy-free yogurt	ok
+milk allergy		non-fat milk	violation
+milk allergy		рисовая лапша с сыром	violation
+milk allergy		овсянка, молоко	violation
+milk allergy		greek yogurt	violation
+lactose intolerance		lactose-free milk	ok
+lactose intolerance		milk	violation
+	vegan	tofu with broccoli	ok
+	vegan	honey	violation
+	vegan	chicken breast	violation
+	vegan	eggs	violation
+	vegetarian	cottage cheese	ok
+	vegetarian	salmon fillet	violation
+	веган	куриная грудка	violation
+	веган	гречка с овощами	ok
+аллергия на рыбу		филе лосося	violation
+gluten		wholegrain pasta	violation
+gluten		buckwheat	ok
+rice allergy		rice	violation
+rice allergy		quinoa	ok
+аллергия на орехи		грецкие орехи	violation
+аллергия на орехи		каша без сахара с орехами	violation
+аллергия на орехи		протеин (без молока и орехов)	ok
+shellfish		shrimp	violation
+sesame		tahini	violation
+soy allergy		soy sauce	violation
+egg allergy		omelette with eggs	violation
+egg allergy		grilled eggplant	ok
+gluten		дрожжи	ok
+gluten		ржаной хлеб	violation
+gluten		wheat flour	violation

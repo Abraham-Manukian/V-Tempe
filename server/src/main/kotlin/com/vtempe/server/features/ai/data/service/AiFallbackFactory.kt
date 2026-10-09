@@ -69,6 +69,9 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
 internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
     val locale = safeLocale(req.locale ?: req.profile.locale)
     val meals = templateMeals(locale, req.profile)
+    if (meals.isEmpty()) {
+        throw NoSafeNutritionPlanException("No fallback meal is compatible with the user's food restrictions")
+    }
     val targetKcal = computeTargetNutrition(req.profile).kcal
     val fullDayMeals = scaleMealsToTarget(meals, targetKcal)
     val shortDayMeals = scaleMealsToTarget(meals.take(3), targetKcal)
@@ -79,7 +82,11 @@ internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
         .filter { it.isNotEmpty() }
         .distinct()
         .sorted()
-    return AiNutritionResponse(req.weekIndex, planMeals, shopping)
+    val plan = AiNutritionResponse(req.weekIndex, planMeals, shopping)
+    // Final gate over the finished plan, after every substitution (VT-AUD-028).
+    val violations = nutritionSafetyViolations(plan, req.profile)
+    check(violations.isEmpty()) { "fallback nutrition plan failed the safety gate: ${violations.size} violation(s)" }
+    return plan
 }
 
 /** Scales a fixed meal template's kcal/macros to hit [targetKcal] — ingredient names stay

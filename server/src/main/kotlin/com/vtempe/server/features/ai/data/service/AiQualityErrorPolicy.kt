@@ -38,6 +38,9 @@ internal object AiQualityErrorPolicy {
 
     private fun isNonCriticalError(error: String): Boolean {
         val normalized = error.lowercase(Locale.US)
+        // Food safety is never a soft warning, whatever else the message happens to contain
+        // (it quotes model output, which could include words like "calorie sum").
+        if (normalized.contains(AllergenViolationMarker)) return false
         // "calorie sum severe deviation" (>20% off target) is deliberately NOT listed here —
         // it must stay critical so it forces a retry instead of shipping a plan that actively
         // works against the user's goal (e.g. a bulking plan landing 30% under target).

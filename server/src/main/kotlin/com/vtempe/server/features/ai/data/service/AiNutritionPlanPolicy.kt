@@ -77,6 +77,9 @@ internal fun normalizeNutritionPlan(
                     ingredients = ingredients,
                     kcal = normalizedKcal,
                     macros = normalizedMacros,
+                    // Kept for the safety gate: the model's own allergen declaration is checked
+                    // alongside the text, never instead of it.
+                    allergenTags = meal.allergenTags.map(String::trim).filter { it.isNotEmpty() }.distinct(),
                     recipe = meal.recipe.trim(),
                 )
             }

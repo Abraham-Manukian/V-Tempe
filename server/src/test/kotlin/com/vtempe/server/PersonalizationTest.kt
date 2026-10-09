@@ -19,9 +19,11 @@ import com.vtempe.server.features.ai.data.service.fallbackNutrition
 import com.vtempe.server.features.ai.data.service.fallbackTraining
 import com.vtempe.server.features.ai.data.service.normalizeTrainingPlan
 import com.vtempe.server.features.ai.data.service.sanitizeTemplateMealsForRestrictions
+import com.vtempe.server.features.ai.data.service.FoodRestrictionTag
+import com.vtempe.server.features.ai.data.service.buildNutritionRestrictions
+import com.vtempe.server.features.ai.data.service.nutritionSafetyViolations
 import com.vtempe.server.features.ai.data.service.split.InjuryFilter
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
-import com.vtempe.server.features.ai.data.service.nutrition.FoodRestrictionValidator
 import com.vtempe.server.features.ai.data.service.nutrition.NutritionTargetCalculator
 import com.vtempe.server.features.ai.data.service.nutrition.ShoppingListNormalizer
 import com.vtempe.server.features.ai.domain.model.MovementPattern
@@ -106,36 +108,36 @@ class PersonalizationTest {
         assertTrue(gain.kcal > maintain.kcal, "gain=${gain.kcal} maintain=${maintain.kcal}")
     }
 
-    // ── BUG 2: FoodRestrictionValidator ────────────────────────────────────────
+    // ── BUG 2: food restrictions (canonical parser + safety gate) ──────────────
 
     @Test
     fun `vegan parses to no meat fish dairy eggs`() {
-        val r = FoodRestrictionValidator.parse(profile(dietaryPreferences = listOf("vegan")))
-        assertTrue(r.noMeat)
-        assertTrue(r.noPoultry)
-        assertTrue(r.noFish)
-        assertTrue(r.noDairy)
-        assertTrue(r.noEggs)
-        assertTrue(r.noHoney, "honey is an animal product — vegans must exclude it too")
+        val tags = buildNutritionRestrictions(profile(dietaryPreferences = listOf("vegan"))).tags
+        assertTrue(FoodRestrictionTag.Meat in tags)
+        assertTrue(FoodRestrictionTag.Poultry in tags)
+        assertTrue(FoodRestrictionTag.Fish in tags)
+        assertTrue(FoodRestrictionTag.Dairy in tags)
+        assertTrue(FoodRestrictionTag.Egg in tags)
+        assertTrue(FoodRestrictionTag.Honey in tags, "honey is an animal product — vegans must exclude it too")
     }
 
     @Test
     fun `vegetarian forbids meat and fish but allows dairy and eggs`() {
-        val r = FoodRestrictionValidator.parse(profile(dietaryPreferences = listOf("vegetarian")))
-        assertTrue(r.noMeat)
-        assertTrue(r.noFish)
-        assertTrue(!r.noDairy)
-        assertTrue(!r.noEggs)
+        val tags = buildNutritionRestrictions(profile(dietaryPreferences = listOf("vegetarian"))).tags
+        assertTrue(FoodRestrictionTag.Meat in tags)
+        assertTrue(FoodRestrictionTag.Fish in tags)
+        assertTrue(FoodRestrictionTag.Dairy !in tags)
+        assertTrue(FoodRestrictionTag.Egg !in tags)
     }
 
     @Test
     fun `fish allergy triggers fish restriction`() {
-        val r = FoodRestrictionValidator.parse(profile(allergies = listOf("аллергия на рыбу")))
-        assertTrue(r.noFish, "fish allergy should set noFish")
+        val tags = buildNutritionRestrictions(profile(allergies = listOf("аллергия на рыбу"))).tags
+        assertTrue(FoodRestrictionTag.Fish in tags, "fish allergy should forbid fish")
     }
 
     @Test
-    fun `validatePlan flags fish meal for vegetarian`() {
+    fun `safety gate flags fish meal for vegetarian`() {
         val plan = AiNutritionResponse(
             weekIndex = 0,
             mealsByDay = mapOf(
@@ -144,13 +146,13 @@ class PersonalizationTest {
                 )
             )
         )
-        val violations = FoodRestrictionValidator.validatePlan(plan, profile(dietaryPreferences = listOf("vegetarian")))
+        val violations = nutritionSafetyViolations(plan, profile(dietaryPreferences = listOf("vegetarian")))
         assertTrue(violations.isNotEmpty(), "expected fish violation, got $violations")
-        assertTrue(violations.joinToString().contains("fish"), "expected 'fish' in $violations")
+        assertTrue(violations.joinToString().contains("Fish"), "expected 'Fish' in $violations")
     }
 
     @Test
-    fun `validatePlan passes compliant vegan meal`() {
+    fun `safety gate passes compliant vegan meal`() {
         val plan = AiNutritionResponse(
             weekIndex = 0,
             mealsByDay = mapOf(
@@ -159,7 +161,7 @@ class PersonalizationTest {
                 )
             )
         )
-        val violations = FoodRestrictionValidator.validatePlan(plan, profile(dietaryPreferences = listOf("vegan")))
+        val violations = nutritionSafetyViolations(plan, profile(dietaryPreferences = listOf("vegan")))
         assertTrue(violations.isEmpty(), "expected no violations, got $violations")
     }
 
