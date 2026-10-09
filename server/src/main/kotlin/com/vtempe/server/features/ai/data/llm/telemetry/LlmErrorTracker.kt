@@ -18,7 +18,8 @@ class LlmErrorTracker {
         )
     }
 
-    fun fail(logger: Logger, operation: String, requestId: String?, attempt: Int, stage: String, message: String, snippet: String?) {
+    /** [safeDiagnostic] must never contain model output — build it with [SafeDiagnostics]. */
+    fun fail(logger: Logger, operation: String, requestId: String?, attempt: Int, stage: String, safeDiagnostic: String, snippet: String?) {
         inc("fail:$operation:$stage")
         logger.warn(
             "LLM {} requestId={} attempt={} stage={} message={} snippet={}",
@@ -26,7 +27,7 @@ class LlmErrorTracker {
             requestId ?: "unknown",
             attempt,
             stage,
-            message,
+            safeDiagnostic,
             snippet ?: "<none>"
         )
     }

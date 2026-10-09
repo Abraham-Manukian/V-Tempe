@@ -9,6 +9,7 @@ import com.vtempe.server.features.ai.data.llm.extract.ResponseExtractor
 import com.vtempe.server.features.ai.data.llm.feedback.FeedbackComposer
 import com.vtempe.server.features.ai.data.llm.repair.JsonSanitizer
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmErrorTracker
+import com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics
 import com.vtempe.server.features.ai.data.llm.telemetry.LlmRawStore
 import kotlinx.serialization.DeserializationStrategy
 import org.slf4j.Logger
@@ -65,7 +66,7 @@ class LlmPipeline(
                     tracker.success(logger, operation, requestId, attempt, fixes)
                     return value
                 }
-                tracker.fail(logger, operation, requestId, attempt, "validate", errors.joinToString("; "), snippet(candidate))
+                tracker.fail(logger, operation, requestId, attempt, "validate", SafeDiagnostics.validationErrors(errors), snippet(candidate))
                 fb = feedback.validationErrors(errors, feedbackSuffix)
                 continue
             }
@@ -83,13 +84,16 @@ class LlmPipeline(
                     tracker.success(logger, operation, requestId, attempt, fixes)
                     return value
                 }
-                tracker.fail(logger, operation, requestId, attempt, "validate", errors.joinToString("; "), snippet(repaired.fixed))
+                tracker.fail(logger, operation, requestId, attempt, "validate", SafeDiagnostics.validationErrors(errors), snippet(repaired.fixed))
                 fb = feedback.validationErrors(errors, feedbackSuffix)
                 continue
             }
 
-            val msg = decoded2.exceptionOrNull()?.message ?: decoded1.exceptionOrNull()?.message ?: "decode error"
-            tracker.fail(logger, operation, requestId, attempt, "decode", msg, snippet(repaired.fixed))
+            // The full message goes back to the MODEL as repair feedback; the log gets only the
+            // error type and JSON path (VT-AUD-001) — the message can quote the model's output.
+            val decodeError = decoded2.exceptionOrNull() ?: decoded1.exceptionOrNull()
+            val msg = decodeError?.message ?: "decode error"
+            tracker.fail(logger, operation, requestId, attempt, "decode", SafeDiagnostics.decodeError(decodeError), snippet(repaired.fixed))
             fb = feedback.decodeError(msg)
         }
 

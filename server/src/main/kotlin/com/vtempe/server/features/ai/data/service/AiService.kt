@@ -226,7 +226,7 @@ class AiService(
                         logger.info(
                             "LLM coach-bundle requestId={} skeleton violations (auto-corrected by normalizer): {}",
                             requestId,
-                            skeletonViolations.joinToString(" | ")
+                            com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(skeletonViolations)
                         )
                         AiQualityMetrics.recordValidation(logger, "coach-bundle-skeleton", requestId, skeletonViolations)
                     }
@@ -242,7 +242,7 @@ class AiService(
                         logger.info(
                             "LLM coach-bundle requestId={} accepted with relaxed quality warnings={}",
                             requestId,
-                            warningErrors.joinToString(" | ")
+                            com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(warningErrors)
                         )
                     }
                     criticalErrors
@@ -383,14 +383,14 @@ class AiService(
                 val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                 if (criticalErrors.isNotEmpty()) {
                     AiQualityMetrics.recordValidation(logger, "coach-bundle-decomposed", requestId, criticalErrors)
-                    throw IllegalStateException("Decomposed bundle failed validation: ${criticalErrors.joinToString(" | ")}")
+                    throw IllegalStateException("Decomposed bundle failed validation: ${com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(criticalErrors)}")
                 }
                 val warningErrors = AiQualityErrorPolicy.warningErrors(errors)
                 if (warningErrors.isNotEmpty()) {
                     logger.warn(
                         "Decomposed bundle accepted with non-critical quality warnings requestId={} warnings={}",
                         requestId,
-                        warningErrors.joinToString(" | ")
+                        com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(warningErrors)
                     )
                 }
                 bundle
@@ -486,7 +486,7 @@ class AiService(
                     logger.info(
                         "LLM nutrition-section requestId={} accepted with relaxed quality warnings={}",
                         sectionRequestId,
-                        warningErrors.joinToString(" | ")
+                        com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(warningErrors)
                     )
                 }
                 criticalErrors

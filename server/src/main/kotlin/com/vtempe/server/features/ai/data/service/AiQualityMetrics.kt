@@ -2,6 +2,7 @@ package com.vtempe.server.features.ai.data.service
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics
 import org.slf4j.Logger
 
 internal object AiQualityMetrics {
@@ -17,7 +18,7 @@ internal object AiQualityMetrics {
             "AI quality gate violations operation={} requestId={} errors={}",
             operation,
             requestId ?: "unknown",
-            errors.joinToString(" | ")
+            SafeDiagnostics.validationErrors(errors)
         )
     }
 
@@ -26,7 +27,7 @@ internal object AiQualityMetrics {
         logger.warn(
             "AI fallback metric operation={} reason={}",
             operation,
-            reason.message ?: reason::class.simpleName
+            reason::class.simpleName // messages can quote model output (VT-AUD-001)
         )
     }
 

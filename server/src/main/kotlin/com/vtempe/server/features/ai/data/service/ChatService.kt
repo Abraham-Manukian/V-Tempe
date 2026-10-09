@@ -88,7 +88,7 @@ class ChatService(
                         logger.info(
                             "LLM chat requestId={} accepted with relaxed quality warnings={}",
                             requestId,
-                            warningErrors.joinToString(" | ")
+                            com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(warningErrors)
                         )
                     }
                     criticalErrors
