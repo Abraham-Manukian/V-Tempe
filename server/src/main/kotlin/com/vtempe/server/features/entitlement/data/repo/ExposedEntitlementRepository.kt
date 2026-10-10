@@ -55,15 +55,15 @@ class ExposedEntitlementRepository(private val database: Database) : Entitlement
         }
     }
 
-    override suspend fun recordPaymentAndGrant(
+    override suspend fun recordPaymentAndExtend(
         externalId: String,
         userId: String,
         source: PaymentSource,
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        expiresAt: Instant
-    ): Boolean = newSuspendedTransaction(Dispatchers.IO, database) {
+        newExpiry: (currentExpiry: Instant?) -> Instant
+    ): Instant? = newSuspendedTransaction(Dispatchers.IO, database) {
         val isNewPayment = try {
             Payments.insert {
                 it[Payments.userId] = userId
@@ -82,10 +82,42 @@ class ExposedEntitlementRepository(private val database: Database) : Entitlement
         // whole transaction rolls back INCLUDING the payment insert, so a retried webhook
         // delivery sees no recorded payment and reprocesses cleanly from scratch — never
         // "marked processed, but never actually granted".
-        if (isNewPayment) {
-            grantUntilAtLeastInTransaction(userId, expiresAt, source, externalId)
+        if (isNewPayment) extendInTransaction(userId, source, externalId, newExpiry) else null
+    }
+
+    /**
+     * Reads the current expiry under a row lock and writes the extension in the same transaction
+     * (VT-AUD-051). A concurrent payment for the same user blocks on `SELECT ... FOR UPDATE`
+     * until this one commits, then reads the extended value. The first payment of a user creates
+     * the row with `INSERT ... ON CONFLICT DO NOTHING`; a concurrent first insert waits on the
+     * unique key, so both still end up extending one row in turn.
+     */
+    private fun Transaction.extendInTransaction(
+        userId: String,
+        source: PaymentSource,
+        externalRef: String,
+        newExpiry: (currentExpiry: Instant?) -> Instant,
+    ): Instant {
+        val created = Entitlements.insertIgnore {
+            it[Entitlements.userId] = userId
+            it[Entitlements.expiresAt] = Instant.EPOCH // placeholder, replaced below
+            it[Entitlements.paymentSource] = source.name
+            it[Entitlements.externalRef] = externalRef
+            it[Entitlements.updatedAt] = Instant.now()
+        }.insertedCount > 0
+        val stored = Entitlements.selectAll()
+            .where { Entitlements.userId eq userId }
+            .forUpdate()
+            .single()[Entitlements.expiresAt]
+        val current = if (created) null else stored
+        val target = newExpiry(current).let { if (current != null && current > it) current else it }
+        Entitlements.update({ Entitlements.userId eq userId }) {
+            it[Entitlements.expiresAt] = target
+            it[Entitlements.paymentSource] = source.name
+            it[Entitlements.externalRef] = externalRef
+            it[Entitlements.updatedAt] = Instant.now()
         }
-        isNewPayment
+        return target
     }
 
     /**

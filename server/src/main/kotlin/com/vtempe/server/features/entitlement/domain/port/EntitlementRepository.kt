@@ -24,22 +24,27 @@ interface EntitlementRepository {
     suspend fun revoke(userId: String)
 
     /**
-     * Atomically records a provider payment (idempotent on [externalId]) AND grants until at
-     * least [expiresAt] — both in one transaction, so a webhook can never end up in the state
-     * "payment marked processed, but the grant it was supposed to cause never happened" (which
-     * would permanently strand a paying user, since a retried delivery would then see the
-     * payment as already-processed and skip granting again).
+     * Atomically records a provider payment (idempotent on [externalId]) AND extends the user's
+     * access — both in one transaction, so a webhook can never end up in the state "payment
+     * marked processed, but the grant it was supposed to cause never happened" (which would
+     * permanently strand a paying user, since a retried delivery would then see the payment as
+     * already-processed and skip granting again).
      *
-     * Returns false if [externalId] was already recorded — the grant is NOT reapplied in that
-     * case, since the original processing already applied it.
+     * [newExpiry] receives the user's current expiry (null when there is no row) READ INSIDE the
+     * same transaction, serialized per user, and returns the new one (VT-AUD-051): two different
+     * payments processed at the same time both extend, instead of both computing from the same
+     * old expiry. The result never shortens existing access.
+     *
+     * Returns the resulting expiry, or null if [externalId] was already recorded — the grant is
+     * NOT reapplied in that case, since the original processing already applied it.
      */
-    suspend fun recordPaymentAndGrant(
+    suspend fun recordPaymentAndExtend(
         externalId: String,
         userId: String,
         source: PaymentSource,
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        expiresAt: Instant
-    ): Boolean
+        newExpiry: (currentExpiry: Instant?) -> Instant
+    ): Instant?
 }

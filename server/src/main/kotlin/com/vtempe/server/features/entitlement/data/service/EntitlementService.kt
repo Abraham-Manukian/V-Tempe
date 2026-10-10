@@ -40,17 +40,24 @@ class EntitlementService(
         repository.revoke(userId)
     }
 
-    /** Atomically records the payment (idempotent on [externalId]) and grants until at least
-     *  [expiresAt] — see EntitlementRepository kdoc for why this must be one atomic operation,
-     *  not two separate calls. Returns false if this exact payment was already processed (the
-     *  grant is NOT reapplied in that case). */
-    suspend fun recordPaymentAndGrant(
+    /**
+     * Atomically records the payment (idempotent on [externalId]) and adds [period] to the user's
+     * access: from the current expiry while it is active or in grace, from now once expired. The
+     * current expiry is read inside the repository's transaction (VT-AUD-051) — see
+     * EntitlementRepository kdoc. Returns the new expiry, or null if this exact payment was
+     * already processed (the grant is NOT reapplied in that case).
+     */
+    suspend fun recordPaymentAndExtend(
         externalId: String,
         userId: String,
         source: PaymentSource,
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        expiresAt: Instant
-    ): Boolean = repository.recordPaymentAndGrant(externalId, userId, source, amountMinor, currency, rawPayload, expiresAt)
+        period: Duration
+    ): Instant? = repository.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload) { current ->
+        val now = clock()
+        val base = if (current != null && now.isBefore(current.plus(gracePeriod))) current else now
+        base.plus(period)
+    }
 }

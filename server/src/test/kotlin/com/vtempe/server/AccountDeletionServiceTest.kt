@@ -6,7 +6,6 @@ import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -57,22 +56,21 @@ class AccountDeletionServiceTest {
 
     @Test
     fun `payment records are retained`() = runBlocking {
-        entitlements.recordPaymentAndGrant(
+        entitlements.recordPaymentAndExtend(
             externalId = "pay-1",
             userId = "user-1",
             source = PaymentSource.YOOKASSA,
             amountMinor = 49_900,
             currency = "RUB",
             rawPayload = "{}",
-            expiresAt = expiresAt
-        )
+        ) { expiresAt }
 
         service.deleteAccountData("user-1")
 
         assertNull(entitlements.find("user-1"))
         // The ledger still knows the payment: a redelivered webhook is recognised as a duplicate.
-        assertFalse(
-            entitlements.recordPaymentAndGrant("pay-1", "user-1", PaymentSource.YOOKASSA, 49_900, "RUB", "{}", expiresAt)
+        assertNull(
+            entitlements.recordPaymentAndExtend("pay-1", "user-1", PaymentSource.YOOKASSA, 49_900, "RUB", "{}") { expiresAt }
         )
     }
 }

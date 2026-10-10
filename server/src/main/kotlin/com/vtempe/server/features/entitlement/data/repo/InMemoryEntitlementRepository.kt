@@ -3,6 +3,8 @@ package com.vtempe.server.features.entitlement.data.repo
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRecord
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -12,15 +14,13 @@ import java.util.concurrent.ConcurrentHashMap
  * that's an accepted, logged trade-off for "still boots on a fresh checkout with no DB set up",
  * not a real production entitlement store.
  *
- * [recordPaymentAndGrant] here is NOT truly atomic (two sequential in-memory operations, not one
- * transaction) — acceptable only because neither `ConcurrentHashMap` operation involved can
- * throw, so the "payment recorded but grant never happened" failure mode this method exists to
- * prevent (see EntitlementRepository kdoc) is structurally unreachable for this implementation.
- * [ExposedEntitlementRepository] is where the atomicity contract actually has to be earned.
+ * [recordPaymentAndExtend] runs under one lock, so concurrent payments extend one after the
+ * other exactly like the per-user row lock of [ExposedEntitlementRepository].
  */
 class InMemoryEntitlementRepository : EntitlementRepository {
     private val entitlements = ConcurrentHashMap<String, EntitlementRecord>()
     private val paymentIds = ConcurrentHashMap.newKeySet<String>()
+    private val paymentLock = Mutex()
 
     override suspend fun find(userId: String): EntitlementRecord? = entitlements[userId]
 
@@ -35,17 +35,19 @@ class InMemoryEntitlementRepository : EntitlementRepository {
         entitlements.remove(userId)
     }
 
-    override suspend fun recordPaymentAndGrant(
+    override suspend fun recordPaymentAndExtend(
         externalId: String,
         userId: String,
         source: PaymentSource,
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        expiresAt: Instant
-    ): Boolean {
-        if (!paymentIds.add(externalId)) return false
-        grantUntilAtLeast(userId, expiresAt, source, externalRef = externalId)
-        return true
+        newExpiry: (currentExpiry: Instant?) -> Instant
+    ): Instant? = paymentLock.withLock {
+        if (!paymentIds.add(externalId)) return@withLock null
+        val current = entitlements[userId]?.expiresAt
+        val target = newExpiry(current).let { if (current != null && current > it) current else it }
+        entitlements[userId] = EntitlementRecord(userId, target, source, externalId)
+        target
     }
 }

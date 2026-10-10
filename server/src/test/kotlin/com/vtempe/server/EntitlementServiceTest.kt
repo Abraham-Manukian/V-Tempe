@@ -4,9 +4,13 @@ import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepos
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.model.EntitlementStatus
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
@@ -78,18 +82,48 @@ class EntitlementServiceTest {
     }
 
     @Test
-    fun `recordPaymentAndGrant returns false for a duplicate external id and does not re-grant`() = runBlocking {
+    fun `recordPaymentAndExtend returns null for a duplicate external id and does not re-grant`() = runBlocking {
         val now = Instant.parse("2026-01-01T00:00:00Z")
         val repository = InMemoryEntitlementRepository()
         val service = EntitlementService(repository, clock = { now })
         val expiresAt = now.plus(Duration.ofDays(30))
 
-        val first = service.recordPaymentAndGrant("payment-123", "user-1", PaymentSource.YOOKASSA, 100_00, "RUB", "{}", expiresAt)
-        val second = service.recordPaymentAndGrant("payment-123", "user-1", PaymentSource.YOOKASSA, 100_00, "RUB", "{}", expiresAt.plus(Duration.ofDays(30)))
+        val first = service.recordPaymentAndExtend("payment-123", "user-1", PaymentSource.YOOKASSA, 100_00, "RUB", "{}", Duration.ofDays(30))
+        val second = service.recordPaymentAndExtend("payment-123", "user-1", PaymentSource.YOOKASSA, 100_00, "RUB", "{}", Duration.ofDays(30))
 
-        assertTrue(first)
-        assertFalse(second)
+        assertEquals(expiresAt, first)
+        assertNull(second)
         // The duplicate delivery must NOT have extended the grant a second time.
         assertEquals(expiresAt, service.current("user-1").expiresAt)
+    }
+    @Test
+    fun `concurrent payments of one user each add their full period`() = runBlocking {
+        val now = Instant.parse("2026-01-01T00:00:00Z")
+        val service = EntitlementService(InMemoryEntitlementRepository(), clock = { now })
+        service.grant("user-1", now.plus(Duration.ofDays(10)), PaymentSource.YOOKASSA)
+
+        (1..40).map { i ->
+            async(Dispatchers.Default) {
+                service.recordPaymentAndExtend("payment-$i", "user-1", PaymentSource.YOOKASSA, 100_00, "RUB", "{}", Duration.ofDays(30))
+            }
+        }.awaitAll()
+
+        assertEquals(now.plus(Duration.ofDays(10 + 40 * 30L)), service.current("user-1").expiresAt)
+    }
+
+    @Test
+    fun `an expired or missing grant extends from now, a grace one from its expiry`() = runBlocking {
+        val now = Instant.parse("2026-01-01T00:00:00Z")
+        val service = EntitlementService(InMemoryEntitlementRepository(), gracePeriod = Duration.ofDays(3), clock = { now })
+        val period = Duration.ofDays(30)
+
+        assertEquals(now.plus(period), service.recordPaymentAndExtend("p-new", "new", PaymentSource.YOOKASSA, 1, "RUB", "{}", period))
+
+        service.grant("expired", now.minus(Duration.ofDays(10)), PaymentSource.YOOKASSA)
+        assertEquals(now.plus(period), service.recordPaymentAndExtend("p-exp", "expired", PaymentSource.YOOKASSA, 1, "RUB", "{}", period))
+
+        val graceEnd = now.minus(Duration.ofDays(1))
+        service.grant("grace", graceEnd, PaymentSource.YOOKASSA)
+        assertEquals(graceEnd.plus(period), service.recordPaymentAndExtend("p-grace", "grace", PaymentSource.YOOKASSA, 1, "RUB", "{}", period))
     }
 }

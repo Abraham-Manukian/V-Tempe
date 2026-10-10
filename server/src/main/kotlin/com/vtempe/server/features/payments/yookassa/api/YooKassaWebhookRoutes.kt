@@ -1,7 +1,6 @@
 package com.vtempe.server.features.payments.yookassa.api
 
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
-import com.vtempe.server.features.entitlement.domain.model.EntitlementStatus
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
 import com.vtempe.server.features.payments.yookassa.data.YooKassaVerificationUnavailable
@@ -19,7 +18,6 @@ import org.koin.ktor.ext.inject
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Duration
-import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("YooKassaWebhook")
 private val DEFAULT_PERIOD = Duration.ofDays(30)
@@ -77,20 +75,18 @@ fun Route.registerYooKassaWebhookRoutes() {
 
         val periodDays = verifiedPayment.metadata["periodDays"]?.toLongOrNull()
         val period = periodDays?.let(Duration::ofDays) ?: DEFAULT_PERIOD
-        val current = entitlementService.current(userId)
-        val base = if (current.status != EntitlementStatus.EXPIRED) current.expiresAt ?: Instant.now() else Instant.now()
-        val expiresAt = base.plus(period)
 
-        val granted = entitlementService.recordPaymentAndGrant(
+        // The current expiry is read inside the payment's transaction (VT-AUD-051).
+        val expiresAt = entitlementService.recordPaymentAndExtend(
             externalId = verifiedPayment.id,
             userId = userId,
             source = PaymentSource.YOOKASSA,
             amountMinor = amountMinor,
             currency = verifiedPayment.amount.currency,
             rawPayload = verifiedPayment.toLedgerPayload(),
-            expiresAt = expiresAt
+            period = period
         )
-        if (granted) {
+        if (expiresAt != null) {
             logger.info("YooKassa webhook: granted entitlement to userId={} until={}", userId, expiresAt)
         } else {
             logger.info("YooKassa webhook: payment {} already processed, skipping duplicate delivery", paymentId)
