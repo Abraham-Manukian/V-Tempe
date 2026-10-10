@@ -7,8 +7,6 @@ import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.vtempe.shared.domain.repository.PurchasesRepository
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 class AndroidPurchasesRepository(
     private val appContext: Context
@@ -21,24 +19,26 @@ class AndroidPurchasesRepository(
             .build()
     }
 
+    private val connection = BillingConnection(
+        isReady = { billingClient.isReady },
+        startConnection = { onResult ->
+            billingClient.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    onResult(result.responseCode == BillingClient.BillingResponseCode.OK)
+                }
+                // Also called long after setup, whenever the service drops; only the first
+                // report of an attempt counts (see BillingConnection).
+                override fun onBillingServiceDisconnected() = onResult(false)
+            })
+        },
+    )
+
     override suspend fun isSubscriptionActive(): Boolean {
         // Minimal skeleton: connect and query purchases; return false on any failure
-        val connected = connect()
+        val connected = connection.connect()
         if (!connected) return false
         // For brevity, we donвЂ™t query specific SKUs here; return false as a safe default.
         return false
-    }
-
-    private suspend fun connect(): Boolean = suspendCancellableCoroutine { cont ->
-        if (billingClient.isReady) { cont.resume(true); return@suspendCancellableCoroutine }
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(result: BillingResult) {
-                cont.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
-            }
-            override fun onBillingServiceDisconnected() {
-                cont.resume(false)
-            }
-        })
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: MutableList<Purchase>?) {
