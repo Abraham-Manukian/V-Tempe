@@ -44,9 +44,13 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
         forceDeload         = shouldForceDeload(req.profile.recentWorkouts),
         hasHistory          = req.profile.recentWorkouts.isNotEmpty()
     )
+    // The selected weekdays of the planned week, as the LLM path uses (VT-AUD-012) — not
+    // consecutive days from today.
+    val weekStart = resolveWeekStart(req.weekStart, today)
+    val dates = computeWorkoutDatesForWeek(trainingDays.associateWith { true }, weekStart)
     val workouts = skeletons.mapIndexed { day, skeleton ->
         val id = "w_${req.weekIndex}_${day + 1}"
-        val date = today.plusDays(day.toLong()).toString()
+        val date = dates.getOrElse(day) { weekStart.plusDays(day.toLong().coerceAtMost(6)).toString() }
         val sets = skeleton.slots.map { slot ->
             // No LLM to ask for a realistic weight — leave it null (UI shows "—") rather than
             // inventing a number unrelated to this user's experience/equipment.
@@ -62,7 +66,8 @@ internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
     val plan = normalizeTrainingPlan(
         plan = AiTrainingResponse(req.weekIndex, workouts),
         profile = req.profile,
-        trainingPlanResolver = builtInTrainingPlanResolver
+        trainingPlanResolver = builtInTrainingPlanResolver,
+        weekStart = weekStart,
     )
     // Every slot was banned or impossible with this equipment: refuse rather than invent one.
     if (plan.workouts.isEmpty()) {

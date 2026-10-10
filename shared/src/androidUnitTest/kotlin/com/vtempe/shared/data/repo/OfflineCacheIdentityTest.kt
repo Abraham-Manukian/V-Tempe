@@ -18,9 +18,11 @@ import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.LanguagePreferences
+import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.util.DataResult
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.http.content.TextContent
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
@@ -42,6 +44,7 @@ import kotlin.test.assertTrue
 class OfflineCacheIdentityTest {
 
     private var online = true
+    private val sentBodies = mutableListOf<String>()
     private val json = Json { encodeDefaults = true }
     private val profile = Profile("p", 30, Sex.MALE, 180, 80.0, Goal.MAINTAIN, 2)
 
@@ -51,6 +54,7 @@ class OfflineCacheIdentityTest {
     private fun repository(): Pair<NetworkAiTrainerRepository, AiResponseCache> {
         val engine = MockEngine { request ->
             if (!online) throw IOException("offline")
+            sentBodies += (request.body as? TextContent)?.text.orEmpty()
             val body = when {
                 request.url.encodedPath.endsWith("/ai/training") -> json.encodeToString(TrainingPlanDto.fromDomain(training0))
                 else -> json.encodeToString(NutritionPlanDto.fromDomain(nutrition0))
@@ -116,11 +120,22 @@ class OfflineCacheIdentityTest {
         assertIs<DataResult.Failure>(repo.generateTrainingPlan(profile, 0))
     }
 
+    @Test
+    fun everyPlanRequestCarriesTheCalendarWeekItIsFor() = runBlocking<Unit> {
+        val (repo, _) = repository()
+        repo.generateTrainingPlan(profile, 2)
+        repo.generateNutritionPlan(profile, 2)
+        val expected = "\"weekStart\":\"${CoachSchedule.weekStart(null, 2)}\""
+        assertEquals(2, sentBodies.size)
+        assertTrue(sentBodies.all { expected in it }, sentBodies.toString()) // VT-AUD-012
+    }
+
     private fun memorySettings(): Settings {
         val values = mutableMapOf<String, Any>()
         return Proxy.newProxyInstance(Settings::class.java.classLoader, arrayOf(Settings::class.java)) { _, method, args ->
             when (method.name) {
                 "getStringOrNull" -> values[args!![0] as String] as String?
+                "getLongOrNull", "getIntOrNull" -> null // no plan epoch yet
                 "putString" -> { values[args!![0] as String] = args[1] as String; null }
                 "remove" -> { values.remove(args!![0] as String); null }
                 else -> error("Unexpected Settings call: ${method.name}")

@@ -17,6 +17,7 @@ import com.vtempe.shared.domain.repository.AiModelPreferences
 import com.vtempe.shared.domain.repository.AiTrainerRepository
 import com.vtempe.shared.domain.repository.CoachBundle
 import com.vtempe.shared.domain.repository.LanguagePreferences
+import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.json.Json
@@ -49,7 +50,7 @@ class NetworkAiTrainerRepository(
             recentWorkouts = progressStore.recentSummaries(),
             sleepHistory = sleepStore.recentEntries(),
             recentWeights = weightStore.recentEntries()
-        )
+        ).copy(weekStart = CoachSchedule.weekStart(cache.planEpochDateMs(), weekIndex).toString())
         return when (val result = api.postResult<AiTrainingRequestDto, TrainingPlanDto>("/ai/training", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -75,7 +76,7 @@ class NetworkAiTrainerRepository(
             recentWorkouts = progressStore.recentSummaries(),
             sleepHistory = sleepStore.recentEntries(),
             recentWeights = weightStore.recentEntries()
-        )
+        ).copy(weekStart = CoachSchedule.weekStart(cache.planEpochDateMs(), weekIndex).toString())
         return when (val result = api.postResult<AiNutritionRequestDto, NutritionPlanDto>("/ai/nutrition", request)) {
             is DataResult.Success -> {
                 val domain = result.data.toDomain()
@@ -126,7 +127,7 @@ class NetworkAiTrainerRepository(
             recentWorkouts = progressStore.recentSummaries(),
             sleepHistory = sleepStore.recentEntries(),
             recentWeights = weightStore.recentEntries()
-        )
+        ).copy(weekStart = CoachSchedule.weekStart(cache.planEpochDateMs(), weekIndex).toString())
         val result = api.postResult<AiBootstrapRequestDto, AiBootstrapResponseDto>("/ai/bootstrap", request)
         return when (result) {
             is DataResult.Success -> {

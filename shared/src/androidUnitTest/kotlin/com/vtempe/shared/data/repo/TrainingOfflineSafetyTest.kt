@@ -60,6 +60,7 @@ class TrainingOfflineSafetyTest {
             return Proxy.newProxyInstance(Settings::class.java.classLoader, arrayOf(Settings::class.java)) { _, method, args ->
                 when (method.name) {
                     "getStringOrNull" -> values[args!![0] as String]
+                    "getLongOrNull", "getIntOrNull" -> null // no plan epoch yet
                     "putString" -> { values[args!![0] as String] = args[1] as String; null }
                     "remove" -> { values.remove(args!![0] as String); null }
                     else -> error("Unexpected Settings call: ${method.name}")
@@ -170,6 +171,7 @@ class TrainingOfflineSafetyTest {
         Proxy.newProxyInstance(Settings::class.java.classLoader, arrayOf(Settings::class.java)) { _, method, _ ->
             when (method.name) {
                 "getStringOrNull" -> null
+                "getLongOrNull", "getIntOrNull" -> null // no plan epoch yet
                 "putString", "remove" -> null
                 else -> error("Unexpected Settings call: ${method.name}")
             }

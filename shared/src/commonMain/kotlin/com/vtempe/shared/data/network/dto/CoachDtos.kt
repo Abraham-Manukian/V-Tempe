@@ -108,7 +108,9 @@ internal data class AiProfileDto(
 internal data class AiTrainingRequestDto(
     val profile: AiProfileDto,
     val weekIndex: Int,
-    val locale: String? = null
+    val locale: String? = null,
+    /** ISO date the planned week starts on (see CoachSchedule.weekStart). */
+    val weekStart: String? = null,
 ) {
     companion object {
         fun fromDomain(
@@ -127,7 +129,8 @@ internal data class AiTrainingRequestDto(
 internal data class AiNutritionRequestDto(
     val profile: AiProfileDto,
     val weekIndex: Int,
-    val locale: String? = null
+    val locale: String? = null,
+    val weekStart: String? = null,
 ) {
     companion object {
         fun fromDomain(
@@ -346,7 +349,8 @@ data class AdviceDto(
 internal data class AiBootstrapRequestDto(
     val profile: AiProfileDto,
     val weekIndex: Int,
-    val locale: String? = null
+    val locale: String? = null,
+    val weekStart: String? = null,
 ) {
     companion object {
         fun fromDomain(

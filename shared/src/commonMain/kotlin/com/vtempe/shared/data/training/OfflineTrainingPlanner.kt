@@ -25,13 +25,14 @@ import kotlinx.datetime.plus
  */
 class OfflineTrainingPlanner(private val pool: List<PoolExercise> = OfflineExercisePool) {
 
-    fun buildPlan(profile: Profile, weekIndex: Int, today: LocalDate): TrainingPlan {
+    /** [weekStart] is the first day of the plan week (CoachSchedule.weekStart). */
+    fun buildPlan(profile: Profile, weekIndex: Int, weekStart: LocalDate): TrainingPlan {
         val restrictions = ExerciseRestrictions.forInjuries(profile.constraints.injuries)
         val equipment = availableEquipment(profile)
         val slots = SlotOrder.take(slotCount(profile.sessionDurationMins))
         val maxDifficulty = (profile.experienceLevel + 1).coerceIn(1, 5)
 
-        val workouts = trainingDates(profile, today).mapIndexedNotNull { dayIndex, date ->
+        val workouts = trainingDates(profile, weekStart).mapIndexedNotNull { dayIndex, date ->
             val used = mutableSetOf<String>()
             val sets = slots.mapNotNull { slot ->
                 (listOf(slot) + alternativesFor(slot)).firstNotNullOfOrNull { pattern ->
@@ -54,11 +55,11 @@ class OfflineTrainingPlanner(private val pool: List<PoolExercise> = OfflineExerc
         return TrainingPlan(weekIndex, workouts)
     }
 
-    /** The selected weekdays (Mon/Wed/Fri when none are set, like the server fallback),
-     *  placed on their next occurrence starting [today]. */
-    private fun trainingDates(profile: Profile, today: LocalDate): List<LocalDate> {
+    /** The selected weekdays (Mon/Wed/Fri when none are set, like the server fallback) within the
+     *  plan week starting [weekStart] — the same dates the server uses (VT-AUD-012). */
+    private fun trainingDates(profile: Profile, weekStart: LocalDate): List<LocalDate> {
         val selected = DayKeys.filter { profile.weeklySchedule[it] == true }.ifEmpty { listOf("Mon", "Wed", "Fri") }
-        return (0 until 7).map { today.plus(DatePeriod(days = it)) }
+        return (0 until 7).map { weekStart.plus(DatePeriod(days = it)) }
             .filter { DayKeys[it.dayOfWeek.isoIndex()] in selected }
     }
 

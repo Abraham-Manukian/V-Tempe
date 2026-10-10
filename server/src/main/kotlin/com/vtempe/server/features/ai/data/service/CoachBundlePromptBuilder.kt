@@ -67,7 +67,8 @@ internal fun buildBundlePrompt(
         appendLine("{\"messages\":[\"\\u041b\\u043e\\u0436\\u0438\\u0442\\u0435\\u0441\u044c \\u0438 \\u043f\\u0440\u043e\u0441\u044b\u043f\u0430\\u0439\u0442\u0435\u0441\u044c \\u0432 \\u043e\u0434\u043d\u043e \\u0438 \\u0442\u043e \\u0436\\u0435 \\u0432\u0440\u0435\u043c\u044f.\"],\"disclaimer\":\"\\u0421\\u043e\\u0432\u0435\u0442\u044b \\u043d\\u0435 \\u0437\\u0430\u043c\u0435\u043d\u044f\\u044e\u0442 \\u0432\u0440\u0430\u0447\u0430. \\u041f\u0440\u0438 \\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430\u0445 \\u043e\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044c \\u043a \\u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0441\u0442\u0443.\"}")
         appendLine("All arrays must close properly. No missing commas, no trailing commas, no duplicated braces.")
         appendLine()
-        val workoutDates = computeWorkoutDatesForWeek(request.profile.weeklySchedule, today)
+        val weekStart = resolveWeekStart(request.weekStart, today)
+        val workoutDates = computeWorkoutDatesForWeek(request.profile.weeklySchedule, weekStart)
         appendLine("TRAINING RULES:")
         val expLevel = request.profile.experienceLevel
         val maxDifficulty = (expLevel + 1).coerceAtMost(5)
@@ -83,7 +84,7 @@ internal fun buildBundlePrompt(
             appendLine("  ${workoutDates.joinToString(", ")}")
             appendLine("  These were computed from the user's weekly schedule. Never schedule a workout on any other date.")
         } else {
-            appendLine("- Use ISO dates (YYYY-MM-DD). Plan for week index ${request.weekIndex} starting from $todayIso.")
+            appendLine("- Use ISO dates (YYYY-MM-DD) within the week starting $weekStart.")
         }
         appendLine("- Measurement system: $measurementSystem. Weights must be in $weightUnit.")
         appendLine()

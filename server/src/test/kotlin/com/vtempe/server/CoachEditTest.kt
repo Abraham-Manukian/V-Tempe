@@ -66,8 +66,11 @@ class CoachEditTest {
         val out = normalizeTrainingPlan(
             edited, gymProfile(), resolver, mode = NormalizationMode.GENERATE
         )
-        // Skeleton-driven output has a full session, not just the single set the AI returned.
-        assertTrue(out.workouts.single().sets.size > 1, "skeleton should expand the session")
+        // Skeleton-driven output has a full session per scheduled day, not just the single set
+        // (and single workout) the AI returned (VT-AUD-013).
+        val scheduled = gymProfile().weeklySchedule.count { it.value }.coerceIn(1, 6)
+        assertEquals(scheduled, out.workouts.size)
+        assertTrue(out.workouts.all { it.sets.size > 1 }, "skeleton should expand every session")
     }
 
     // ── Applicator: training ─────────────────────────────────────────────────────

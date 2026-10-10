@@ -122,15 +122,30 @@ internal object TrainingSplitPlanner {
         appendLine("IMPORTANT: use the session label exactly as the 'label' field in your JSON.")
     }
 
+    /**
+     * Exactly one session per training day (VT-AUD-013; at most 6 — a 7th day stays a rest day).
+     * A split that needs more days than chosen (PPL/bro split on 1–2 days, upper/lower on one)
+     * becomes full body, so no muscle group is dropped; a split with fewer distinct sessions
+     * than days repeats its rotation.
+     */
     private fun chooseTemplates(
         pref: SplitPreference,
         dayCount: Int,
         params: SplitParams
+    ): List<WorkoutSkeleton> = rotation(pref, dayCount, params).cycleTo(dayCount)
+
+    private fun List<WorkoutSkeleton>.cycleTo(count: Int): List<WorkoutSkeleton> =
+        if (isEmpty()) this else List(count) { this[it % size] }
+
+    private fun rotation(
+        pref: SplitPreference,
+        dayCount: Int,
+        params: SplitParams
     ): List<WorkoutSkeleton> = when (pref) {
-        SplitPreference.FULL_BODY    -> SplitTemplates.fullBodyABA(params).take(dayCount.coerceIn(1, 3))
-        SplitPreference.UPPER_LOWER  -> SplitTemplates.upperLower(params).take(dayCount.coerceIn(1, 4))
-        SplitPreference.PPL          -> SplitTemplates.ppl(params, dayCount.coerceIn(3, 6))
-        SplitPreference.BRO_SPLIT    -> SplitTemplates.broSplit(params, dayCount.coerceIn(3, 6))
+        SplitPreference.FULL_BODY    -> SplitTemplates.fullBodyABA(params)
+        SplitPreference.UPPER_LOWER  -> if (dayCount < 2) SplitTemplates.fullBodyAB(params) else SplitTemplates.upperLower(params)
+        SplitPreference.PPL          -> if (dayCount < 3) SplitTemplates.fullBodyAB(params) else SplitTemplates.ppl(params, dayCount.coerceIn(3, 6))
+        SplitPreference.BRO_SPLIT    -> if (dayCount < 3) SplitTemplates.fullBodyAB(params) else SplitTemplates.broSplit(params, dayCount.coerceIn(3, 6))
         // AUTO: muscle-group splits from 3 days up; full body only for ≤2 days.
         // 3 days → bro split (Chest+Tri / Back+Bi / Legs+Shoulders) — classic & intuitive.
         // 4 days → upper/lower — best frequency-to-recovery ratio at 4 sessions.

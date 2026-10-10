@@ -10,11 +10,12 @@ internal fun normalizeBundle(
     locale: Locale,
     profile: AiProfile? = null,
     trainingPlanResolver: TrainingPlanResolver = builtInTrainingPlanResolver,
-    enforcedWeekIndex: Int? = null
+    enforcedWeekIndex: Int? = null,
+    weekStart: java.time.LocalDate? = null,
 ): AiBootstrapResponse =
     AiBootstrapResponse(
         trainingPlan = bundle.trainingPlan?.let {
-            normalizeTrainingPlan(it, profile, trainingPlanResolver, enforcedWeekIndex = enforcedWeekIndex)
+            normalizeTrainingPlan(it, profile, trainingPlanResolver, enforcedWeekIndex = enforcedWeekIndex, weekStart = weekStart)
         },
         nutritionPlan = bundle.nutritionPlan?.let { normalizeNutritionPlan(it, locale, profile) },
         sleepAdvice = bundle.sleepAdvice?.let { normalizeAdvice(it) }

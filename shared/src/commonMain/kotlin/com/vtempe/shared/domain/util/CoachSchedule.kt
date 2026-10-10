@@ -1,6 +1,10 @@
 package com.vtempe.shared.domain.util
 
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -32,6 +36,18 @@ object CoachSchedule {
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         val elapsed = today.toEpochDays() - epoch.toEpochDays()
         return maxOf(0, elapsed.toInt() / 7)
+    }
+
+    /**
+     * First calendar day of plan week [weekIndex]: the epoch (Monday of the first bootstrap week)
+     * plus 7 days per week, or this week's Monday before the epoch exists. Sent to the server so
+     * a plan is dated in ITS week instead of "server's current week + index" (VT-AUD-012).
+     */
+    fun weekStart(epochDateMs: Long?, weekIndex: Int, today: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())): LocalDate {
+        val base = epochDateMs?.let {
+            Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        } ?: today.minus(DatePeriod(days = today.dayOfWeek.ordinal))
+        return base.plus(DatePeriod(days = 7 * weekIndex))
     }
 
     /**

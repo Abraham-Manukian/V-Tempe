@@ -50,7 +50,7 @@ class AiService(
         operation = "training",
         fallback = { fallbackTraining(req) }
     ) {
-        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale).trainingPlan
+        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale, req.weekStart).trainingPlan
             ?: throw IllegalStateException("trainingPlan missing in bundle")
     }
 
@@ -58,7 +58,7 @@ class AiService(
         operation = "nutrition",
         fallback = { fallbackNutrition(req) }
     ) {
-        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale).nutritionPlan
+        fetchBundle(req.profile, req.weekIndex, req.locale ?: req.profile.locale, req.weekStart).nutritionPlan
             ?: throw IllegalStateException("nutritionPlan missing in bundle")
     }
 
@@ -74,13 +74,13 @@ class AiService(
         operation = "bundle",
         fallback = {
             AiBootstrapResponse(
-                trainingPlan = fallbackTraining(AiTrainingRequest(req.profile, req.weekIndex, req.locale)),
-                nutritionPlan = fallbackNutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale)),
+                trainingPlan = fallbackTraining(AiTrainingRequest(req.profile, req.weekIndex, req.locale, req.weekStart)),
+                nutritionPlan = fallbackNutrition(AiNutritionRequest(req.profile, req.weekIndex, req.locale, req.weekStart)),
                 sleepAdvice = fallbackAdvice(AiAdviceRequest(req.profile, req.locale))
             )
         }
     ) {
-        fetchBundle(req.profile, req.weekIndex, req.locale)
+        fetchBundle(req.profile, req.weekIndex, req.locale, req.weekStart)
     }
 
     private suspend fun <T> runWithFallback(
@@ -106,14 +106,16 @@ class AiService(
     private suspend fun fetchBundle(
         rawProfile: AiProfile,
         weekIndex: Int,
-        localeRaw: String?
+        localeRaw: String?,
+        weekStartRaw: String? = null,
     ): AiBootstrapResponse {
         // Single choke point before any prompt is built: every LLM call below sees only the
         // identifier-free profile (see DirectIdentifierRedactor).
         val profile = rawProfile.boundedForPrompt().withoutDirectIdentifiers()
         val localeTag = localeRaw?.takeIf { it.isNotBlank() } ?: DefaultLocale
         val profileHash = json.encodeToString(AiProfile.serializer(), profile).hashCode()
-        val requestId = cacheKey(profile, weekIndex, localeTag)
+        val weekStart = resolveWeekStart(weekStartRaw)
+        val requestId = cacheKey(profile, weekIndex, localeTag) + "|$weekStart"
         logger.debug(
             "LLM {} requestId={} locale={} weekIndex={} profileHash={}",
             "coach-bundle",
@@ -134,7 +136,7 @@ class AiService(
                 }
             }
             return ownBundleGeneration(requestId, pending.deferred) {
-                generateBundle(profile, weekIndex, localeTag, requestId)
+                generateBundle(profile, weekIndex, localeTag, requestId, weekStart)
             }
         }
     }
@@ -171,6 +173,7 @@ class AiService(
         weekIndex: Int,
         localeTag: String,
         requestId: String,
+        weekStart: java.time.LocalDate,
     ): GeneratedBundle {
         val locale = safeLocale(localeTag)
         val measurementSystem = measurementSystemLabel(locale)
@@ -184,7 +187,8 @@ class AiService(
                 weekIndex = weekIndex,
                 localeTag = localeTag,
                 locale = locale,
-                requestId = requestId
+                requestId = requestId,
+                weekStart = weekStart,
             )
             if (decomposed != null) return GeneratedBundle(decomposed, BundleCache.BundleCacheTtlMs)
             logger.warn("Decomposed-first bundle generation failed, falling back to monolithic requestId={}", requestId)
@@ -195,7 +199,7 @@ class AiService(
             locale = locale,
             measurementSystem = measurementSystem,
             weightUnit = weightUnit,
-            request = AiBootstrapRequest(profile, weekIndex, localeTag),
+            request = AiBootstrapRequest(profile, weekIndex, localeTag, weekStart.toString()),
             exerciseCatalog = exerciseCatalog,
             trainingPlanResolver = trainingPlanResolver
         )
@@ -231,7 +235,7 @@ class AiService(
                         AiQualityMetrics.recordValidation(logger, "coach-bundle-skeleton", requestId, skeletonViolations)
                     }
 
-                    val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex)
+                    val normalizedCandidate = normalizeBundle(bundle, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, weekStart = weekStart)
                     val errors = validateBundle(exerciseCatalog, normalizedCandidate, profile, locale)
                     val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
                     if (criticalErrors.isNotEmpty()) {
@@ -252,7 +256,7 @@ class AiService(
             )
 
             GeneratedBundle(
-                normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex),
+                normalizeBundle(generated, locale, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, weekStart = weekStart),
                 BundleCache.BundleCacheTtlMs
             )
         } catch (t: Throwable) {
@@ -275,7 +279,8 @@ class AiService(
                     weekIndex = weekIndex,
                     localeTag = localeTag,
                     locale = locale,
-                    requestId = requestId
+                    requestId = requestId,
+                    weekStart = weekStart,
                 )
             } else {
                 null
@@ -284,8 +289,8 @@ class AiService(
 
             val fallbackBundle = normalizeBundle(
                 AiBootstrapResponse(
-                    trainingPlan = fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag)),
-                    nutritionPlan = fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag)),
+                    trainingPlan = fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag, weekStart.toString())),
+                    nutritionPlan = fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag, weekStart.toString())),
                     sleepAdvice = fallbackAdvice(AiAdviceRequest(profile, localeTag))
                 ),
                 locale,
@@ -303,7 +308,8 @@ class AiService(
         weekIndex: Int,
         localeTag: String,
         locale: java.util.Locale,
-        requestId: String
+        requestId: String,
+        weekStart: java.time.LocalDate,
     ): AiBootstrapResponse? {
         if (!EnableDecomposedBundle) return null
 
@@ -322,12 +328,13 @@ class AiService(
                             locale = locale,
                             measurementSystem = measurementSystem,
                             weightUnit = weightUnit,
-                            requestId = requestId
+                            requestId = requestId,
+                            weekStart = weekStart,
                         )
                     }.onFailure {
                         logger.warn("Decomposed training generation failed requestId={}", requestId, it)
                     }.getOrElse {
-                        fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag))
+                        fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag, weekStart.toString()))
                     }
                 }
 
@@ -345,7 +352,7 @@ class AiService(
                     }.onFailure {
                         logger.warn("Decomposed nutrition generation failed requestId={}", requestId, it)
                     }.getOrElse {
-                        fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag))
+                        fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag, weekStart.toString()))
                     }
                 }
 
@@ -377,7 +384,8 @@ class AiService(
                     locale,
                     profile,
                     trainingPlanResolver,
-                    enforcedWeekIndex = weekIndex
+                    enforcedWeekIndex = weekIndex,
+                    weekStart = weekStart,
                 )
                 val errors = validateBundle(exerciseCatalog, bundle, profile, locale)
                 val criticalErrors = AiQualityErrorPolicy.criticalErrors(errors)
@@ -407,7 +415,8 @@ class AiService(
         locale: java.util.Locale,
         measurementSystem: String,
         weightUnit: String,
-        requestId: String
+        requestId: String,
+        weekStart: java.time.LocalDate,
     ): AiTrainingResponse {
         val prompt = buildTrainingSectionPrompt(
             json = json,
@@ -418,7 +427,8 @@ class AiService(
             locale = locale,
             localeTag = localeTag,
             measurementSystem = measurementSystem,
-            weightUnit = weightUnit
+            weightUnit = weightUnit,
+            weekStart = weekStart,
         )
         val sectionRequestId = "$requestId|training"
         val generated = llmRepairer.generate(
@@ -434,12 +444,12 @@ class AiService(
             },
             strategy = AiTrainingResponse.serializer(),
             validator = SchemaValidator { plan ->
-                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog)
+                val normalized = normalizeTrainingPlan(plan, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog, weekStart = weekStart)
                 validateTrainingPlan(normalized, exerciseCatalog, profile?.injuries.orEmpty())?.let(::listOf) ?: emptyList()
             },
             extractionMode = ExtractionMode.FirstJsonObject
         )
-        return normalizeTrainingPlan(generated, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog)
+        return normalizeTrainingPlan(generated, profile, trainingPlanResolver, enforcedWeekIndex = weekIndex, catalog = exerciseCatalog, weekStart = weekStart)
     }
 
     private suspend fun generateNutritionSection(

@@ -13,6 +13,7 @@ import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.TrainingRepository
+import com.vtempe.shared.domain.util.CoachSchedule
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
@@ -20,9 +21,6 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 
 class TrainingRepositoryDb(
@@ -51,8 +49,8 @@ class TrainingRepositoryDb(
 
         // Follows the profile's days, equipment and injuries; throws NoSafeTrainingPlanException
         // (nothing stored) when no exercise fits.
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val fallbackPlan = offlinePlanner.buildPlan(profile, weekIndex, today)
+        val weekStart = CoachSchedule.weekStart(cache.planEpochDateMs(), weekIndex)
+        val fallbackPlan = offlinePlanner.buildPlan(profile, weekIndex, weekStart)
         seedFallbackExercises()
         persistPlan(fallbackPlan)
         return fallbackPlan

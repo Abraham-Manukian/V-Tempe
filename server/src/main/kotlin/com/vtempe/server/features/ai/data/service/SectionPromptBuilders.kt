@@ -24,7 +24,8 @@ internal fun buildTrainingSectionPrompt(
     locale: Locale,
     localeTag: String,
     measurementSystem: String,
-    weightUnit: String
+    weightUnit: String,
+    weekStart: LocalDate = mondayOf(LocalDate.now()),
 ): String {
     val languageDisplay = locale.getDisplayLanguage(locale).ifBlank { locale.language.ifBlank { "English" } }
     val profileJson = json.encodeToString(AiProfile.serializer(), profile)
@@ -35,7 +36,7 @@ internal fun buildTrainingSectionPrompt(
         equipment = profile.equipment
     )
     val today = LocalDate.now()
-    val workoutDates = computeWorkoutDatesForWeek(profile.weeklySchedule, today)
+    val workoutDates = computeWorkoutDatesForWeek(profile.weeklySchedule, weekStart)
 
     val trainingDays = if (workoutDates.isNotEmpty()) workoutDates
         else listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").filter { profile.weeklySchedule[it] == true }
@@ -79,7 +80,7 @@ internal fun buildTrainingSectionPrompt(
             appendLine("MANDATORY workout dates — use EXACTLY these ISO dates, one workout per date, no other dates allowed:")
             appendLine("  ${workoutDates.joinToString(", ")}")
         } else {
-            appendLine("Plan for weekIndex=$weekIndex starting from $today. All workout dates must be >= $today.")
+            appendLine("Plan for weekIndex=$weekIndex: the week starting $weekStart.")
         }
         appendLine("Return ONLY this JSON schema:")
         appendLine("{\"weekIndex\": Int, \"workouts\": [{\"id\": String, \"label\": String, \"date\": \"YYYY-MM-DD\", \"sets\": [{\"exerciseId\": String, \"reps\": Int, \"weightKg\": Double?, \"rpe\": Double?}]}]}")

@@ -72,13 +72,15 @@ internal fun normalizeTrainingPlan(
     enforcedWeekIndex: Int? = null,
     mode: NormalizationMode = NormalizationMode.GENERATE,
     catalog: ExerciseCatalog = builtInExerciseCatalog,
+    /** First day of the planned calendar week (VT-AUD-012); the current week when unknown. */
+    weekStart: LocalDate? = null,
 ): AiTrainingResponse {
     val resolvedWeekIndex = enforcedWeekIndex ?: plan.weekIndex
     // One set of injury rules for every selection path below (VT-AUD-014): the ids of every
     // catalog exercise whose id OR movement pattern is banned seed each resolver exclusion.
     val restrictions = ExerciseRestrictions.forInjuries(profile?.injuries.orEmpty())
     val disallowedIds = restrictions.disallowedIds(catalog)
-    val weekStart = expectedWeekStart(resolvedWeekIndex)
+    val weekStart = mondayOf(weekStart ?: LocalDate.now())
     val usedWorkoutIds = mutableSetOf<String>()
 
     // Pre-resolve ALL exercises from the skeleton — AI only provides reps/weight/rpe.
@@ -99,10 +101,25 @@ internal fun normalizeTrainingPlan(
         normalized.isNotEmpty() && normalized.all { tag -> tag == "bands" || tag == "mat" }
     } ?: false
 
-    val workouts = plan.workouts
-        .take(MaxWorkoutsPerPlan)
+    // GENERATE: exactly one session per skeleton session (= per selected day, VT-AUD-013) —
+    // a model answer with fewer workouts no longer yields a partial week, extra ones are dropped —
+    // each dated on its selected weekday of the planned week (VT-AUD-012).
+    val scheduleDates = profile?.let { computeWorkoutDatesForWeek(it.weeklySchedule, weekStart) }.orEmpty()
+    val sourceWorkouts = if (skeletonData.isNullOrEmpty()) {
+        plan.workouts.take(MaxWorkoutsPerPlan)
+    } else {
+        List(skeletonData.size) { i ->
+            plan.workouts.getOrNull(i) ?: AiWorkout(id = "w_${resolvedWeekIndex}_$i", date = "", sets = emptyList())
+        }
+    }
+    val workouts = sourceWorkouts
         .mapIndexed { index, workout ->
-            val safeDate = normalizeWorkoutDate(workout.date, weekStart, index)
+            val safeDate = when {
+                skeletonData != null && index < scheduleDates.size -> scheduleDates[index]
+                // An edit keeps the dates the plan already has (they may lie in a later week).
+                mode == NormalizationMode.EDIT && runCatching { LocalDate.parse(workout.date) }.isSuccess -> workout.date
+                else -> normalizeWorkoutDate(workout.date, weekStart, index)
+            }
             val rawId = sanitizeText(workout.id).ifEmpty { "w_${resolvedWeekIndex}_$index" }
             val safeId = uniqueWorkoutId(rawId, resolvedWeekIndex, index, usedWorkoutIds)
 
@@ -440,13 +457,19 @@ internal fun validateTrainingPlan(
     return null
 }
 
-private fun expectedWeekStart(weekIndex: Int): LocalDate {
-    // Use previousOrSame so that on any day of the week we anchor to the CURRENT week's Monday,
-    // not the NEXT Monday. This prevents normalizeWorkoutDate from rejecting dates that were
-    // correctly generated for the current week (e.g. Mon–Fri) when the plan is called on Tue+.
-    val today = LocalDate.now()
-    val mondayOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    return mondayOfCurrentWeek.plusWeeks(weekIndex.toLong())
+/** Monday of the week containing [date]. */
+internal fun mondayOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+/**
+ * The planned week's start from the client's ISO [raw] date (VT-AUD-012). The weekIndex the
+ * client sends counts weeks from ITS registration, so adding it to the server's current Monday
+ * drifted further from the real week every week. Missing, unparsable or implausible (over a
+ * year away) values fall back to the current week.
+ */
+internal fun resolveWeekStart(raw: String?, today: LocalDate = LocalDate.now()): LocalDate {
+    val parsed = raw?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+        ?.takeIf { kotlin.math.abs(java.time.temporal.ChronoUnit.DAYS.between(today, it)) <= 400 }
+    return mondayOf(parsed ?: today)
 }
 
 private fun normalizeWorkoutDate(raw: String, weekStart: LocalDate, index: Int): String {
