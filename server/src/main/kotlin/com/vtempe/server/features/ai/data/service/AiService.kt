@@ -66,8 +66,7 @@ class AiService(
         operation = "sleep",
         fallback = { fallbackAdvice(req) }
     ) {
-        fetchBundle(req.profile, 0, req.locale ?: req.profile.locale).sleepAdvice
-            ?: throw IllegalStateException("sleepAdvice missing in bundle")
+        fetchSleepAdvice(req.profile, req.locale ?: req.profile.locale)
     }
 
     suspend fun bundle(req: AiBootstrapRequest): AiBootstrapResponse = runWithFallback(
@@ -125,6 +124,32 @@ class AiService(
             profileHash
         )
 
+        return sharedGeneration(requestId) {
+            generateBundle(profile, weekIndex, localeTag, requestId, weekStart)
+        }
+    }
+
+    /**
+     * Sleep tips alone (VT-AUD-050): only the advice section is generated — a sleep request no
+     * longer starts, waits for and throws away a training and a nutrition plan. Deduplicated and
+     * cached like a bundle, under its own key.
+     */
+    private suspend fun fetchSleepAdvice(rawProfile: AiProfile, localeRaw: String?): AiAdviceResponse {
+        val profile = rawProfile.boundedForPrompt().withoutDirectIdentifiers()
+        val localeTag = localeRaw?.takeIf { it.isNotBlank() } ?: DefaultLocale
+        val requestId = "sleep|" + cacheKey(profile, 0, localeTag)
+        val result = sharedGeneration(requestId) {
+            val advice = generateAdviceSection(profile, localeTag, safeLocale(localeTag), requestId)
+            GeneratedBundle(AiBootstrapResponse(sleepAdvice = advice), BundleCache.BundleCacheTtlMs)
+        }
+        return result.sleepAdvice ?: throw IllegalStateException("sleepAdvice missing")
+    }
+
+    /** A fresh cached result for [requestId], the in-flight one, or a new generation owned by this call. */
+    private suspend fun sharedGeneration(
+        requestId: String,
+        generate: suspend () -> GeneratedBundle,
+    ): AiBootstrapResponse {
         while (true) {
             bundleCache.loadIfFresh(requestId)?.let { return it }
             val pending = bundleCache.lockInFlight(requestId)
@@ -135,9 +160,7 @@ class AiService(
                     continue // the owner was cancelled; this request generates instead
                 }
             }
-            return ownBundleGeneration(requestId, pending.deferred) {
-                generateBundle(profile, weekIndex, localeTag, requestId, weekStart)
-            }
+            return ownBundleGeneration(requestId, pending.deferred, generate)
         }
     }
 
