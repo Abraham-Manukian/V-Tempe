@@ -62,11 +62,11 @@ class WorkoutProgressStore(
         }
     }
 
+    /** Stored first, published second (VT-AUD-062): a failed write must not look saved on screen. */
     private fun write(progress: WorkoutProgress) {
-        val updated = cache.value.toMutableMap()
-        updated[progress.workoutId] = progress
-        cache.value = updated
+        val updated = cache.value + (progress.workoutId to progress)
         persist(updated)
+        cache.value = updated
         onLocalChange(SyncDomain.WORKOUT_PROGRESS)
     }
 

@@ -444,6 +444,7 @@
     <string name="settings_reset_confirm_message">С устройства удалятся все твои данные: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Язык и единицы измерения останутся.</string>
     <string name="settings_reset_confirm_message_account">Все твои данные удалятся с устройства и из аккаунта: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Вход в аккаунт сохранится. Отменить это нельзя.</string>
     <string name="settings_reset_confirm">Удалить всё</string>
+    <string name="settings_reset_failed">Удалить всё не получилось. Проверьте соединение и попробуйте ещё раз.</string>
     <string name="settings_reset_cancel">Отмена</string>
     <string name="settings_delete_account">Удалить аккаунт</string>
     <string name="settings_delete_account_confirm_title">Удалить аккаунт?</string>

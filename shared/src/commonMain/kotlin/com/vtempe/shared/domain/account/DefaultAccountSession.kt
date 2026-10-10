@@ -78,15 +78,17 @@ class DefaultAccountSession(
 
     override suspend fun resetUserData() {
         // On the app scope: leaving the settings screen must not leave a half-wiped device.
-        scope.launch {
+        // async + await, not launch + join, so a failure reaches the caller instead of being
+        // reported as success and escaping as an uncaught exception (VT-AUD-061).
+        scope.async {
             mutex.withLock {
                 try {
                     coordinator.resetUserData()
                 } finally {
-                    _generation.value++
+                    _generation.value++ // even a partial wipe changed the data screens show
                 }
             }
-        }.join()
+        }.await()
     }
 
     override suspend fun deleteAccount(): AccountDeletionOutcome =

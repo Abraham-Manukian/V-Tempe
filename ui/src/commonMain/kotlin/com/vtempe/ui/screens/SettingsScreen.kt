@@ -319,6 +319,13 @@ fun SettingsScreen(
                     Text(stringResource(Res.string.settings_reset_app), fontWeight = FontWeight.Bold)
                 }
             }
+            if (state.resetFailed) {
+                Text(
+                    stringResource(Res.string.settings_reset_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             if (confirmReset) {
                 ResetDataDialog(
                     signedIn = state.authUser != null,

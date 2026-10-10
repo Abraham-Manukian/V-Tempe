@@ -28,6 +28,8 @@ data class SettingsState(
     val analyticsConsent: Boolean = false,
     val authUser: AuthUser? = null,
     val resetting: Boolean = false,
+    /** The last reset did not finish; some data may remain and the user can try again. */
+    val resetFailed: Boolean = false,
     val deletion: AccountDeletionUiState = AccountDeletionUiState.Idle
 )
 
@@ -89,7 +91,7 @@ class SettingsPresenterDelegate(
 
     override fun reset(onDone: () -> Unit) {
         if (_state.value.resetting) return
-        _state.update { it.copy(resetting = true) }
+        _state.update { it.copy(resetting = true, resetFailed = false) }
         scope.launch {
             // Everything the user created: profile, plans, progress, sleep, weight, chat, AI cache,
             // and the signed-in account's synced copy. Device preferences (language, units) stay.
@@ -99,6 +101,9 @@ class SettingsPresenterDelegate(
                 throw cancelled
             } catch (error: Exception) {
                 Napier.e("Reset failed", error)
+                // Not a success: no restart, the user sees it failed and can retry (VT-AUD-061).
+                _state.update { it.copy(resetting = false, resetFailed = true) }
+                return@launch
             }
             _state.value = SettingsState()
             onDone()

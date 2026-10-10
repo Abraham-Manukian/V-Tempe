@@ -453,6 +453,7 @@
     <string name="settings_reset_confirm_message_account">All your data will be deleted from this device and from your account: profile, plans, workout progress, sleep, weight and coach chat. You stay signed in. This can't be undone.</string>
     <string name="settings_reset_confirm">Delete everything</string>
     <string name="settings_reset_cancel">Cancel</string>
+    <string name="settings_reset_failed">Not everything could be deleted. Check your connection and try again.</string>
     <string name="settings_delete_account">Delete account</string>
     <string name="settings_delete_account_confirm_title">Delete your account?</string>
     <string name="settings_delete_account_confirm_message">Your account and all its data will be permanently deleted, both on our servers and on this device: profile, plans, workout progress, sleep, weight and coach chat. An active subscription ends. Payment records are kept only as long as the law requires. This can't be undone.</string>

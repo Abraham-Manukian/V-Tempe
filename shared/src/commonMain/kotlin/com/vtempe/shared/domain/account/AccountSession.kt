@@ -29,7 +29,8 @@ interface AccountSession {
     /** At launch: settles data left inconsistent by an interrupted switch. Never shows choices by itself. */
     suspend fun reconcile()
 
-    /** Deletes all user data (see [AccountDataCoordinator.resetUserData]). Completes even if the caller is cancelled. */
+    /** Deletes all user data (see [AccountDataCoordinator.resetUserData]). Completes even if the caller
+     *  is cancelled. Throws when a step fails — some data may remain; calling it again is safe. */
     suspend fun resetUserData()
 
     /** Deletes the signed-in account everywhere (see [AccountDataCoordinator.deleteAccount]).
