@@ -201,7 +201,6 @@
     <string name="nutrition_kcal_value">%1$d ккал</string>
     <string name="nutrition_macros_detail">Белки: %1$d г  Жиры: %2$d г  Углеводы: %3$d г</string>
     <string name="nutrition_grams_value">%1$d г</string>
-    <string name="sleep_hours_short">%1$d ч</string>
 
     <!-- Generic -->
     <string name="loading">Загрузка</string>
@@ -319,7 +318,10 @@
     <!-- Sleep -->
     <string name="sleep_title">Советы по сну</string>
     <string name="sleep_weekly_chart_title">Сон за неделю</string>
-    <string name="sleep_sync_health">Синхронизировать с Health</string>
+    <string name="sleep_tips_refresh">Получить советы тренера</string>
+    <string name="sleep_tips_refreshing">Спрашиваем тренера…</string>
+    <string name="sleep_tips_offline">Нет соединения — советы не обновлены.</string>
+    <string name="sleep_tips_failed">Не удалось получить новые советы. Попробуйте ещё раз.</string>
     <string name="sleep_log_title">Отметить сегодняшний сон</string>
     <string name="sleep_log_duration">%1$d ч %2$d мин</string>
     <string name="sleep_log_save">Сохранить</string>
@@ -327,7 +329,7 @@
     <string name="sleep_ruler_0">0ч</string>
     <string name="sleep_ruler_mid">6ч</string>
     <string name="sleep_ruler_max">12ч+</string>
-    <string name="sleep_tips_empty">Нажмите «Синхронизировать», чтобы получить персональные советы по сну от тренера.</string>
+    <string name="sleep_tips_empty">Нажмите «Получить советы тренера», чтобы получить персональные советы по сну.</string>
     <string name="workout_browse_exercises">Библиотека упражнений</string>
 
     <!-- Progress -->
@@ -465,13 +467,12 @@
     <string name="progress_avg_sleep">Средний сон</string>
     <string name="progress_sleep_goal">До цели 8ч</string>
     <string name="progress_sleep_hint">Стабильный сон ускоряет восстановление и рост рабочих весов</string>
-    <string name="progress_sleep_no_data">Пока нет записей сна — подключим, как только добавим трекинг сна в данные профиля.</string>
+    <string name="progress_sleep_no_data">На этой неделе нет записей сна — отметьте прошлую ночь на экране «Сон».</string>
     <string name="progress_avg_weight_title">Средний рабочий вес (до 14 тренировок)</string>
     <string name="progress_weight_change">Изменение: %1$s кг</string>
     <string name="progress_calories_title">Калории (7 дней)</string>
     <string name="progress_calories_avg">Среднее: %1$d ккал/день</string>
     <string name="progress_week_volume_kg">%1$d кг</string>
-    <string name="progress_sleep_hours_short">%1$d ч</string>
     <string name="progress_best_day_value">%1$s · %2$d</string>
     <string name="progress_tap_day_hint">Нажми на день, чтобы увидеть детали</string>
     <string name="progress_weekly_volume_sub">Суммарный поднятый вес за день (подходы × повторы × кг)</string>

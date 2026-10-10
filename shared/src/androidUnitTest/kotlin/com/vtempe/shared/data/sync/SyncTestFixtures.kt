@@ -11,11 +11,13 @@ import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
 import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
+import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
 import com.vtempe.shared.db.AppDatabase
 import com.vtempe.shared.domain.account.AccountDataCoordinator
+import com.vtempe.shared.domain.model.Advice
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.Sex
@@ -81,13 +83,14 @@ internal class TestDevice {
     val sleep = SleepStore(settings, onLocalChange = { pendingPushes += it })
     val weight = WeightStore(settings) { pendingPushes += it }
     val chat = ChatHistoryStore(settings)
+    val advice = SettingsAdviceRepository(settings)
     val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight)
     val coordinator = AccountDataCoordinator(
         auth = auth,
         owner = owner,
         localData = DeviceUserData(
             profiles, AiResponseCache(settings), workouts, sleep, weight, chat,
-            ExerciseCalibrationSettingsRepository(settings)
+            ExerciseCalibrationSettingsRepository(settings), advice
         ),
         sync = sync,
         remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)
@@ -104,6 +107,7 @@ internal class TestDevice {
         workouts.save(WorkoutProgress(workoutId = "$name-workout", notes = "$name private note"))
         weight.logWeight("2026-09-10", 81.5)
         chat.save(listOf(ChatMessage(role = "user", content = "$name private question")))
+        advice.saveAdvice("sleep", Advice(listOf("$name sleep tip")))
         flushPushes()
     }
 
@@ -113,6 +117,7 @@ internal class TestDevice {
         assertNull(weight.latestWeight())
         assertTrue(!sleep.hasEntries())
         assertTrue(chat.load().isEmpty())
+        assertTrue(!advice.hasAdvice("sleep"), "advice derived from the previous user's data")
     }
 
     /** The app pushes from onLocalChange hooks on appScope; tests drain them deterministically. */

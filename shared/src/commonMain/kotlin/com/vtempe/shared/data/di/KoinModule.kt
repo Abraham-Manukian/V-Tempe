@@ -28,6 +28,7 @@ import com.vtempe.shared.data.repo.NutritionRepositoryDb
 import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SettingsPreferencesRepository
+import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
@@ -35,7 +36,6 @@ import com.vtempe.shared.data.repo.NetworkEntitlementRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.stub.NoOpAnalyticsRepository
-import com.vtempe.shared.data.stub.StubAdviceRepository
 import com.vtempe.shared.data.stub.StubAuthRepository
 import com.vtempe.shared.data.stub.StubPurchasesRepository
 import com.russhwolf.settings.Settings
@@ -148,12 +148,12 @@ object DI {
         }
         // TODO: replace stubs with real platform implementations when ready
         // PurchasesRepository → AndroidPurchasesRepository / SKProductsStore
-        // AdviceRepository    → NetworkAdviceRepository
         // AnalyticsRepository → overridden with FirebaseAnalyticsRepository in Android's
         //                       AppModule.kt; iOS keeps this no-op until Firebase iOS is wired.
         // AuthRepository      → overridden with FirebaseAuthRepository in Android's
         //                       AppModule.kt; iOS keeps this stub until Firebase iOS is wired.
-        single<AdviceRepository> { StubAdviceRepository() }
+        single { SettingsAdviceRepository(get()) }
+        single<AdviceRepository> { get<SettingsAdviceRepository>() }
         single<PurchasesRepository> { StubPurchasesRepository() }
         // Cross-platform on both Android and iOS — sync is plain HTTP through ApiClient, no
         // Firebase SDK dependency like Auth/Analytics have. Uploads are pinned to the account
@@ -162,7 +162,7 @@ object DI {
             NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get())
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
-        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get()) }
+        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get()) }
         single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
         single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }
@@ -188,7 +188,8 @@ object DI {
         factory { GenerateNutritionPlan(get(), get()) }
         // single (not factory) — holds the Mutex that prevents parallel bootstrap calls
         single { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
-        factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope"))) }
+        factory { RefreshSleepAdvice(get(), get(), get()) }
+        factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope")), get()) }
         factory { ValidateSubscription(get()) }
         factory { SyncAnalyticsProfile(get(), get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }

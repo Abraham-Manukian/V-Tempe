@@ -4,6 +4,8 @@ package com.vtempe.ui.screens
 
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.ProgressPresenter
+import com.vtempe.ui.presenter.averageLoggedMinutes
+import com.vtempe.ui.presenter.formatSleepMinutes
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -85,8 +87,8 @@ fun ProgressScreen(
     val avgVolumePerWorkout = if (state.totalWorkouts > 0) state.totalVolume / state.totalWorkouts else 0
     val bestDayIndex       = state.weeklyVolumes.indices.maxByOrNull { state.weeklyVolumes[it] } ?: 0
     val bestDayVolume      = state.weeklyVolumes.getOrNull(bestDayIndex) ?: 0
-    val sleepAverage       = if (state.sleepHoursWeek.isNotEmpty()) state.sleepHoursWeek.average().toFloat() else 0f
-    val sleepTargetGap     = 8f - sleepAverage
+    // Averaged over the nights actually logged — days without an entry are not zero sleep.
+    val sleepAverage       = state.sleepMinutesWeek.averageLoggedMinutes()
     val weightDelta        = if (state.weightSeries.size >= 2) state.weightSeries.last() - state.weightSeries.first() else 0f
     val caloriesAverage    = if (state.caloriesSeries.isNotEmpty()) state.caloriesSeries.average().roundToInt() else 0
 
@@ -348,7 +350,8 @@ fun ProgressScreen(
                                 icon = Icons.Filled.Bedtime,
                                 tint = AiPalette.Secondary,
                             )
-                            if (state.sleepHoursWeek.isNotEmpty()) {
+                            if (sleepAverage != null) {
+                                val sleepTargetGap = SLEEP_TARGET_MINUTES - sleepAverage
                                 androidx.compose.foundation.layout.Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -356,19 +359,20 @@ fun ProgressScreen(
                                     HighlightPill(
                                         modifier = Modifier.weight(1f),
                                         label = stringResource(Res.string.progress_avg_sleep),
-                                        value = stringResource(Res.string.progress_sleep_hours_short).kmpFormat(sleepAverage.roundToInt()),
+                                        value = formatSleepMinutes(sleepAverage),
                                     )
                                     HighlightPill(
                                         modifier = Modifier.weight(1f),
                                         label = stringResource(Res.string.progress_sleep_goal),
                                         value = if (sleepTargetGap > 0)
-                                            "-${sleepTargetGap.roundToInt()} h"
+                                            "-${formatSleepMinutes(sleepTargetGap)}"
                                         else
-                                            "+${abs(sleepTargetGap).roundToInt()} h",
+                                            "+${formatSleepMinutes(abs(sleepTargetGap))}",
                                     )
                                 }
                                 BarChart(
-                                    data = state.sleepHoursWeek,
+                                    data = state.sleepMinutesWeek.map { it ?: 0 },
+                                    showValues = false,
                                     labels = dayLabels,
                                     barColor = AiPalette.Secondary,
                                     modifier = Modifier.fillMaxWidth(),
@@ -434,3 +438,6 @@ fun ProgressScreen(
         }
     }
 }
+
+/** The "To 8h goal" pill compares the logged average with this. */
+private const val SLEEP_TARGET_MINUTES = 8 * 60

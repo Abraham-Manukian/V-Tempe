@@ -1,6 +1,7 @@
 package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
+import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
@@ -38,7 +39,8 @@ data class ProgressState(
     val weeklyVolumes: List<Int> = List(7) { 0 },
     val weightSeries: List<Float> = emptyList(),
     val caloriesSeries: List<Int> = emptyList(),
-    val sleepHoursWeek: List<Int> = emptyList(),
+    /** Sleep minutes Mon..Sun of the current week; null where nothing was logged (VT-AUD-046). */
+    val sleepMinutesWeek: List<Int?> = List(7) { null },
     // calendar
     val today: LocalDate = LocalDate(2000, 1, 1),
     val calendarYear: Int = 2000,
@@ -67,6 +69,7 @@ internal fun buildProgressState(
     selectedDate: LocalDate?,
     /** First day of week 0 — set once on first bootstrap, never changes. */
     epochDate: LocalDate?,
+    sleepMinutesWeek: List<Int?> = List(7) { null },
 ): ProgressState {
     // Only consider workouts from the registration date onwards.
     // This filters out leftover data from development testing and prevents
@@ -153,7 +156,7 @@ internal fun buildProgressState(
         weeklyVolumes  = weeklyVolumesArray.toList(),
         weightSeries   = recentWeightSeries,
         caloriesSeries = caloriesSeries,
-        sleepHoursWeek = emptyList(),
+        sleepMinutesWeek = sleepMinutesWeek,
         today          = today,
         calendarYear   = calendarYearMonth.first,
         calendarMonth  = calendarYearMonth.second,
@@ -170,6 +173,7 @@ class ProgressPresenterDelegate(
     private val trainingRepository: TrainingRepository,
     private val nutritionRepository: NutritionRepository,
     private val coachCache: CoachCacheRepository,
+    private val sleepStore: SleepStore,
     private val scope: CoroutineScope,
 ) : ProgressPresenter {
 
@@ -193,8 +197,11 @@ class ProgressPresenterDelegate(
             nutritionRepository.observePlan(),
             _selectedDate,
             _calendarYearMonth,
-        ) { workouts, plan, selectedDate, yearMonth ->
-            buildProgressState(workouts, plan, today, yearMonth, selectedDate, epochDate)
+            sleepStore.revision,
+        ) { workouts, plan, selectedDate, yearMonth, _ ->
+            // The same diary the Sleep screen shows, for the same Mon..Sun week.
+            val sleepWeek = sleepWeekMinutes(today, sleepStore::entryFor)
+            buildProgressState(workouts, plan, today, yearMonth, selectedDate, epochDate, sleepWeek)
         }
             .onEach { progressState -> _state.update { progressState } }
             .catch { Napier.e("ProgressPresenter observe error", it) }

@@ -2,6 +2,7 @@ package com.vtempe.ui.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
@@ -15,12 +16,14 @@ class ProgressViewModel(
     trainingRepository: TrainingRepository,
     nutritionRepository: NutritionRepository,
     coachCache: CoachCacheRepository,
+    sleepStore: SleepStore,
 ) : ViewModel(), ProgressPresenter {
 
     private val delegate = ProgressPresenterDelegate(
         trainingRepository = trainingRepository,
         nutritionRepository = nutritionRepository,
         coachCache = coachCache,
+        sleepStore = sleepStore,
         scope = viewModelScope
     )
 

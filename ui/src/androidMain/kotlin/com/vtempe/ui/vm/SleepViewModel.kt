@@ -3,28 +3,29 @@ package com.vtempe.ui.vm
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.data.repo.SleepStore
-import com.vtempe.shared.domain.repository.AiTrainerRepository
-import com.vtempe.shared.domain.repository.ProfileRepository
+import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.usecase.RefreshSleepAdvice
 import com.vtempe.ui.presenter.SleepPresenter
 import com.vtempe.ui.presenter.SleepPresenterDelegate
 import com.vtempe.ui.presenter.SleepState
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.LocalDate
 
 class SleepViewModel(
-    aiTrainerRepository: AiTrainerRepository,
-    profileRepository: ProfileRepository,
+    refreshSleepAdvice: RefreshSleepAdvice,
+    adviceRepository: AdviceRepository,
     sleepStore: SleepStore,
 ) : ViewModel(), SleepPresenter {
 
     private val delegate = SleepPresenterDelegate(
-        aiTrainerRepository = aiTrainerRepository,
-        profileRepository = profileRepository,
+        refreshSleepAdvice = refreshSleepAdvice,
+        adviceRepository = adviceRepository,
         sleepStore = sleepStore,
         scope = viewModelScope
     )
 
     override val state: StateFlow<SleepState> = delegate.state
 
-    override fun sync() = delegate.sync()
-    override fun logSleep(hours: Int, minutes: Int, notes: String) = delegate.logSleep(hours, minutes, notes)
+    override fun refreshAdvice() = delegate.refreshAdvice()
+    override fun logSleep(date: LocalDate, minutes: Int?, notes: String) = delegate.logSleep(date, minutes, notes)
 }

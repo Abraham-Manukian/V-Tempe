@@ -2,9 +2,11 @@
 
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.SleepAdviceStatus
 import com.vtempe.ui.presenter.SleepPresenter
+import com.vtempe.ui.presenter.formatSleepMinutes
 import kotlin.math.roundToInt
-import com.vtempe.ui.presenter.SleepState
+import kotlinx.datetime.LocalDate
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -33,8 +35,6 @@ import com.vtempe.shared.domain.model.MAX_SLEEP_NOTE_LENGTH
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,7 +103,8 @@ fun SleepScreen(
                                 color = contentColor
                             )
                             BarChart(
-                                data = state.weeklyHours,
+                                data = state.weeklyMinutes.map { it ?: 0 },
+                                showValues = false,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Row(
@@ -123,9 +124,7 @@ fun SleepScreen(
                                             color = contentColor.copy(alpha = 0.7f)
                                         )
                                         Text(
-                                            stringResource(Res.string.sleep_hours_short).kmpFormat(
-                                                state.weeklyHours.getOrNull(index) ?: 0
-                                            ),
+                                            formatSleepMinutes(state.weeklyMinutes.getOrNull(index)),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = contentColor
@@ -138,18 +137,23 @@ fun SleepScreen(
                 }
             }
             // ── Log sleep card ─────────────────────────────────────
-            item {
-                SleepLogCard(
-                    loggedMinutes = state.loggedMinutes,
-                    loggedNotes = state.loggedNotes,
-                    saved = state.logSaved,
-                    onSave = { h, m, notes -> presenter.logSleep(h, m, notes) }
-                )
+            state.date?.let { date ->
+                item {
+                    SleepLogCard(
+                        date = date,
+                        loggedMinutes = state.loggedMinutes,
+                        loggedNotes = state.loggedNotes,
+                        saved = state.logSaved,
+                        onSave = { minutes, notes -> presenter.logSleep(date, minutes, notes) }
+                    )
+                }
             }
 
             item {
+                val loading = state.adviceStatus == SleepAdviceStatus.LOADING
                 Button(
-                    onClick = { presenter.sync() },
+                    onClick = { presenter.refreshAdvice() },
+                    enabled = !loading,
                     modifier = Modifier.fillMaxWidth(),
                     colors = sleepButtonColors(),
                     elevation = ButtonDefaults.buttonElevation(
@@ -158,7 +162,19 @@ fun SleepScreen(
                     ),
                     shape = MaterialTheme.shapes.large
                 ) {
-                    Text(stringResource(Res.string.sleep_sync_health))
+                    Text(
+                        stringResource(if (loading) Res.string.sleep_tips_refreshing else Res.string.sleep_tips_refresh)
+                    )
+                }
+            }
+            adviceStatusMessage(state.adviceStatus)?.let { message ->
+                item {
+                    Text(
+                        stringResource(message),
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
             if (state.tips.isEmpty()) {
@@ -199,18 +215,33 @@ fun SleepScreen(
     }
 }
 
+/** Shown under the refresh button when the last request did not bring new tips. */
+private fun adviceStatusMessage(status: SleepAdviceStatus) = when (status) {
+    SleepAdviceStatus.OFFLINE -> Res.string.sleep_tips_offline
+    SleepAdviceStatus.FAILED -> Res.string.sleep_tips_failed
+    SleepAdviceStatus.IDLE, SleepAdviceStatus.LOADING -> null
+}
+
+/**
+ * Edits [date]'s entry. The form resets when the day or the stored entry changes. The slider
+ * moves in 30-min steps up to 12 h, but a stored value is shown exactly and saved unchanged
+ * unless the slider is moved — a note-only edit never rounds or caps it (VT-AUD-047).
+ */
 @Composable
 private fun SleepLogCard(
-    loggedMinutes: Int,
+    date: LocalDate,
+    loggedMinutes: Int?,
     loggedNotes: String,
     saved: Boolean,
-    onSave: (hours: Int, minutes: Int, notes: String) -> Unit,
+    onSave: (minutes: Int?, notes: String) -> Unit,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
-    var notes by rememberSaveable(loggedNotes) { mutableStateOf(loggedNotes) }
-    // Each slider step = 30 min; range 0..24 = 0h..12h
-    var sliderValue by remember { mutableFloatStateOf((loggedMinutes / 30f).roundToInt().toFloat().coerceIn(0f, 24f)) }
-    val totalMinutes = (sliderValue * 30).roundToInt()
+    var notes by rememberSaveable(date, loggedNotes) { mutableStateOf(loggedNotes) }
+    var durationTouched by rememberSaveable(date, loggedMinutes) { mutableStateOf(false) }
+    var sliderValue by rememberSaveable(date, loggedMinutes) {
+        mutableStateOf(((loggedMinutes ?: 0) / 30f).roundToInt().toFloat().coerceIn(0f, 24f))
+    }
+    val totalMinutes = if (durationTouched) (sliderValue * 30).roundToInt() else loggedMinutes ?: 0
     val hours = totalMinutes / 60
     val mins = totalMinutes % 60
 
@@ -235,7 +266,7 @@ private fun SleepLogCard(
             )
             Slider(
                 value = sliderValue,
-                onValueChange = { sliderValue = it },
+                onValueChange = { sliderValue = it; durationTouched = true },
                 valueRange = 0f..24f,
                 steps = 23,
                 modifier = Modifier.fillMaxWidth(),
@@ -264,7 +295,7 @@ private fun SleepLogCard(
                 modifier = Modifier.fillMaxWidth()
             )
             Button(
-                onClick = { onSave(hours, mins, notes) },
+                onClick = { onSave(if (durationTouched) totalMinutes else null, notes) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = sleepButtonColors(),
                 shape = MaterialTheme.shapes.large

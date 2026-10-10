@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.vtempe.shared.data.di.KoinProvider
+import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
@@ -18,6 +19,7 @@ private class IosProgressPresenter(
     trainingRepository: TrainingRepository,
     nutritionRepository: NutritionRepository,
     coachCache: CoachCacheRepository,
+    sleepStore: SleepStore,
 ) : ProgressPresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -25,6 +27,7 @@ private class IosProgressPresenter(
         trainingRepository = trainingRepository,
         nutritionRepository = nutritionRepository,
         coachCache = coachCache,
+        sleepStore = sleepStore,
         scope = scope
     )
     override val state get() = delegate.state
@@ -42,7 +45,8 @@ actual fun rememberProgressPresenter(): ProgressPresenter {
         IosProgressPresenter(
             trainingRepository = koin.get(),
             nutritionRepository = koin.get(),
-            coachCache = koin.get()
+            coachCache = koin.get(),
+            sleepStore = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

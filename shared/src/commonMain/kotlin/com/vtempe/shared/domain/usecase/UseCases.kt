@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.repository.*
 import com.vtempe.shared.domain.util.CoachDataFreshness
 import com.vtempe.shared.domain.util.DataResult
 import com.vtempe.shared.domain.util.CoachSchedule
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -121,6 +122,7 @@ class EnsureCoachData(
     private val coachCache: CoachCacheRepository,
     /** Application-level scope — outlives any individual screen, safe for background prefetch. */
     private val appScope: CoroutineScope,
+    private val refreshSleepAdvice: RefreshSleepAdvice,
 ) {
     /**
      * Rolling 7-day plan strategy:
@@ -148,10 +150,16 @@ class EnsureCoachData(
 
         val needsTraining  = force || !trainingRepository.hasPlan(currentWeek)
         val needsNutrition = force || !nutritionRepository.hasPlan(currentWeek)
-        val needsAdvice    = force || !adviceRepository.hasAdvice("sleep")
 
-        if (needsTraining || needsNutrition || needsAdvice) {
+        if (needsTraining || needsNutrition) {
             if (!bootstrapCoachData(currentWeek, force = force)) return false
+        } else if (!adviceRepository.hasAdvice(RefreshSleepAdvice.TOPIC)) {
+            // Plans are in place, only the advice record is missing (e.g. installed before advice
+            // was stored): fetch just the advice — a full bootstrap would regenerate this week's plans.
+            appScope.launch {
+                runCatching { refreshSleepAdvice() }
+                    .onFailure { if (it is CancellationException) throw it; Napier.w("Sleep advice refresh failed", it) }
+            }
         }
 
         // Pre-fetch next week in the background when the current week is almost over.

@@ -199,7 +199,6 @@
     <string name="nutrition_kcal_value">%1$d kcal</string>
     <string name="nutrition_macros_detail">Protein: %1$d g  Fat: %2$d g  Carbs: %3$d g</string>
     <string name="nutrition_grams_value">%1$d g</string>
-    <string name="sleep_hours_short">%1$d h</string>
 
     <!-- Generic -->
     <string name="loading">Loading</string>
@@ -321,7 +320,10 @@
     <!-- Sleep -->
     <string name="sleep_title">Sleep tips</string>
     <string name="sleep_weekly_chart_title">Weekly sleep</string>
-    <string name="sleep_sync_health">Sync with Health</string>
+    <string name="sleep_tips_refresh">Get tips from your coach</string>
+    <string name="sleep_tips_refreshing">Asking your coach…</string>
+    <string name="sleep_tips_offline">No connection — the tips were not updated.</string>
+    <string name="sleep_tips_failed">Couldn't get new tips. Try again.</string>
     <string name="sleep_log_title">Log today\'s sleep</string>
     <string name="sleep_log_duration">%1$d h %2$d min</string>
     <string name="sleep_log_save">Save</string>
@@ -329,7 +331,7 @@
     <string name="sleep_ruler_0">0h</string>
     <string name="sleep_ruler_mid">6h</string>
     <string name="sleep_ruler_max">12h+</string>
-    <string name="sleep_tips_empty">Tap \"Sync\" to get personalized sleep tips from your coach.</string>
+    <string name="sleep_tips_empty">Tap \"Get tips from your coach\" for personalized sleep tips.</string>
     <string name="workout_browse_exercises">Browse exercises</string>
 
     <!-- Progress -->
@@ -473,13 +475,12 @@
     <string name="progress_avg_sleep">Avg sleep</string>
     <string name="progress_sleep_goal">To 8h goal</string>
     <string name="progress_sleep_hint">Consistent sleep speeds up recovery and strength gains</string>
-    <string name="progress_sleep_no_data">No sleep data yet — will connect once sleep tracking is added.</string>
+    <string name="progress_sleep_no_data">No sleep logged this week — add last night on the Sleep screen.</string>
     <string name="progress_avg_weight_title">Avg working weight (up to 14 workouts)</string>
     <string name="progress_weight_change">Change: %1$s kg</string>
     <string name="progress_calories_title">Calories (7 days)</string>
     <string name="progress_calories_avg">Average: %1$d kcal/day</string>
     <string name="progress_week_volume_kg">%1$d kg</string>
-    <string name="progress_sleep_hours_short">%1$d h</string>
     <string name="progress_best_day_value">%1$s · %2$d</string>
     <string name="progress_tap_day_hint">Tap a day to see its details</string>
     <string name="progress_weekly_volume_sub">Total weight lifted each day (sets × reps × kg)</string>
