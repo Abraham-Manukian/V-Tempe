@@ -453,6 +453,10 @@
     <string name="settings_reset_confirm_message_account">All your data will be deleted from this device and from your account: profile, plans, workout progress, sleep, weight and coach chat. You stay signed in. This can't be undone.</string>
     <string name="settings_reset_confirm">Delete everything</string>
     <string name="settings_reset_cancel">Cancel</string>
+    <string name="profile_load_failed">Couldn't read your profile. Try again.</string>
+    <string name="profile_missing">There is no profile on this device yet.</string>
+    <string name="edit_profile_save_failed">Your changes weren't saved. Try again.</string>
+    <string name="settings_plan_update_failed">Your profile is saved, but the plans haven't been updated for it yet.</string>
     <string name="settings_reset_failed">Not everything could be deleted. Check your connection and try again.</string>
     <string name="settings_delete_account">Delete account</string>
     <string name="settings_delete_account_confirm_title">Delete your account?</string>

@@ -32,6 +32,7 @@ import com.vtempe.ui.presenter.TRAINING_MODE_HOME
 import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
 import com.vtempe.ui.screens.profile.EditProfileState
+import com.vtempe.ui.screens.profile.ProfileLoadPlaceholder
 import com.vtempe.ui.screens.profile.toEditState
 import com.vtempe.ui.util.kmpFormat
 import org.jetbrains.compose.resources.stringResource
@@ -51,11 +52,7 @@ fun EditProfileScreen(
     val bottomBarHeight = LocalBottomBarHeight.current
 
     if (profile == null) {
-        BrandScreen(Modifier.fillMaxSize()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(Res.string.loading), color = Color.White)
-            }
-        }
+        ProfileLoadPlaceholder(state.profileLoad, onRetry = presenter::refresh)
         return
     }
 
@@ -77,13 +74,8 @@ fun EditProfileScreen(
             InjuriesSection(edit, onUpdate = { edit = it })
             CoachSection(edit, onUpdate = { edit = it })
             Button(
-                onClick = {
-                    if (edit.isValid) {
-                        presenter.save(edit.applyTo(profile))
-                        presenter.refresh()
-                        onDone()
-                    }
-                },
+                // Leaves the editor only once the profile is stored; on failure the draft stays.
+                onClick = { if (edit.isValid) presenter.save(edit.applyTo(profile), onSaved = onDone) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AiPalette.DeepAccent,
@@ -92,6 +84,13 @@ fun EditProfileScreen(
                 enabled = !state.saving && edit.isValid
             ) {
                 Text(stringResource(Res.string.edit_profile_save), fontWeight = FontWeight.Bold)
+            }
+            if (state.saveFailed) {
+                Text(
+                    stringResource(Res.string.edit_profile_save_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
             Spacer(Modifier.height(bottomBarHeight + 32.dp))
         }

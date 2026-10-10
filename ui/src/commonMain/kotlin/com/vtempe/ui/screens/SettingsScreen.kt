@@ -6,7 +6,9 @@
 package com.vtempe.ui.screens
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.AccountDeletionUiState
+import com.vtempe.ui.presenter.ProfileLoad
 import com.vtempe.ui.presenter.SettingsPresenter
+import com.vtempe.ui.screens.profile.ProfileLoadPlaceholder
 import com.vtempe.ui.presenter.SettingsState
 
 import androidx.compose.animation.AnimatedVisibility
@@ -88,17 +90,11 @@ fun SettingsScreen(
 
     var showColors by remember { mutableStateOf(false) }
 
-    if (profile == null) {
+    // Loading or a failed read: nothing to show yet. A profile that does not exist still shows
+    // the rest of Settings — account, reset and deletion must stay reachable (VT-AUD-070).
+    if (profile == null && state.profileLoad != ProfileLoad.MISSING) {
         LaunchedEffect(Unit) { presenter.refresh() }
-        BrandScreen(Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
-            }
-        }
+        ProfileLoadPlaceholder(state.profileLoad, onRetry = presenter::refresh)
         return
     }
 
@@ -112,8 +108,19 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Spacer(Modifier.height(topBarHeight + 16.dp))
-            
-            AnimatedVisibility(
+
+            if (state.planUpdateFailed) {
+                Text(
+                    stringResource(Res.string.settings_plan_update_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                OutlinedButton(onClick = presenter::retryPlanUpdate, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(Res.string.common_retry))
+                }
+            }
+
+            if (profile != null) AnimatedVisibility(
                 visible = true,
                 enter = fadeIn(animationSpec = tween(300)) + slideInVertically(initialOffsetY = { it / 5 }, animationSpec = tween(300))
             ) {

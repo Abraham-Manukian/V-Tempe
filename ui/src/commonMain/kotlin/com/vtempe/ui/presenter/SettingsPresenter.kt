@@ -21,9 +21,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Where reading the stored profile stands (VT-AUD-070): null alone could not tell these apart. */
+enum class ProfileLoad { LOADING, READY, MISSING, FAILED }
+
 data class SettingsState(
     val profile: Profile? = null,
+    val profileLoad: ProfileLoad = ProfileLoad.LOADING,
     val saving: Boolean = false,
+    /** The last save did not reach storage; the editor keeps the draft (VT-AUD-063). */
+    val saveFailed: Boolean = false,
+    /** The profile was saved, but the plans could not be rebuilt for it yet. */
+    val planUpdateFailed: Boolean = false,
     val aiModelMode: AiModelMode = AiModelMode.PAID,
     val analyticsConsent: Boolean = false,
     val authUser: AuthUser? = null,
@@ -36,7 +44,11 @@ data class SettingsState(
 interface SettingsPresenter {
     val state: StateFlow<SettingsState>
     fun refresh()
-    fun save(profile: Profile)
+    /** Stores [profile]; [onSaved] runs only once it is durably saved. The plans are then rebuilt
+     *  in the background — a failure there shows as [SettingsState.planUpdateFailed]. */
+    fun save(profile: Profile, onSaved: () -> Unit = {})
+    /** Rebuilds the plans for the saved profile after [SettingsState.planUpdateFailed]. */
+    fun retryPlanUpdate()
     fun reset(onDone: () -> Unit)
     /** Deletes the account on the server, the account itself and all device data; [onDone] runs
      *  only after a complete deletion. */
@@ -68,25 +80,67 @@ class SettingsPresenterDelegate(
     init { refresh() }
 
     override fun refresh() {
+        if (_state.value.profileLoad == ProfileLoad.FAILED) _state.update { it.copy(profileLoad = ProfileLoad.LOADING) }
         scope.launch {
-            val profile = runCatching { profileRepository.getProfile() }.getOrNull()
+            val read = runCatching { profileRepository.getProfile() }
+                .onFailure { if (it is CancellationException) throw it; Napier.e("Profile read failed", it) }
             val mode = runCatching { preferencesRepository.getAiModelMode() }.getOrDefault(AiModelMode.PAID)
             val consent = runCatching { preferencesRepository.getAnalyticsConsent() }.getOrDefault(false)
             val authUser = authRepository.authState.value
-            _state.update { it.copy(profile = profile, aiModelMode = mode, analyticsConsent = consent, authUser = authUser) }
+            _state.update {
+                it.copy(
+                    // A failed read keeps whatever was shown before; it is never "no profile".
+                    profile = read.getOrElse { _ -> it.profile },
+                    profileLoad = when {
+                        read.isFailure -> ProfileLoad.FAILED
+                        read.getOrNull() == null -> ProfileLoad.MISSING
+                        else -> ProfileLoad.READY
+                    },
+                    aiModelMode = mode,
+                    analyticsConsent = consent,
+                    authUser = authUser,
+                )
+            }
         }
     }
 
-    override fun save(profile: Profile) {
-        _state.update { it.copy(saving = true) }
+    override fun save(profile: Profile, onSaved: () -> Unit) {
+        if (_state.value.saving) return
+        _state.update { it.copy(saving = true, saveFailed = false) }
         scope.launch {
-            runCatching {
+            try {
                 profileRepository.upsertProfile(profile)
-                ensureCoachData(force = true)
-                syncAnalyticsProfile(profile) // no-op internally unless consent is already granted
-            }.onFailure { Napier.e("Settings save failed", it) }
-            _state.update { it.copy(profile = profile, saving = false) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // Nothing was stored: keep showing the stored profile, the editor keeps its draft.
+                Napier.e("Profile save failed", error)
+                _state.update { it.copy(saving = false, saveFailed = true) }
+                return@launch
+            }
+            _state.update { it.copy(profile = profile, profileLoad = ProfileLoad.READY, saving = false) }
+            onSaved()
+            runCatching { syncAnalyticsProfile(profile) } // no-op internally unless consent is already granted
+                .onFailure { if (it is CancellationException) throw it }
+            rebuildPlans()
         }
+    }
+
+    override fun retryPlanUpdate() {
+        scope.launch { rebuildPlans() }
+    }
+
+    private suspend fun rebuildPlans() {
+        _state.update { it.copy(planUpdateFailed = false) }
+        val rebuilt = try {
+            ensureCoachData(force = true)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Napier.e("Plan rebuild after profile save failed", error)
+            false
+        }
+        if (!rebuilt) _state.update { it.copy(planUpdateFailed = true) }
     }
 
     override fun reset(onDone: () -> Unit) {

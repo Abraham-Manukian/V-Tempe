@@ -46,7 +46,8 @@ class SettingsViewModel(
 
     override val state: StateFlow<SettingsState> get() = delegate.state
     override fun refresh() = delegate.refresh()
-    override fun save(profile: Profile) = delegate.save(profile)
+    override fun save(profile: Profile, onSaved: () -> Unit) = delegate.save(profile, onSaved)
+    override fun retryPlanUpdate() = delegate.retryPlanUpdate()
     override fun reset(onDone: () -> Unit) = delegate.reset(onDone)
     override fun deleteAccount(onDone: () -> Unit) = delegate.deleteAccount(onDone)
     override fun reauthenticateAndDeleteAccount(credential: ReauthCredential, onDone: () -> Unit) =

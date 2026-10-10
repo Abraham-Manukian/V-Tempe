@@ -39,7 +39,8 @@ private class IosSettingsPresenter(
     )
     override val state get() = delegate.state
     override fun refresh() = delegate.refresh()
-    override fun save(profile: com.vtempe.shared.domain.model.Profile) = delegate.save(profile)
+    override fun save(profile: com.vtempe.shared.domain.model.Profile, onSaved: () -> Unit) = delegate.save(profile, onSaved)
+    override fun retryPlanUpdate() = delegate.retryPlanUpdate()
     override fun reset(onDone: () -> Unit) = delegate.reset(onDone)
     override fun deleteAccount(onDone: () -> Unit) = delegate.deleteAccount(onDone)
     override fun reauthenticateAndDeleteAccount(credential: ReauthCredential, onDone: () -> Unit) =
