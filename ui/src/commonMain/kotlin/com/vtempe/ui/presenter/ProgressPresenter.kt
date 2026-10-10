@@ -5,6 +5,10 @@ import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.domain.model.Meal
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.model.WorkoutProgress
+import com.vtempe.shared.domain.model.WorkoutSummary
+import com.vtempe.shared.domain.training.WorkoutHistory
+import kotlin.math.roundToInt
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
@@ -61,6 +65,8 @@ interface ProgressPresenter {
     fun nextMonth() {}
 }
 
+private class PerformedWorkout(val date: LocalDate, val sets: Int, val summary: WorkoutSummary)
+
 internal fun buildProgressState(
     workouts: List<Workout>,
     nutritionPlan: NutritionPlan?,
@@ -70,6 +76,8 @@ internal fun buildProgressState(
     /** First day of week 0 — set once on first bootstrap, never changes. */
     epochDate: LocalDate?,
     sleepMinutesWeek: List<Int?> = List(7) { null },
+    /** Logged results per workout id — the only source of what was actually done. */
+    progress: Map<String, WorkoutProgress> = emptyMap(),
 ): ProgressState {
     // Only consider workouts from the registration date onwards.
     // This filters out leftover data from development testing and prevents
@@ -79,21 +87,31 @@ internal fun buildProgressState(
     else
         workouts
 
-    val totalSets   = validWorkouts.sumOf { it.sets.size }
-    val totalVolume = validWorkouts.sumOf { w -> w.sets.sumOf { ((it.weightKg ?: 0.0) * it.reps).toInt() } }
+    // Achievements count what was done, never what is merely planned (VT-AUD-068): a future or
+    // skipped workout adds nothing, and every logged set counts with its own reps and weight.
+    val performed = validWorkouts.mapNotNull { workout ->
+        val logged = progress[workout.id] ?: return@mapNotNull null
+        val sets = WorkoutHistory.completedSets(workout, logged)
+        val summary = WorkoutHistory.summarize(workout, logged) ?: return@mapNotNull null
+        if (sets == 0) null else PerformedWorkout(workout.date, sets, summary)
+    }
+    val totalSets   = performed.sumOf { it.sets }
+    val totalVolume = performed.sumOf { it.summary.totalVolumeKg }.roundToInt()
 
+    // Bars are this calendar week (Mon..Sun of [today]) only — the same days a tap selects.
+    val weekMonday = today.plus(DatePeriod(days = -today.dayOfWeek.toWeekIndex()))
+    val weekSunday = weekMonday.plus(DatePeriod(days = 6))
     val weeklyVolumesArray = IntArray(7) { 0 }
-    validWorkouts.forEach { workout ->
-        val dayVolume = workout.sets.sumOf { set -> ((set.weightKg ?: 0.0) * set.reps).toInt() }
-        weeklyVolumesArray[workout.date.dayOfWeek.toWeekIndex()] += dayVolume
+    performed.filter { it.date in weekMonday..weekSunday }.forEach { done ->
+        weeklyVolumesArray[done.date.dayOfWeek.toWeekIndex()] += done.summary.totalVolumeKg.roundToInt()
     }
 
-    val recentWeightSeries = validWorkouts
+    val recentWeightSeries = performed
         .sortedBy { it.date }
         .takeLast(14)
-        .mapNotNull { workout ->
-            val nonNullWeights = workout.sets.mapNotNull { it.weightKg }
-            if (nonNullWeights.isEmpty()) null else nonNullWeights.average().toFloat()
+        .mapNotNull { done ->
+            val weights = done.summary.exercises.mapNotNull { it.weightKg }
+            if (weights.isEmpty()) null else weights.average().toFloat()
         }
 
     val caloriesSeries = nutritionPlan
@@ -150,7 +168,7 @@ internal fun buildProgressState(
     } else emptyList()
 
     return ProgressState(
-        totalWorkouts  = validWorkouts.size,
+        totalWorkouts  = performed.size,
         totalSets      = totalSets,
         totalVolume    = totalVolume,
         weeklyVolumes  = weeklyVolumesArray.toList(),
@@ -193,15 +211,15 @@ class ProgressPresenterDelegate(
 
     init {
         combine(
-            trainingRepository.observeWorkouts(),
+            combine(trainingRepository.observeWorkouts(), trainingRepository.observeWorkoutProgress(), ::Pair),
             nutritionRepository.observePlan(),
             _selectedDate,
             _calendarYearMonth,
             sleepStore.revision,
-        ) { workouts, plan, selectedDate, yearMonth, _ ->
+        ) { (workouts, progress), plan, selectedDate, yearMonth, _ ->
             // The same diary the Sleep screen shows, for the same Mon..Sun week.
             val sleepWeek = sleepWeekMinutes(today, sleepStore::entryFor)
-            buildProgressState(workouts, plan, today, yearMonth, selectedDate, epochDate, sleepWeek)
+            buildProgressState(workouts, plan, today, yearMonth, selectedDate, epochDate, sleepWeek, progress)
         }
             .onEach { progressState -> _state.update { progressState } }
             .catch { Napier.e("ProgressPresenter observe error", it) }

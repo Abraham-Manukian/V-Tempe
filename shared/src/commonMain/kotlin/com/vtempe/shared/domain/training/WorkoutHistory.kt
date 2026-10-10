@@ -17,17 +17,13 @@ import com.vtempe.shared.domain.model.WorkoutSummary
  */
 object WorkoutHistory {
 
+    /** Sets actually done in this workout, extra sets included. */
+    fun completedSets(workout: Workout, progress: WorkoutProgress): Int =
+        resultsByExercise(workout, progress).sumOf { it.second.size } + progress.extraSets.size
+
     fun summarize(workout: Workout, progress: WorkoutProgress): WorkoutSummary? {
         val current = WorkoutProgressEditor.performedFor(workout, progress)
-
-        // Every record with its exercise and sets: current-plan ones use their plan slot for
-        // legacy defaults; history-only ones (replaced exercises) stand on their own.
-        val all = progress.performedSets.mapNotNull { record ->
-            val slot = current.entries.firstOrNull { it.value === record }?.key
-            val planned = slot?.let(workout.sets::getOrNull)
-            val exerciseId = record.exerciseId ?: planned?.exerciseId ?: return@mapNotNull null
-            exerciseId to WorkoutProgressEditor.resultsOf(record, planned)
-        }
+        val all = resultsByExercise(workout, progress)
         val doneSets = all.sumOf { it.second.size }
         if (doneSets == 0 && progress.extraSets.isEmpty() && progress.notes.isBlank()) return null
 
@@ -58,6 +54,18 @@ object WorkoutHistory {
             exercises = all.groupBy({ it.first }, { it.second })
                 .mapNotNull { (exerciseId, sets) -> topSet(sets.flatten())?.let { ExercisePerformance(exerciseId, it.weightKg, it.reps) } },
         )
+    }
+
+    /** Every record with its exercise and sets: current-plan ones use their plan slot for legacy
+     *  defaults; history-only ones (replaced exercises) stand on their own. */
+    private fun resultsByExercise(workout: Workout, progress: WorkoutProgress): List<Pair<String, List<SetResult>>> {
+        val current = WorkoutProgressEditor.performedFor(workout, progress)
+        return progress.performedSets.mapNotNull { record ->
+            val slot = current.entries.firstOrNull { it.value === record }?.key
+            val planned = slot?.let(workout.sets::getOrNull)
+            val exerciseId = record.exerciseId ?: planned?.exerciseId ?: return@mapNotNull null
+            exerciseId to WorkoutProgressEditor.resultsOf(record, planned)
+        }
     }
 
     /** The heaviest working set (then most reps) — the number progression should build on. */
