@@ -18,6 +18,7 @@ import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.RecordBodyWeight
 import com.vtempe.shared.domain.usecase.RefreshSleepAdvice
 import com.vtempe.ui.util.toShortKey
 import kotlinx.coroutines.flow.Flow
@@ -58,7 +59,7 @@ class HomeStateTest {
             FakeCoachCache(), backgroundScope, RefreshSleepAdvice(profiles, ai, advice),
         )
         kotlinx.coroutines.runBlocking { advice.saveAdvice("sleep", Advice(listOf("tip"))) }
-        return HomePresenterDelegate(training, nutrition, ensure, SleepStore(memorySettings()), WeightStore(memorySettings()), backgroundScope)
+        return HomePresenterDelegate(training, nutrition, ensure, SleepStore(memorySettings()), WeightStore(memorySettings()), RecordBodyWeight(WeightStore(memorySettings()), profiles), backgroundScope)
     }
 
     private fun meal(p: Int, f: Int, c: Int) = Meal("m", listOf("x"), p * 4 + f * 9 + c * 4, Macros(p, f, c, p * 4 + f * 9 + c * 4))

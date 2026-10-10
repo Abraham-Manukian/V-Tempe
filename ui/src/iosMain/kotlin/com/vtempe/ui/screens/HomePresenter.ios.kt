@@ -9,6 +9,7 @@ import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.RecordBodyWeight
 import com.vtempe.ui.presenter.HomePresenter
 import com.vtempe.ui.presenter.HomePresenterDelegate
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ private class IosHomePresenter(
     ensureCoachData: EnsureCoachData,
     sleepStore: SleepStore,
     weightStore: WeightStore,
+    recordBodyWeight: RecordBodyWeight,
 ) : HomePresenter {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Main + job)
@@ -30,6 +32,7 @@ private class IosHomePresenter(
         ensureCoachData = ensureCoachData,
         sleepStore = sleepStore,
         weightStore = weightStore,
+        recordBodyWeight = recordBodyWeight,
         scope = scope
     )
     override val state get() = delegate.state
@@ -48,7 +51,8 @@ actual fun rememberHomePresenter(): HomePresenter {
             nutritionRepository = koin.get(),
             ensureCoachData = koin.get(),
             sleepStore = koin.get(),
-            weightStore = koin.get()
+            weightStore = koin.get(),
+            recordBodyWeight = koin.get()
         )
     }
     DisposableEffect(Unit) { onDispose { presenter.close() } }

@@ -15,6 +15,7 @@ import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.training.NoSafeTrainingPlanException
 import com.vtempe.shared.domain.usecase.BootstrapCoachData
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.RecordBodyWeight
 import com.vtempe.shared.domain.usecase.RefreshSleepAdvice
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.test.TestScope
@@ -54,7 +55,7 @@ class RestrictionConflictTest {
     }
 
     private fun TestScope.home(failure: Exception) = HomePresenterDelegate(
-        FakeTraining(), FakeNutrition(), ensure(failure), SleepStore(memorySettings()), WeightStore(memorySettings()), backgroundScope,
+        FakeTraining(), FakeNutrition(), ensure(failure), SleepStore(memorySettings()), WeightStore(memorySettings()), RecordBodyWeight(WeightStore(memorySettings()), stub<ProfileRepository> { error("unused") }), backgroundScope,
     )
 
     @Test

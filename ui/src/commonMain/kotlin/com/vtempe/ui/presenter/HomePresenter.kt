@@ -9,6 +9,7 @@ import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.RecordBodyWeight
 import com.vtempe.ui.util.toShortKey
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
@@ -69,6 +70,7 @@ class HomePresenterDelegate(
     private val ensureCoachData: EnsureCoachData,
     private val sleepStore: SleepStore,
     private val weightStore: WeightStore,
+    private val recordBodyWeight: RecordBodyWeight,
     private val scope: CoroutineScope,
 ) : HomePresenter {
 
@@ -163,10 +165,11 @@ class HomePresenterDelegate(
     }
 
     override fun logWeight(kg: Double) {
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        weightStore.logWeight(today.toString(), kg)
         _state.update { it.copy(showWeightCheckin = false, lastWeightKg = kg, weightSaved = true) }
         scope.launch {
+            // Also the profile's weight, so the next plan follows the current weight.
+            runCatching { recordBodyWeight(kg) }
+                .onFailure { if (it is CancellationException) throw it; Napier.e("Weight check-in failed", it) }
             kotlinx.coroutines.delay(2_000)
             _state.update { it.copy(weightSaved = false) }
         }

@@ -189,6 +189,7 @@ object DI {
         // single (not factory) — holds the Mutex that prevents parallel bootstrap calls
         single { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
         factory { RefreshSleepAdvice(get(), get(), get()) }
+        factory { RecordBodyWeight(get(), get()) }
         factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope")), get()) }
         factory { ValidateSubscription(get()) }
         factory { SyncAnalyticsProfile(get(), get()) }

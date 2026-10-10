@@ -7,6 +7,7 @@ import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
+import com.vtempe.shared.domain.usecase.RecordBodyWeight
 import com.vtempe.ui.presenter.HomePresenter
 import com.vtempe.ui.presenter.HomePresenterDelegate
 import com.vtempe.ui.presenter.HomeState
@@ -18,6 +19,7 @@ class HomeViewModel(
     ensureCoachData: EnsureCoachData,
     sleepStore: SleepStore,
     weightStore: WeightStore,
+    recordBodyWeight: RecordBodyWeight,
 ) : ViewModel(), HomePresenter {
 
     private val delegate = HomePresenterDelegate(
@@ -26,6 +28,7 @@ class HomeViewModel(
         ensureCoachData = ensureCoachData,
         sleepStore = sleepStore,
         weightStore = weightStore,
+        recordBodyWeight = recordBodyWeight,
         scope = viewModelScope
     )
 
