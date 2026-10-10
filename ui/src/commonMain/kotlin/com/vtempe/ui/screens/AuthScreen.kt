@@ -84,12 +84,7 @@ fun AuthScreen(
         if (accountReady) onAuthenticated?.invoke()
     }
 
-    // Device data was cleared or replaced: rebuild the app from Splash so no screen keeps stale data.
-    val restartApp = LocalAppRestart.current
-    val initialGeneration = remember { state.localDataGeneration }
-    LaunchedEffect(state.localDataGeneration) {
-        if (state.localDataGeneration != initialGeneration) restartApp()
-    }
+    // Rebuilding the app after device data changes happens at the root (AppRoot), for every screen.
 
     AccountDataDialogs(state.accountData, presenter)
 
