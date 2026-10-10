@@ -25,6 +25,9 @@ internal fun List<SelectWorkoutsWithSets>.toWorkoutDomainList(): List<Workout> =
         rowWeight     = { it.weightKg },
         rowRpe        = { it.rpe },
         rowSets       = { it.sets },
+        rowRest       = { it.restSeconds },
+        rowUnit       = { it.unit },
+        rowBodyweight = { it.bodyweight },
     )
 
 @JvmName("toWorkoutDomainListByWeek")
@@ -39,6 +42,9 @@ internal fun List<SelectWorkoutsWithSetsByWeek>.toWorkoutDomainList(): List<Work
         rowWeight     = { it.weightKg },
         rowRpe        = { it.rpe },
         rowSets       = { it.sets },
+        rowRest       = { it.restSeconds },
+        rowUnit       = { it.unit },
+        rowBodyweight = { it.bodyweight },
     )
 
 // ---------------------------------------------------------------------------
@@ -55,6 +61,9 @@ private fun <T> List<T>.mapRows(
     rowWeight: (T) -> Double?,
     rowRpe: (T) -> Double?,
     rowSets: (T) -> Long?,
+    rowRest: (T) -> Long?,
+    rowUnit: (T) -> String?,
+    rowBodyweight: (T) -> Long?,
 ): List<Workout> {
     val fallbackDate = Clock.System.now()
         .toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
@@ -72,6 +81,9 @@ private fun <T> List<T>.mapRows(
                         weightKg   = rowWeight(row),
                         rpe        = rowRpe(row),
                         sets       = rowSets(row)?.toInt() ?: 3,
+                        restSeconds = rowRest(row)?.toInt(),
+                        unit       = rowUnit(row),
+                        bodyweight = rowBodyweight(row)?.let { it != 0L },
                     )
                 }
         )

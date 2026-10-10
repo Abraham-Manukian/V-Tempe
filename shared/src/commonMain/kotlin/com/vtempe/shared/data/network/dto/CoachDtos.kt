@@ -178,7 +178,10 @@ data class TrainingPlanDto(
         val reps: Int,
         val weightKg: Double? = null,
         val rpe: Double? = null,
-        val sets: Int = 3
+        val sets: Int = 3,
+        val restSeconds: Int? = null,
+        val unit: String? = null,
+        val bodyweight: Boolean? = null,
     )
 
     fun toDomain(): TrainingPlan = TrainingPlan(
@@ -194,7 +197,10 @@ data class TrainingPlanDto(
                         reps = set.reps,
                         weightKg = set.weightKg,
                         rpe = set.rpe,
-                        sets = set.sets
+                        sets = set.sets,
+                        restSeconds = set.restSeconds,
+                        unit = set.unit,
+                        bodyweight = set.bodyweight,
                     )
                 }
             )
@@ -220,7 +226,10 @@ data class TrainingPlanDto(
                                     reps = set.reps,
                                     weightKg = set.weightKg,
                                     rpe = set.rpe,
-                                    sets = set.sets
+                                    sets = set.sets,
+                                    restSeconds = set.restSeconds,
+                                    unit = set.unit,
+                                    bodyweight = set.bodyweight,
                                 )
                             }
                     )

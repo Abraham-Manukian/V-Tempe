@@ -12,6 +12,7 @@ import com.vtempe.shared.domain.exercise.ExerciseBrowseCatalog
 import com.vtempe.shared.domain.exercise.ExerciseCalibrationKind
 import com.vtempe.shared.domain.exercise.ExerciseDefinition
 import com.vtempe.shared.domain.exercise.ExerciseLibrary
+import com.vtempe.shared.domain.exercise.executionKind
 import com.vtempe.shared.domain.exercise.ExerciseTechnique
 import com.vtempe.shared.domain.exercise.ExerciseVisualFamily
 import com.vtempe.shared.domain.exercise.LocalizedText
@@ -133,34 +134,27 @@ internal fun genericExerciseDefinition(): ExerciseDefinition = ExerciseDefinitio
     ),
     imagePrompt = "",
     technique = ExerciseTechnique(
+        // No guide for this exercise yet (VT-AUD-022): say so plainly instead of presenting a
+        // generic strength routine as if it were this exercise's technique.
         summary = LocalizedText(
-            "Controlled strength work with focus on repeat quality and technique stability.",
-            "Контролируемая силовая работа с акцентом на качество повторений и устойчивую технику."
+            "There is no detailed guide for this exercise in the app yet — ask the coach how to perform it.",
+            "Подробного описания этого упражнения в приложении пока нет — спроси тренера, как его выполнять."
         ),
-        focusEn = listOf("Strength"),
-        focusRu = listOf("Сила"),
+        focusEn = emptyList(),
+        focusRu = emptyList(),
         keyCue = LocalizedText(
-            "Move smoothly and stop the set before technique breaks down.",
-            "Двигайся плавно и заканчивай подход до того, как техника начнет ломаться."
+            "Stop the set before technique breaks down.",
+            "Заканчивай подход до того, как техника начнёт ломаться."
         ),
-        stepsEn = listOf(
-            "Set a stable start position.",
-            "Control the main phase of every rep.",
-            "Finish balanced and ready for the next repetition."
-        ),
-        stepsRu = listOf(
-            "Займи устойчивый старт.",
-            "Контролируй основную фазу каждого повтора.",
-            "Заканчивай в балансе и готовности к следующему повтору."
-        ),
+        stepsEn = emptyList(),
+        stepsRu = emptyList(),
         defaultRestSeconds = 75
     )
 )
 
 @Composable
 internal fun plannedSetSummary(set: WorkoutSet): String {
-    val kind = ExerciseLibrary.findByIdOrAlias(set.exerciseId)?.calibrationKind
-        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
+    val kind = set.executionKind()
     val rpeStr = set.rpe?.let {
         stringResource(Res.string.workout_rpe_suffix).kmpFormat(it.toEditableDecimal())
     }.orEmpty()
@@ -179,9 +173,8 @@ internal fun plannedSetSummary(set: WorkoutSet): String {
 }
 
 @Composable
-internal fun buildPerformedSummary(performed: PerformedSet, exerciseId: String = ""): String {
-    val kind = ExerciseLibrary.findByIdOrAlias(exerciseId)?.calibrationKind
-        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
+internal fun buildPerformedSummary(performed: PerformedSet, planned: WorkoutSet): String {
+    val kind = planned.executionKind()
     return when (kind) {
         ExerciseCalibrationKind.DURATION_SECONDS -> buildList {
             performed.actualReps?.let { add("$it ${stringResource(Res.string.workout_seconds_unit)}") }

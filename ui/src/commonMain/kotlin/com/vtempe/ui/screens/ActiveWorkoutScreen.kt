@@ -92,6 +92,7 @@ internal fun ActiveWorkoutScreen(
     var sessionSeconds by remember(workout.id) { mutableIntStateOf(0) }
     var restRemaining by remember(workout.id) { mutableIntStateOf(0) }
     var isRestRunning by remember(workout.id) { mutableStateOf(false) }
+    var restTotal by remember(workout.id) { mutableIntStateOf(progress.restSeconds) }
     var selectedSetIndex by remember { mutableStateOf<Int?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
 
@@ -146,7 +147,7 @@ internal fun ActiveWorkoutScreen(
             ) {
                 RestBanner(
                     remainingSeconds = restRemaining,
-                    totalSeconds = progress.restSeconds,
+                    totalSeconds = restTotal,
                     onSkip = { isRestRunning = false; restRemaining = 0 }
                 )
             }
@@ -209,12 +210,13 @@ internal fun ActiveWorkoutScreen(
             plannedSet = selectedSet,
             performed = performedByIndex[idx],
             coachTrainerId = coachTrainerId,
-            restSeconds = progress.restSeconds,
+            restSeconds = restFor(selectedSet, progress),
             onDismiss = { selectedSetIndex = null },
             onUndoSet = { onUndoSet(idx) },
             onSetDone = { reps, weight, rpe ->
                 onSetDone(idx, reps, weight, rpe)
-                restRemaining = progress.restSeconds
+                restTotal = restFor(selectedSet, progress)
+                restRemaining = restTotal
                 isRestRunning = true
                 // Sheet stays open — auto-closes when exercise.completed=true via LaunchedEffect
             },
@@ -235,6 +237,10 @@ internal fun ActiveWorkoutScreen(
         )
     }
 }
+
+/** The plan's rest for this exercise (VT-AUD-024), unless the user chose their own. */
+internal fun restFor(set: WorkoutSet, progress: WorkoutProgress): Int =
+    if (progress.restOverridden) progress.restSeconds else set.restSeconds ?: progress.restSeconds
 
 @Composable
 internal fun ActiveWorkoutHeader(
@@ -443,7 +449,7 @@ internal fun ExerciseRow(
                     )
                 )
                 val subtitleText = if (performed != null && performed.actualReps != null) {
-                    buildPerformedSummary(performed, set.exerciseId)
+                    buildPerformedSummary(performed, set)
                 } else {
                     plannedSetSummary(set)
                 }

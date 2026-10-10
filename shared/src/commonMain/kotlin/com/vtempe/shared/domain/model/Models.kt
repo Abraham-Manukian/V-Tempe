@@ -160,6 +160,8 @@ data class WorkoutProgress(
     val workoutId: String,
     val notes: String = "",
     val restSeconds: Int = 90,
+    /** The user picked [restSeconds] themselves; until then the plan's rest per exercise applies. */
+    val restOverridden: Boolean = false,
     val performedSets: List<PerformedSet> = emptyList(),
     val extraSets: List<ExtraWorkoutSet> = emptyList(),
     val updatedAtEpochMs: Long = 0L,
@@ -193,7 +195,14 @@ data class WorkoutSet(
     val reps: Int,
     val weightKg: Double? = null,
     val rpe: Double? = null,
-    val sets: Int = 3
+    val sets: Int = 3,
+    /** Rest the plan prescribes after each set (VT-AUD-024); null for plans without it. */
+    val restSeconds: Int? = null,
+    /** What [reps] counts — "REPS", "SECONDS" or "MINUTES" — as the server's catalog defines it
+     *  (VT-AUD-022); null for plans without it. See [com.vtempe.shared.domain.exercise.executionKind]. */
+    val unit: String? = null,
+    /** True when the exercise takes no external load; null for plans without it. */
+    val bodyweight: Boolean? = null,
 )
 
 @Serializable

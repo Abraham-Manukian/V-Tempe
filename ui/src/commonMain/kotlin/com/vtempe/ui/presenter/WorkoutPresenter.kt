@@ -177,6 +177,7 @@ class WorkoutPresenterDelegate(
             val clamped = restSeconds.coerceIn(REST_SECONDS_MIN, REST_SECONDS_MAX)
             val newProgress = current.copy(
                 restSeconds = clamped,
+                restOverridden = true,
                 updatedAtEpochMs = Clock.System.now().toEpochMilliseconds()
             )
             runCatching { trainingRepository.saveWorkoutProgress(newProgress) }

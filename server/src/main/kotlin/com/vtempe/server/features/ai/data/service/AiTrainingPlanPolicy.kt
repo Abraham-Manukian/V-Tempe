@@ -139,7 +139,9 @@ internal fun normalizeTrainingPlan(
                     val rpeCap = preResolvedRpes?.getOrNull(slotIndex)?.toDouble()
                     val rpe = if (rpeCap != null) minOf(aiRpe, rpeCap) else aiRpe
                     val setsCount = preResolvedSets?.getOrNull(slotIndex) ?: 3
-                    AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount)
+                    // The skeleton's rest for this slot's tier is the prescription (VT-AUD-024).
+                    val rest = skeletonData?.getOrNull(index)?.restSeconds?.getOrNull(slotIndex)
+                    AiSet(exerciseId = exerciseId, reps = reps, weightKg = weight, rpe = rpe, sets = setsCount, restSeconds = rest)
                 }.take(MaxSetsPerWorkout)
             } else {
                 // No skeleton available — fall back to resolver-based flow.
@@ -182,8 +184,27 @@ internal fun normalizeTrainingPlan(
             AiWorkout(id = safeId, label = label, date = safeDate, sets = safeSets)
         }
         .filter { it.sets.isNotEmpty() }
+        .map { workout -> workout.copy(sets = workout.sets.map { it.withExecutionMetadata(catalog) }) }
 
     return plan.copy(weekIndex = resolvedWeekIndex, workouts = workouts)
+}
+
+/** Shortest and longest rest the app will prescribe; anything else from the model is dropped. */
+private val RestSecondsRange = 15..600
+
+/**
+ * Attaches what the app needs to EXECUTE a set and does not know on its own (VT-AUD-022, 024):
+ * the unit of [AiSet.reps] and whether the exercise takes a load, both from the catalog, and a
+ * sane recommended rest. The client's exercise library does not cover every catalog id, so
+ * without this a timed exercise was shown as repetitions with a weight field.
+ */
+internal fun AiSet.withExecutionMetadata(catalog: ExerciseCatalog = builtInExerciseCatalog): AiSet {
+    val item = catalog.findByIdOrAlias(exerciseId)
+    return copy(
+        unit = item?.durationUnit?.name ?: unit,
+        bodyweight = item?.isBodyweightOnly ?: bodyweight,
+        restSeconds = restSeconds?.takeIf { it in RestSecondsRange },
+    )
 }
 
 /** Fallback order when a workout came back empty: the slot the old code always used first. */
@@ -285,7 +306,9 @@ private data class SkeletonSessionData(
     val exerciseIds: List<String>,
     val setsCounts: List<Int>,
     /** RPE ceiling per slot — used to clamp whatever RPE the AI writes (see normalizeTrainingPlan). */
-    val rpeTargets: List<Float>
+    val rpeTargets: List<Float>,
+    /** Prescribed rest per slot, from the slot's loading tier. */
+    val restSeconds: List<Int>,
 )
 
 private fun computeSkeletonData(
@@ -333,6 +356,7 @@ private fun computeSkeletonData(
             val exerciseIds = mutableListOf<String>()
             val setsCounts = mutableListOf<Int>()
             val rpeTargets = mutableListOf<Float>()
+            val restSeconds = mutableListOf<Int>()
             val recentExerciseIds = profile.recentWorkouts.flatMap { it.exercises }.map { it.exerciseId }.toSet()
             skeleton.slots.forEachIndexed { j, slot ->
                 val id = resolver.resolveExerciseId(
@@ -349,12 +373,13 @@ private fun computeSkeletonData(
                     exerciseIds += id
                     setsCounts += slot.sets
                     rpeTargets += slot.rpeTarget
+                    restSeconds += slot.restSeconds
                 }
             }
             if (forceDeload) {
                 usedByLabelThisWeek.getOrPut(label) { mutableSetOf() } += exerciseIds
             }
-            SkeletonSessionData(label, exerciseIds.toList(), setsCounts.toList(), rpeTargets.toList())
+            SkeletonSessionData(label, exerciseIds.toList(), setsCounts.toList(), rpeTargets.toList(), restSeconds.toList())
         }
     }.getOrDefault(emptyList())
 }

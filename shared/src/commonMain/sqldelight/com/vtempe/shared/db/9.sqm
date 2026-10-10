@@ -1,0 +1,5 @@
+-- VT-AUD-022/024: execution metadata the server prescribes per exercise. Additive and nullable:
+-- plans stored before this migration keep NULL and are shown as before.
+ALTER TABLE WorkoutSet ADD COLUMN restSeconds INTEGER;
+ALTER TABLE WorkoutSet ADD COLUMN unit TEXT;
+ALTER TABLE WorkoutSet ADD COLUMN bodyweight INTEGER;

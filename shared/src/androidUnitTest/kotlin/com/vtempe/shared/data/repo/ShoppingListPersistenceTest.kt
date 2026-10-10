@@ -78,13 +78,12 @@ class ShoppingListPersistenceTest {
             val db = AppDatabase(driver)
             repo(db).savePlan(NutritionPlan(0, mapOf("Mon" to listOf(meal("Breakfast"))), emptyList()))
             driver.execute(null, "DROP TABLE ShoppingItem", 0) // a version-8 database
-            AppDatabase.Schema.migrate(driver, 8, AppDatabase.Schema.version)
+            AppDatabase.Schema.migrate(driver, 8, 9)
 
             val restored = repo(db).also { it.setActiveWeek(0) }
             assertEquals(listOf("Breakfast"), restored.observePlan().first()!!.mealsByDay.getValue("Mon").map { it.name })
             repo(db).savePlan(NutritionPlan(0, mapOf("Mon" to listOf(meal("Breakfast"))), listOf("Rice — 100 г")))
             assertEquals(listOf("Rice — 100 г"), repo(db).also { it.setActiveWeek(0) }.observePlan().first()!!.shoppingList)
-            assertEquals(9L, AppDatabase.Schema.version)
         }
     }
 }

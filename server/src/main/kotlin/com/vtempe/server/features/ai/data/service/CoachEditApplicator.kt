@@ -84,7 +84,12 @@ class CoachEditApplicator(
         }
 
         return Result(
-            trainingPlan = if (trainingTouched) training else null,
+            // Sets added or swapped by the coach carry the same execution metadata as generated ones.
+            trainingPlan = if (trainingTouched) {
+                training?.let { plan ->
+                    plan.copy(workouts = plan.workouts.map { w -> w.copy(sets = w.sets.map { it.withExecutionMetadata(catalog) }) })
+                }
+            } else null,
             nutritionPlan = if (nutritionTouched) nutrition else null,
             trainingChanged = trainingTouched,
             nutritionChanged = nutritionTouched,

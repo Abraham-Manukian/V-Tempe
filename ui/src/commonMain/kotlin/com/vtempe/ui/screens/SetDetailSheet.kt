@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.exercise.ExerciseCalibrationKind
 import com.vtempe.shared.domain.exercise.ExerciseLibrary
+import com.vtempe.shared.domain.exercise.executionKind
 import com.vtempe.shared.domain.model.PerformedSet
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.ui.Res
@@ -80,8 +81,7 @@ internal fun SetDetailSheet(
 ) {
     val guide = exerciseGuide(plannedSet.exerciseId, coachTrainerId)
     val exerciseName = exerciseLabel(plannedSet.exerciseId)
-    val calibrationKind = ExerciseLibrary.findByIdOrAlias(plannedSet.exerciseId)?.calibrationKind
-        ?: ExerciseCalibrationKind.WEIGHT_AND_REPS
+    val calibrationKind = plannedSet.executionKind()
     val isBodyweight = calibrationKind == ExerciseCalibrationKind.BODYWEIGHT_REPS
     val isDurationSeconds = calibrationKind == ExerciseCalibrationKind.DURATION_SECONDS
     val isDurationMinutes = calibrationKind == ExerciseCalibrationKind.DURATION_MINUTES
