@@ -11,7 +11,9 @@ import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,31 +53,40 @@ class ChatPresenterDelegate(
     private val analytics: AnalyticsRepository
 ) : ChatPresenter {
 
-    private val _state = MutableStateFlow(ChatState())
+    // The stored history is in place before anything can be sent (VT-AUD-067): a send that raced
+    // a late-loading history used to save a one-message dialogue over it, then the late load
+    // brought the old one back on screen.
+    private val _state = MutableStateFlow(
+        ChatState(messages = runCatching { chatHistoryStore.load() }.getOrDefault(emptyList()))
+    )
     override val state: StateFlow<ChatState> = _state.asStateFlow()
+    private var sendJob: Job? = null
 
     init {
         scope.launch {
-            // Load persisted history + coach avatar in parallel
-            val history = chatHistoryStore.load()
-            val profile = runCatching { profileRepository.getProfile() }.getOrNull()
-            _state.update {
-                it.copy(
-                    messages = history,
-                    coachTrainerId = profile?.coachTrainerId ?: CoachTrainerIds.DEFAULT
-                )
-            }
+            // Only the coach avatar comes from the profile; it never touches the messages.
+            val profile = runCatching { profileRepository.getProfile() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrNull()
+            _state.update { it.copy(coachTrainerId = profile?.coachTrainerId ?: CoachTrainerIds.DEFAULT) }
         }
     }
 
     override fun updateInput(text: String) {
-        _state.update { it.copy(input = text.take(MAX_CHAT_MESSAGE_LENGTH), sendState = ChatSendState.Idle) }
+        // Typing the next message while the coach answers keeps the request in flight (VT-AUD-066).
+        _state.update {
+            it.copy(
+                input = text.take(MAX_CHAT_MESSAGE_LENGTH),
+                sendState = if (it.sendState == ChatSendState.Loading) ChatSendState.Loading else ChatSendState.Idle
+            )
+        }
     }
 
     override fun send() {
         val current = _state.value
         val text = current.input.trim()
-        if (text.isBlank() || current.sendState == ChatSendState.Loading) return
+        // One question at a time: the next one is sent with the previous answer in its history.
+        if (text.isBlank() || sendJob?.isActive == true) return
 
         val userMsg = ChatMessage(role = "user", content = text)
         // Include all messages (including plan_change cards) in the displayed list
@@ -87,12 +98,22 @@ class ChatPresenterDelegate(
         chatHistoryStore.save(aiHistory + userMsg)
         analytics.logEvent(AnalyticsEvents.CHAT_MESSAGE_SENT)
 
-        scope.launch {
-            val result = ask(
-                history = aiHistory,
-                userMessage = text,
-                localeOverride = localeProvider()
-            )
+        sendJob = scope.launch {
+            val result = try {
+                ask(
+                    history = aiHistory,
+                    userMessage = text,
+                    localeOverride = localeProvider()
+                )
+            } catch (cancelled: CancellationException) {
+                _state.update { it.copy(sendState = ChatSendState.Idle) }
+                throw cancelled
+            } catch (error: Exception) {
+                // Storage or plan-materialization failures used to escape the scope and leave the
+                // screen loading forever (VT-AUD-073).
+                // Reported once below, like any other failure.
+                DataResult.Failure(DataResult.Reason.Unknown, throwable = error)
+            }
             when (result) {
                 is DataResult.Success -> {
                     val assistantMsg = ChatMessage(role = "assistant", content = result.data.reply)
