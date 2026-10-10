@@ -35,6 +35,10 @@ private class IosWorkoutPresenter(
     override val state get() = delegate.state
     override fun refresh() = delegate.refresh()
     override fun select(workoutId: String) = delegate.select(workoutId)
+    override fun openWorkout(workoutId: String) = delegate.openWorkout(workoutId)
+    override fun closeWorkout() = delegate.closeWorkout()
+    override fun startRest(seconds: Int) = delegate.startRest(seconds)
+    override fun skipRest() = delegate.skipRest()
     override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) = delegate.addSet(exerciseId, reps, weight, rpe)
     override fun markSetDone(workoutId: String, exerciseIndex: Int, actualReps: Int?, actualWeightKg: Double?, actualRpe: Double?) =
         delegate.markSetDone(workoutId, exerciseIndex, actualReps, actualWeightKg, actualRpe)

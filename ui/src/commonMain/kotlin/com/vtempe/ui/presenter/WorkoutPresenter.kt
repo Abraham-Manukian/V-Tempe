@@ -37,13 +37,36 @@ data class WorkoutState(
     val workouts: List<Workout> = emptyList(),
     val selectedWorkoutId: String? = null,
     val progress: Map<String, WorkoutProgress> = emptyMap(),
-    val coachTrainerId: String = CoachTrainerIds.DEFAULT
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT,
+    /** The workout open on screen, kept here so recreating the UI or a trip to the chat resumes it. */
+    val session: WorkoutSession? = null,
 )
+
+/**
+ * An open workout's clock as timestamps, not counters (VT-AUD-065): the elapsed time and the rest
+ * left are computed from them, so they stay right after the UI is recreated or comes back.
+ */
+@Immutable
+data class WorkoutSession(
+    val workoutId: String,
+    val startedAtMs: Long,
+    val restEndsAtMs: Long? = null,
+    val restTotalSeconds: Int = 0,
+) {
+    fun elapsedSeconds(nowMs: Long): Int = ((nowMs - startedAtMs) / 1_000).coerceAtLeast(0).toInt()
+    fun restRemainingSeconds(nowMs: Long): Int =
+        restEndsAtMs?.let { ((it - nowMs + 999) / 1_000).coerceAtLeast(0).toInt() } ?: 0
+}
 
 interface WorkoutPresenter {
     val state: StateFlow<WorkoutState>
     fun refresh()
     fun select(workoutId: String)
+    /** Opens [workoutId]; reopening the open workout keeps its clock. */
+    fun openWorkout(workoutId: String)
+    fun closeWorkout()
+    fun startRest(seconds: Int)
+    fun skipRest()
     fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?)
     /** Records one completed set of the exercise at [exerciseIndex] with what was actually done;
      *  the exercise is done once all its planned sets are. Extra taps beyond that are ignored. */
@@ -68,6 +91,7 @@ class WorkoutPresenterDelegate(
     private val profileRepository: ProfileRepository,
     private val coachCache: CoachCacheRepository,
     private val scope: CoroutineScope,
+    private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : WorkoutPresenter {
 
     private val _state = MutableStateFlow(WorkoutState())
@@ -115,6 +139,27 @@ class WorkoutPresenterDelegate(
 
     override fun select(workoutId: String) {
         _state.update { it.copy(selectedWorkoutId = workoutId) }
+    }
+
+    override fun openWorkout(workoutId: String) {
+        _state.update {
+            val session = it.session?.takeIf { s -> s.workoutId == workoutId } ?: WorkoutSession(workoutId, nowMs())
+            it.copy(selectedWorkoutId = workoutId, session = session)
+        }
+    }
+
+    override fun closeWorkout() {
+        _state.update { it.copy(session = null) }
+    }
+
+    override fun startRest(seconds: Int) {
+        _state.update {
+            it.copy(session = it.session?.copy(restEndsAtMs = nowMs() + seconds * 1_000L, restTotalSeconds = seconds))
+        }
+    }
+
+    override fun skipRest() {
+        _state.update { it.copy(session = it.session?.copy(restEndsAtMs = null)) }
     }
 
     override fun addSet(exerciseId: String, reps: Int, weight: Double?, rpe: Double?) {

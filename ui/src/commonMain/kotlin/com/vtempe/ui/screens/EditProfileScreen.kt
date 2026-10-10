@@ -32,6 +32,8 @@ import com.vtempe.ui.presenter.TRAINING_MODE_HOME
 import com.vtempe.ui.presenter.TRAINING_MODE_MIXED
 import com.vtempe.ui.presenter.TRAINING_MODE_OUTDOOR
 import com.vtempe.ui.screens.profile.EditProfileState
+import com.vtempe.ui.screens.profile.EditProfileDraftSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.vtempe.ui.screens.profile.ProfileLoadPlaceholder
 import com.vtempe.ui.screens.profile.toEditState
 import com.vtempe.ui.util.kmpFormat
@@ -45,8 +47,11 @@ fun EditProfileScreen(
     val state by presenter.state.collectAsState()
     val profile = state.profile
 
-    var edit by remember { mutableStateOf(EditProfileState()) }
-    LaunchedEffect(profile) { profile?.let { edit = it.toEditState() } }
+    // Starts from the stored profile and restarts only when it changes; an unsaved draft
+    // survives Activity recreation (VT-AUD-065).
+    var edit by rememberSaveable(profile, stateSaver = EditProfileDraftSaver) {
+        mutableStateOf(profile?.toEditState() ?: EditProfileState())
+    }
 
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current

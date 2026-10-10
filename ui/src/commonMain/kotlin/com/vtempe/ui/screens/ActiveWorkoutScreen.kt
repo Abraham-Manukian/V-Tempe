@@ -4,6 +4,8 @@ package com.vtempe.ui.screens
 
 import com.vtempe.ui.presenter.WorkoutState
 import com.vtempe.ui.presenter.WorkoutPresenter
+import com.vtempe.ui.presenter.WorkoutSession
+import kotlinx.datetime.Clock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -48,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -87,32 +90,26 @@ internal fun ActiveWorkoutScreen(
     onNotesChanged: (String) -> Unit,
     onRestSecondsChanged: (Int) -> Unit,
     onSubmit: () -> Unit,
-    onAskCoach: (String) -> Unit
+    onAskCoach: (String) -> Unit,
+    session: WorkoutSession,
+    onStartRest: (Int) -> Unit,
+    onSkipRest: () -> Unit,
 ) {
-    var sessionSeconds by remember(workout.id) { mutableIntStateOf(0) }
-    var restRemaining by remember(workout.id) { mutableIntStateOf(0) }
-    var isRestRunning by remember(workout.id) { mutableStateOf(false) }
-    var restTotal by remember(workout.id) { mutableIntStateOf(progress.restSeconds) }
     var selectedSetIndex by remember { mutableStateOf<Int?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
 
-    // Session timer — counts up every second
-    LaunchedEffect(workout.id) {
+    // Redrawn every second; the times themselves come from the session's timestamps.
+    var nowMs by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
+    LaunchedEffect(Unit) {
         while (true) {
+            nowMs = Clock.System.now().toEpochMilliseconds()
             delay(1_000)
-            sessionSeconds += 1
         }
     }
-
-    // Rest countdown
-    LaunchedEffect(isRestRunning) {
-        if (!isRestRunning) return@LaunchedEffect
-        while (isRestRunning && restRemaining > 0) {
-            delay(1_000)
-            restRemaining -= 1
-        }
-        if (restRemaining <= 0) isRestRunning = false
-    }
+    val sessionSeconds = session.elapsedSeconds(nowMs)
+    val restRemaining = session.restRemainingSeconds(nowMs)
+    val isRestRunning = restRemaining > 0
+    val restTotal = session.restTotalSeconds
 
     // Only records of this plan's exercises count — results of replaced exercises stay history.
     val performedByIndex = remember(workout, progress) { WorkoutProgressEditor.performedFor(workout, progress) }
@@ -148,7 +145,7 @@ internal fun ActiveWorkoutScreen(
                 RestBanner(
                     remainingSeconds = restRemaining,
                     totalSeconds = restTotal,
-                    onSkip = { isRestRunning = false; restRemaining = 0 }
+                    onSkip = onSkipRest
                 )
             }
 
@@ -215,9 +212,7 @@ internal fun ActiveWorkoutScreen(
             onUndoSet = { onUndoSet(idx) },
             onSetDone = { reps, weight, rpe ->
                 onSetDone(idx, reps, weight, rpe)
-                restTotal = restFor(selectedSet, progress)
-                restRemaining = restTotal
-                isRestRunning = true
+                onStartRest(restFor(selectedSet, progress))
                 // Sheet stays open — auto-closes when exercise.completed=true via LaunchedEffect
             },
             onUseSuggestedRest = { seconds ->

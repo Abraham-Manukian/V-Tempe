@@ -8,7 +8,11 @@ import com.vtempe.shared.domain.model.ProfileBounds
 import com.vtempe.shared.domain.model.SplitPreference
 import com.vtempe.shared.domain.model.TrainingFocus
 import com.vtempe.ui.presenter.TRAINING_MODE_GYM
+import androidx.compose.runtime.saveable.Saver
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
+@Serializable
 data class EditProfileState(
     val age: String = "",
     val heightCm: String = "",
@@ -51,6 +55,14 @@ data class EditProfileState(
         coachTrainerId = coachTrainerId,
     )
 }
+
+/** Keeps an unsaved draft across Activity recreation (VT-AUD-065). */
+internal val EditProfileDraftSaver: Saver<EditProfileState, String> = Saver(
+    save = { draftJson.encodeToString(EditProfileState.serializer(), it) },
+    restore = { runCatching { draftJson.decodeFromString(EditProfileState.serializer(), it) }.getOrNull() },
+)
+
+private val draftJson = Json { ignoreUnknownKeys = true }
 
 fun Profile.toEditState() = EditProfileState(
     age = age.toString(),

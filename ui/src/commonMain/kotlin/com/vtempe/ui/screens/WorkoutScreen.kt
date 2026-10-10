@@ -2,6 +2,7 @@ package com.vtempe.ui.screens
 
 import com.vtempe.ui.presenter.WorkoutState
 import com.vtempe.ui.presenter.WorkoutPresenter
+import com.vtempe.ui.BackHandlerCompat
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,8 +33,14 @@ fun WorkoutScreen(
     val topBarHeight = LocalTopBarHeight.current
     val bottomBarHeight = LocalBottomBarHeight.current
 
-    var detailWorkoutId by remember { mutableStateOf<String?>(null) }
+    // The open workout lives in the presenter, not in this composition (VT-AUD-065).
+    val session = state.session
+    val detailWorkoutId = session?.workoutId
     val detailWorkout = state.workouts.firstOrNull { it.id == detailWorkoutId }
+
+    // System Back closes the open workout like the on-screen arrow, instead of leaving the app
+    // (VT-AUD-064). Registered after the app-level handler, so it takes precedence while open.
+    BackHandlerCompat(enabled = detailWorkout != null) { presenter.closeWorkout() }
 
     LaunchedEffect(Unit) {
         presenter.refresh()
@@ -44,7 +51,7 @@ fun WorkoutScreen(
     }
 
     LaunchedEffect(state.workouts, detailWorkoutId) {
-        if (detailWorkoutId != null && detailWorkout == null) detailWorkoutId = null
+        if (detailWorkoutId != null && detailWorkout == null && state.workouts.isNotEmpty()) presenter.closeWorkout()
     }
 
     BrandScreen(Modifier.fillMaxSize()) {
@@ -53,21 +60,21 @@ fun WorkoutScreen(
                 state = state,
                 topBarHeight = topBarHeight,
                 bottomBarHeight = bottomBarHeight,
-                onOpenWorkout = {
-                    presenter.select(it)
-                    detailWorkoutId = it
-                },
+                onOpenWorkout = { presenter.openWorkout(it) },
                 onNavigateToLibrary = onNavigateToLibrary
             )
-        } else {
+        } else if (session != null) {
             val progress = state.progress[detailWorkout.id] ?: WorkoutProgress(workoutId = detailWorkout.id)
             ActiveWorkoutScreen(
                 workout = detailWorkout,
+                session = session,
+                onStartRest = presenter::startRest,
+                onSkipRest = presenter::skipRest,
                 progress = progress,
                 coachTrainerId = state.coachTrainerId,
                 topBarHeight = topBarHeight,
                 bottomBarHeight = bottomBarHeight,
-                onBack = { detailWorkoutId = null },
+                onBack = presenter::closeWorkout,
                 onAddSet = { exerciseId, reps, weight, rpe ->
                     presenter.addSet(exerciseId, reps, weight, rpe)
                 },
