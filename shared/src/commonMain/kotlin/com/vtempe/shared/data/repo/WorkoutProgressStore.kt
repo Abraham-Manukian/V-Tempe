@@ -89,9 +89,12 @@ class WorkoutProgressStore(
     /** Overwrites local state with a snapshot pulled from the server — e.g. after signing in on
      *  a new device. Bypasses [onLocalChange] (this IS the sync system restoring, not a local
      *  edit that needs pushing back out). */
-    fun restoreRaw(rawJson: String) {
-        settings.putString(KEY, rawJson)
-        cache.value = load()
+    fun restoreRaw(rawJson: String): Boolean {
+        // Decoded first (VT-AUD-049): an unreadable snapshot must not replace readable progress.
+        val decoded = decode(rawJson) ?: return false
+        persist(decoded)
+        cache.value = decoded
+        return true
     }
 
     fun clear() {
@@ -110,10 +113,10 @@ class WorkoutProgressStore(
             .take(limit)
     }
 
-    private fun load(): Map<String, WorkoutProgress> =
-        settings.getStringOrNull(KEY)
-            ?.let { raw -> runCatching { json.decodeFromString(serializer, raw) }.getOrDefault(emptyMap()) }
-            ?: emptyMap()
+    private fun load(): Map<String, WorkoutProgress> = settings.getStringOrNull(KEY)?.let(::decode).orEmpty()
+
+    private fun decode(raw: String): Map<String, WorkoutProgress>? =
+        runCatching { json.decodeFromString(serializer, raw) }.getOrNull()
 
     private fun persist(progress: Map<String, WorkoutProgress>) {
         settings.putString(KEY, json.encodeToString(serializer, progress))

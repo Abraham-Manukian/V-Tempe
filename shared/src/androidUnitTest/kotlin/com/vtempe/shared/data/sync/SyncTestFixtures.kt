@@ -78,7 +78,7 @@ internal class TestDevice {
     private val pendingPushes = mutableListOf<SyncDomain>()
     val profiles = ProfileRepositoryDb(db) { pendingPushes += it }
     val workouts = WorkoutProgressStore(settings, db) { pendingPushes += it }
-    val sleep = SleepStore(settings) { pendingPushes += it }
+    val sleep = SleepStore(settings, onLocalChange = { pendingPushes += it })
     val weight = WeightStore(settings) { pendingPushes += it }
     val chat = ChatHistoryStore(settings)
     val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight)
@@ -111,7 +111,7 @@ internal class TestDevice {
         assertNull(profiles.getProfile())
         assertTrue(workouts.current().isEmpty())
         assertNull(weight.latestWeight())
-        assertTrue(sleep.recentEntries().isEmpty())
+        assertTrue(!sleep.hasEntries())
         assertTrue(chat.load().isEmpty())
     }
 

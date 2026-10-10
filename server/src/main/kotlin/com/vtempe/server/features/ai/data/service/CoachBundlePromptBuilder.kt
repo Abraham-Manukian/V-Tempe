@@ -491,8 +491,10 @@ private fun buildPreferencesSummary(profile: AiProfile): String = buildString {
         }
     }
     if (profile.sleepHistory.isNotEmpty()) {
-        appendLine("- Sleep history (last ${profile.sleepHistory.size} nights — use to personalise recovery advice and training intensity):")
-        profile.sleepHistory.take(7).forEach { entry ->
+        // Only valid nights of the last two weeks reach this point (SleepHistoryPolicy).
+        val nights = profile.sleepHistory.take(7)
+        appendLine("- Sleep history (${nights.size} logged nights from the last 14 days — use to personalise recovery advice and training intensity):")
+        nights.forEach { entry ->
             val h = entry.durationMinutes / 60
             val m = entry.durationMinutes % 60
             appendLine("  ${entry.date}: ${h}h ${m}min")

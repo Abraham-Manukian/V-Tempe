@@ -64,15 +64,24 @@ class NetworkSyncRepository(
         }
     }
 
-    override suspend fun restore(snapshot: RemoteSyncSnapshot) {
-        mutex.withLock {
-            val payloads = snapshot.payloads
-            payloads[SyncDomain.PROFILE.wireKey]?.let { restoreProfile(it) }
-            payloads[SyncDomain.WORKOUT_PROGRESS.wireKey]?.let { workoutProgressStore.restoreRaw(it) }
-            payloads[SyncDomain.SLEEP.wireKey]?.let { sleepStore.restoreRaw(it) }
-            payloads[SyncDomain.SLEEP_NOTES.wireKey]?.let { sleepStore.restoreNotesRaw(it) }
-            payloads[SyncDomain.WEIGHT.wireKey]?.let { weightStore.restoreRaw(it) }
+    override suspend fun restore(snapshot: RemoteSyncSnapshot): Set<SyncDomain> = mutex.withLock {
+        val rejected = SyncDomain.entries.filterTo(mutableSetOf()) { domain ->
+            val payload = snapshot.payloads[domain.wireKey] ?: return@filterTo false
+            !restoreDomain(domain, payload)
         }
+        if (rejected.isNotEmpty()) {
+            Napier.w(tag = "Sync", message = "unreadable snapshot kept local data: ${rejected.joinToString { it.wireKey }}")
+        }
+        rejected
+    }
+
+    /** False when [payload] could not be read; local data for [domain] is then left as it was. */
+    private suspend fun restoreDomain(domain: SyncDomain, payload: String): Boolean = when (domain) {
+        SyncDomain.PROFILE -> restoreProfile(payload)
+        SyncDomain.WORKOUT_PROGRESS -> workoutProgressStore.restoreRaw(payload)
+        SyncDomain.SLEEP -> sleepStore.restoreRaw(payload)
+        SyncDomain.SLEEP_NOTES -> sleepStore.restoreNotesRaw(payload)
+        SyncDomain.WEIGHT -> weightStore.restoreRaw(payload)
     }
 
     private suspend fun upload(domain: SyncDomain, payload: String, token: String): Boolean {
@@ -94,13 +103,14 @@ class NetworkSyncRepository(
         SyncDomain.WEIGHT -> weightStore.rawSnapshot()
     }
 
-    private suspend fun restoreProfile(payload: String) {
-        if (payload == RemoteSyncSnapshot.EMPTY_PAYLOAD) return // the account deliberately has no profile
-        runCatching { json.decodeFromString(Profile.serializer(), payload) }
+    private suspend fun restoreProfile(payload: String): Boolean {
+        if (payload == RemoteSyncSnapshot.EMPTY_PAYLOAD) return true // the account deliberately has no profile
+        return runCatching { json.decodeFromString(Profile.serializer(), payload) }
             .onSuccess { profileRepository.restoreProfile(it) }
             .onFailure {
                 if (it is CancellationException) throw it
-                Napier.d(tag = "Sync", message = "profile restore failed: ${it.message}")
+                Napier.d(tag = "Sync", message = "profile restore failed: ${it::class.simpleName}")
             }
+            .isSuccess
     }
 }

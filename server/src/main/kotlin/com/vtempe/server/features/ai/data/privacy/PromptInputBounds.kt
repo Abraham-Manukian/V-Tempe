@@ -3,13 +3,15 @@ package com.vtempe.server.features.ai.data.privacy
 import com.vtempe.server.features.ai.api.AiRequestLimits as L
 import com.vtempe.server.shared.dto.chat.AiChatRequest
 import com.vtempe.server.shared.dto.profile.AiProfile
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
  * Cuts every caller-controlled part of an AI request down to what a prompt can use (VT-AUD-010).
  * Applied BEFORE [DirectIdentifierRedactor] and prompt building, so neither ever works on more
  * text than the limits in [L] allow. Lengths count UTF-16 chars; a cut never splits a surrogate pair.
  */
-internal fun AiProfile.boundedForPrompt(): AiProfile = copy(
+internal fun AiProfile.boundedForPrompt(today: LocalDate = LocalDate.now(ZoneOffset.UTC)): AiProfile = copy(
     sex = sex.cut(SHORT),
     goal = goal.cut(SHORT),
     equipment = equipment.boundedList(),
@@ -30,7 +32,7 @@ internal fun AiProfile.boundedForPrompt(): AiProfile = copy(
             exercises = w.exercises.take(L.MAX_FREE_TEXT_ITEMS).map { it.copy(exerciseId = it.exerciseId.cut(SHORT)) },
         )
     },
-    sleepHistory = sleepHistory.take(L.MAX_SLEEP_ENTRIES).map { it.copy(date = it.date.cut(SHORT), notes = it.notes.cut(L.MAX_NOTE_CHARS)) },
+    sleepHistory = SleepHistoryPolicy.recent(sleepHistory, today).take(L.MAX_SLEEP_ENTRIES).map { it.copy(notes = it.notes.cut(L.MAX_NOTE_CHARS)) },
     recentWeights = recentWeights.take(L.MAX_WEIGHT_ENTRIES).map { it.copy(date = it.date.cut(SHORT)) },
     trainingFocus = trainingFocus.cut(SHORT),
     splitPreference = splitPreference.cut(SHORT),

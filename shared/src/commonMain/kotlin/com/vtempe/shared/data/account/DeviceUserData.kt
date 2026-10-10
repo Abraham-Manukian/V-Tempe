@@ -26,7 +26,7 @@ class DeviceUserData(
     override suspend fun hasUserData(): Boolean =
         profiles.getProfile() != null ||
             workoutProgress.current().isNotEmpty() ||
-            sleep.recentEntries(limit = 1).isNotEmpty() ||
+            sleep.hasEntries() ||
             weight.latestWeight() != null ||
             chatHistory.load().isNotEmpty() ||
             calibrations.list().isNotEmpty()

@@ -1,6 +1,7 @@
 package com.vtempe.shared.data.repo
 
 import com.russhwolf.settings.Settings
+import com.vtempe.shared.domain.model.SleepBounds
 import com.vtempe.shared.domain.model.WeightEntry
 import com.vtempe.shared.domain.repository.SyncDomain
 import kotlinx.datetime.Clock
@@ -29,7 +30,7 @@ class WeightStore(
     /** Record weight for [date] (ISO "YYYY-MM-DD"). Prunes to most recent 30 entries. */
     fun logWeight(date: String, kg: Double) {
         val current = load().toMutableMap()
-        current[date] = kg.coerceIn(20.0, 500.0)
+        current[date] = kg.coerceIn(WEIGHT_RANGE_KG)
         val trimmed = current.entries
             .sortedByDescending { it.key }
             .take(30)
@@ -43,9 +44,15 @@ class WeightStore(
     /** Current local state as the raw JSON string already persisted to [settings]. */
     fun rawSnapshot(): String? = settings.getStringOrNull(KEY)
 
-    /** Overwrites local state with a snapshot pulled from the server. */
-    fun restoreRaw(rawJson: String) {
-        settings.putString(KEY, rawJson)
+    /**
+     * Replaces local state with a snapshot pulled from the server. Decoded first (VT-AUD-049): an
+     * unreadable snapshot leaves the current history untouched and returns false; entries without
+     * a real date or with an impossible weight are dropped.
+     */
+    fun restoreRaw(rawJson: String): Boolean {
+        val decoded = decode(rawJson) ?: return false
+        settings.putString(KEY, json.encodeToString(serializer, decoded))
+        return true
     }
 
     /** Latest recorded weight, or null if never logged. */
@@ -89,13 +96,16 @@ class WeightStore(
         return monday.toString()
     }
 
-    private fun load(): Map<String, Double> =
-        settings.getStringOrNull(KEY)
-            ?.let { raw -> runCatching { json.decodeFromString(serializer, raw) }.getOrDefault(emptyMap()) }
-            ?: emptyMap()
+    private fun load(): Map<String, Double> = settings.getStringOrNull(KEY)?.let(::decode).orEmpty()
+
+    private fun decode(raw: String): Map<String, Double>? =
+        runCatching { json.decodeFromString(serializer, raw) }
+            .getOrNull()
+            ?.filter { (date, kg) -> SleepBounds.parseDate(date) != null && kg.isFinite() && kg in WEIGHT_RANGE_KG }
 
     companion object {
         private const val KEY = "weight.history.v1"
         private const val KEY_LAST_CHECKIN = "weight.checkin.week.v1"
+        private val WEIGHT_RANGE_KG = 20.0..500.0
     }
 }

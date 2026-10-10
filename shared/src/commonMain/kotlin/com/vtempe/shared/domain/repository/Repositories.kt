@@ -101,8 +101,9 @@ interface SyncRepository {
     suspend fun fetchRemote(uid: String): RemoteSyncSnapshot?
 
     /** Writes [snapshot] into local storage. Domains missing from it are left untouched, so
-     *  callers that switch accounts clear local data first. */
-    suspend fun restore(snapshot: RemoteSyncSnapshot)
+     *  callers that switch accounts clear local data first. A domain whose payload can't be read
+     *  keeps its local data and is returned (VT-AUD-049); the next local write re-uploads it. */
+    suspend fun restore(snapshot: RemoteSyncSnapshot): Set<SyncDomain>
 
     /** Uploads every domain for [uid]; domains the device has nothing for are stored as
      *  [RemoteSyncSnapshot.EMPTY_PAYLOAD], so the account ends up mirroring the device.
