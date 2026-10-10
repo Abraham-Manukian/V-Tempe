@@ -437,6 +437,9 @@
     <string name="paywall_best_value">Best value</string>
     <string name="edit_profile_title">My profile</string>
     <string name="edit_profile_save">Save changes</string>
+    <string name="edit_profile_invalid_age">Age must be between %1$d and %2$d</string>
+    <string name="edit_profile_invalid_height">Height must be between %1$d and %2$d cm</string>
+    <string name="edit_profile_invalid_weight">Weight must be between %1$d and %2$d kg</string>
     <string name="edit_profile_diet_section">Nutrition &amp; restrictions</string>
     <string name="edit_profile_diet_hint">Separate values with commas. Applied to your next generated plan.</string>
 

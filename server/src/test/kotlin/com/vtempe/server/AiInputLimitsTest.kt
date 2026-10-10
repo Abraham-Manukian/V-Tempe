@@ -179,6 +179,17 @@ class AiInputLimitsTest {
     }
 
     @Test
+    fun `unsupported body measurements are refused with invalid_profile`() = limitsTest { recorder ->
+        for (bad in listOf(profile.copy(weightKg = -1.0), profile.copy(age = 0), profile.copy(heightCm = 999))) {
+            val response = postJson("/ai/training", json.encodeToString(AiTrainingRequest(bad, 0)))
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertTrue(response.bodyAsText().contains("invalid_profile"))
+        }
+        assertTrue(recorder.trainings.isEmpty())
+        assertEquals(HttpStatusCode.OK, postJson("/ai/training", json.encodeToString(AiTrainingRequest(profile.copy(weightKg = 20.0, age = 110), 0))).status)
+    }
+
+    @Test
     fun `malformed json is a 400, not a server error`() = limitsTest { recorder ->
         val response = postJson("/ai/training", "{not json")
         assertEquals(HttpStatusCode.BadRequest, response.status)

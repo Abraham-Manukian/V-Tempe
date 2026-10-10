@@ -4,6 +4,7 @@ import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.model.ProfileBounds
 import com.vtempe.shared.domain.model.SplitPreference
 import com.vtempe.shared.domain.model.TrainingFocus
 import com.vtempe.ui.presenter.TRAINING_MODE_GYM
@@ -24,15 +25,17 @@ data class EditProfileState(
     val allergies: String = "",
     val coachTrainerId: String = CoachTrainerIds.DEFAULT,
 ) {
+    /** Measurements that are missing or outside [ProfileBounds] — shown under each field (VT-AUD-035). */
+    val invalidFields: Set<ProfileBounds.Field>
+        get() = ProfileBounds.invalidFields(age.toIntOrNull(), heightCm.toIntOrNull(), ProfileBounds.parseWeight(weightKg))
+
     val isValid: Boolean
-        get() = age.toIntOrNull() != null
-            && heightCm.toIntOrNull() != null
-            && weightKg.toDoubleOrNull() != null
+        get() = invalidFields.isEmpty()
 
     fun applyTo(base: Profile): Profile = base.copy(
         age = age.toInt(),
         heightCm = heightCm.toInt(),
-        weightKg = weightKg.toDouble(),
+        weightKg = ProfileBounds.parseWeight(weightKg) ?: base.weightKg,
         goal = goal,
         trainingMode = trainingMode,
         trainingFocus = trainingFocus,

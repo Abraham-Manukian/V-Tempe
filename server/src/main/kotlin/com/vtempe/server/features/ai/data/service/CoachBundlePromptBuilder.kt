@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
+import com.vtempe.server.features.ai.api.AiRequestLimits
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
@@ -257,9 +258,11 @@ internal fun computeWorkoutDatesForWeek(
 }
 
 internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
-    val w = profile.weightKg
-    val h = profile.heightCm.toDouble()
-    val a = profile.age.toDouble()
+    // Requests are validated at the route; clamping keeps every other caller (fallbacks, tests)
+    // from crashing on an inverted coerceIn range with a zero/negative weight (VT-AUD-035).
+    val w = if (profile.weightKg.isFinite()) profile.weightKg.coerceIn(AiRequestLimits.WEIGHT_KG) else AiRequestLimits.WEIGHT_KG.start
+    val h = profile.heightCm.coerceIn(AiRequestLimits.HEIGHT_CM).toDouble()
+    val a = profile.age.coerceIn(AiRequestLimits.AGE_YEARS).toDouble()
     val isMale = profile.sex.equals("MALE", ignoreCase = true)
 
     // Mifflin-St Jeor BMR
@@ -312,10 +315,27 @@ internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
     }
     val proteinG = (w * proteinMultiplier).toInt().coerceIn((w * 1.4).toInt(), (w * 2.2).toInt())
     val fatG     = (w * 0.9).toInt().coerceAtLeast(40)                    // ~0.9 g/kg, min 40g
-    val carbsKcal = (targetKcal - proteinG * 4 - fatG * 9).coerceAtLeast(0)
-    val carbsG   = carbsKcal / 4
+    return fitMacrosToBudget(targetKcal, proteinG, fatG)
+}
 
-    return NutritionTargets(kcal = targetKcal, proteinG = proteinG, fatG = fatG, carbsG = carbsG)
+/**
+ * The calorie target is binding (VT-AUD-029): protein and fat used to be computed first with
+ * carbs clipped at 0, so 4P + 9F could exceed the target. Fat gives way first — not below 20% of
+ * calories, the lower bound of the accepted fat range — then protein; carbs take the remainder,
+ * so 4P + 9F + 4C equals the target within rounding. Mirrored by the client's EnergyTargets.
+ */
+internal fun fitMacrosToBudget(kcal: Int, proteinG: Int, fatG: Int): NutritionTargets {
+    var fat = fatG
+    var protein = proteinG
+    if (protein * 4 + fat * 9 > kcal) {
+        val fatFloor = (kcal * 0.20 / 9).toInt()
+        fat = ((kcal - protein * 4) / 9).coerceIn(fatFloor, fat)
+    }
+    if (protein * 4 + fat * 9 > kcal) {
+        protein = ((kcal - fat * 9) / 4).coerceAtLeast(0)
+    }
+    val carbs = ((kcal - protein * 4 - fat * 9) / 4).coerceAtLeast(0)
+    return NutritionTargets(kcal = kcal, proteinG = protein, fatG = fat, carbsG = carbs)
 }
 
 /**

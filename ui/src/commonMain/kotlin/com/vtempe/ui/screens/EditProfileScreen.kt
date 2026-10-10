@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
+import com.vtempe.shared.domain.model.ProfileBounds
 import com.vtempe.shared.domain.model.*
 import com.vtempe.ui.*
 import com.vtempe.ui.LocalBottomBarHeight
@@ -104,22 +105,38 @@ fun EditProfileScreen(
 @Composable
 private fun BasicInfoSection(edit: EditProfileState, onUpdate: (EditProfileState) -> Unit) {
     ProfileCard {
+        val invalid = edit.invalidFields
+        val ageError = ProfileBounds.Field.AGE in invalid
+        val heightError = ProfileBounds.Field.HEIGHT in invalid
+        val weightError = ProfileBounds.Field.WEIGHT in invalid
         OutlinedTextField(
             value = edit.age,
             onValueChange = { onUpdate(edit.copy(age = it.filter(Char::isDigit).take(3))) },
             label = { Text(stringResource(Res.string.label_age)) },
+            isError = ageError,
+            supportingText = if (ageError) {
+                { Text(stringResource(Res.string.edit_profile_invalid_age, ProfileBounds.AGE_YEARS.first, ProfileBounds.AGE_YEARS.last)) }
+            } else null,
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = edit.heightCm,
             onValueChange = { onUpdate(edit.copy(heightCm = it.filter(Char::isDigit).take(3))) },
             label = { Text(stringResource(Res.string.label_height_cm)) },
+            isError = heightError,
+            supportingText = if (heightError) {
+                { Text(stringResource(Res.string.edit_profile_invalid_height, ProfileBounds.HEIGHT_CM.first, ProfileBounds.HEIGHT_CM.last)) }
+            } else null,
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = edit.weightKg,
-            onValueChange = { onUpdate(edit.copy(weightKg = it.filter { c -> c.isDigit() || c == '.' }.take(5))) },
+            onValueChange = { onUpdate(edit.copy(weightKg = it.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(5))) },
             label = { Text(stringResource(Res.string.label_weight_kg)) },
+            isError = weightError,
+            supportingText = if (weightError) {
+                { Text(stringResource(Res.string.edit_profile_invalid_weight, ProfileBounds.WEIGHT_KG.start.toInt(), ProfileBounds.WEIGHT_KG.endInclusive.toInt())) }
+            } else null,
             modifier = Modifier.fillMaxWidth()
         )
         SectionHeading(stringResource(Res.string.label_goal))

@@ -1,5 +1,6 @@
 package com.vtempe.server.features.ai.api
 
+import com.vtempe.server.shared.dto.profile.AiProfile
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -37,6 +38,16 @@ internal object AiRequestLimits {
 
     /** Final guard on any prompt sent to the provider. */
     const val MAX_PROMPT_CHARS = 120_000
+
+    /** Supported body measurements — technical plausibility, not clinical eligibility. Same as
+     *  the app's ProfileBounds (VT-AUD-035). */
+    val AGE_YEARS = 10..110
+    val HEIGHT_CM = 50..272
+    val WEIGHT_KG = 20.0..400.0
+
+    fun hasSupportedMeasurements(profile: AiProfile): Boolean =
+        profile.age in AGE_YEARS && profile.heightCm in HEIGHT_CM &&
+            profile.weightKg.isFinite() && profile.weightKg in WEIGHT_KG
 }
 
 /** A request the AI endpoints refuse to process; answered with [status] and a stable [code]. */

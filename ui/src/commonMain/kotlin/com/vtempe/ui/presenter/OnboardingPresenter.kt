@@ -1,6 +1,7 @@
 package com.vtempe.ui.presenter
 
 import com.vtempe.shared.domain.consent.HealthDataConsentManager
+import com.vtempe.shared.domain.model.ProfileBounds
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
@@ -170,7 +171,7 @@ class OnboardingPresenterDelegate(
                     age = s.age.toInt(),
                     sex = s.sex,
                     heightCm = s.heightCm.toInt(),
-                    weightKg = s.weightKg.toDouble(),
+                    weightKg = ProfileBounds.parseWeight(s.weightKg) ?: s.weightKg.toDouble(),
                     goal = s.goal,
                     experienceLevel = s.experienceLevel,
                     dietaryPreferences = s.dietaryPreferences.split(",").map { it.trim() }.filter { it.isNotEmpty() },
@@ -218,9 +219,8 @@ class OnboardingPresenterDelegate(
     }
 
     private fun hasValidMeasurements(state: OnboardingState): Boolean {
-        val age = state.age.toIntOrNull() ?: return false
-        val height = state.heightCm.toIntOrNull() ?: return false
-        val weight = state.weightKg.toDoubleOrNull() ?: return false
-        return age > 0 && height > 0 && weight.isFinite() && weight > 0
+        return ProfileBounds.invalidFields(
+            state.age.toIntOrNull(), state.heightCm.toIntOrNull(), ProfileBounds.parseWeight(state.weightKg)
+        ).isEmpty()
     }
 }
