@@ -4,6 +4,8 @@ package com.vtempe.ui.screens
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.HomePresenter
 import com.vtempe.ui.presenter.HomeState
+import com.vtempe.ui.presenter.TodayWorkout
+import com.vtempe.shared.domain.model.Macros
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -144,7 +146,7 @@ fun HomeScreen(
                             animationSpec = tween(400)
                         )
                     ) {
-                        TodayWorkoutCard(onNavigate)
+                        TodayWorkoutCard(uiState.todayWorkout, uiState.hasTrainingPlan, onNavigate)
                     }
                 }
                 item(key = "nutrition_summary") {
@@ -155,7 +157,7 @@ fun HomeScreen(
                             animationSpec = tween(450)
                         )
                     ) {
-                        NutritionSummaryCard(onNavigate)
+                        NutritionSummaryCard(uiState.todayMacros, onNavigate)
                     }
                 }
             }
@@ -247,7 +249,7 @@ private fun QuickActionCard(onNavigate: (Destination) -> Unit) {
 }
 
 @Composable
-private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
+private fun TodayWorkoutCard(today: TodayWorkout?, hasPlan: Boolean, onNavigate: (Destination) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -270,10 +272,16 @@ private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        stringResource(Res.string.home_workout_today_sub),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // From today's stored workout — never a fixed sample (VT-AUD-069).
+                    val subtitle = when {
+                        today != null -> listOfNotNull(
+                            today.label.takeIf { it.isNotBlank() },
+                            stringResource(Res.string.home_workout_today_sub).kmpFormat(today.exercises, today.sets)
+                        ).joinToString(" · ")
+                        hasPlan -> stringResource(Res.string.home_workout_rest_day)
+                        else -> stringResource(Res.string.home_workout_no_plan)
+                    }
+                    Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -291,7 +299,7 @@ private fun TodayWorkoutCard(onNavigate: (Destination) -> Unit) {
 }
 
 @Composable
-private fun NutritionSummaryCard(onNavigate: (Destination) -> Unit) {
+private fun NutritionSummaryCard(macros: Macros?, onNavigate: (Destination) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = homeCardColors(),
@@ -315,7 +323,12 @@ private fun NutritionSummaryCard(onNavigate: (Destination) -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        stringResource(Res.string.home_macros_sample),
+                        if (macros != null) {
+                            stringResource(Res.string.home_macros_today)
+                                .kmpFormat(macros.proteinGrams, macros.fatGrams, macros.carbsGrams)
+                        } else {
+                            stringResource(Res.string.home_nutrition_no_plan)
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

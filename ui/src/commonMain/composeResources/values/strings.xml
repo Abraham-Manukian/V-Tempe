@@ -23,12 +23,15 @@
     <string name="home_kcal_plan">Kcal / day</string>
     <string name="home_quick_actions">Quick actions</string>
     <string name="home_workout_today_title">Today workout</string>
-    <string name="home_workout_today_sub">Full body - 45 min - 8 exercises</string>
+    <string name="home_workout_today_sub">Exercises: %1$d · Sets: %2$d</string>
+    <string name="home_workout_rest_day">Rest day today</string>
+    <string name="home_workout_no_plan">Your training plan isn't ready yet</string>
     <string name="home_start">Start</string>
     <string name="home_preview">Preview</string>
     <string name="home_nutrition_title">Nutrition</string>
     <string name="home_open_menu">Open menu</string>
-    <string name="home_macros_sample">Protein 120 g  Fat 60 g  Carbs 250 g</string>
+    <string name="home_macros_today">Protein %1$d g  Fat %2$d g  Carbs %3$d g</string>
+    <string name="home_nutrition_no_plan">Today's menu isn't ready yet</string>
     <string name="home_weight_checkin_title">Current Weight</string>
     <string name="home_weight_checkin_subtitle">Update once a week</string>
     <string name="home_weight_checkin_hint">Weight, kg</string>

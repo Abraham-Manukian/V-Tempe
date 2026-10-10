@@ -11,6 +11,7 @@ import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.lang.reflect.Proxy
 
@@ -32,7 +33,7 @@ internal fun memorySettings(values: MutableMap<String, String> = mutableMapOf())
 internal open class FakeTraining(private val workouts: List<Workout> = emptyList()) : TrainingRepository {
     override suspend fun generatePlan(profile: Profile, weekIndex: Int) = TrainingPlan(weekIndex, emptyList())
     override suspend fun logSet(workoutId: String, set: WorkoutSet) = Unit
-    override fun observeWorkouts() = MutableStateFlow(workouts)
+    override fun observeWorkouts(): Flow<List<Workout>> = MutableStateFlow(workouts)
     override fun observeWorkoutsByWeek(weekIndex: Int) = observeWorkouts()
     override fun observeWorkoutProgress() = MutableStateFlow(emptyMap<String, WorkoutProgress>())
     override suspend fun saveWorkoutProgress(progress: WorkoutProgress) = Unit

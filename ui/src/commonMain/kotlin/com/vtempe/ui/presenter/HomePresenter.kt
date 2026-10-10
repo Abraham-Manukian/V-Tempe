@@ -3,6 +3,7 @@ package com.vtempe.ui.presenter
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
+import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.repository.NutritionRepository
@@ -11,6 +12,7 @@ import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.ui.util.toShortKey
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +24,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+/** Today's planned workout as the Home card describes it. */
+@Immutable
+data class TodayWorkout(val label: String, val exercises: Int, val sets: Int)
 
 @Immutable
 data class HomeState(
@@ -39,6 +45,11 @@ data class HomeState(
     val weightSaved: Boolean = false,
     /** Non-null when the last data/plan refresh failed. Cleared on the next successful load. */
     val errorMessage: String? = null,
+    /** Today's workout from the stored plan; null on a rest day or without a plan (VT-AUD-069). */
+    val todayWorkout: TodayWorkout? = null,
+    val hasTrainingPlan: Boolean = false,
+    /** Sum of today's planned meals; null when there is no menu for today. */
+    val todayMacros: Macros? = null,
 )
 
 interface HomePresenter {
@@ -70,6 +81,9 @@ class HomePresenterDelegate(
     private var workoutsError = false
     private var planError = false
     private var coachDataError = false
+    // A failed flow ends its collector; Retry starts a new one (VT-AUD-071).
+    private var workoutsJob: Job? = null
+    private var planJob: Job? = null
 
     init {
         // Populate weight check-in and last known weight up front (no IO needed)
@@ -80,31 +94,8 @@ class HomePresenterDelegate(
             )
         }
 
-        trainingRepository.observeWorkouts()
-            .onEach { workouts ->
-                cachedWorkouts = workouts
-                workoutsError = false
-                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
-            }
-            .catch { e ->
-                Napier.e("HomePresenter workouts error", e)
-                workoutsError = true
-                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
-            }
-            .launchIn(scope)
-
-        nutritionRepository.observePlan()
-            .onEach { plan ->
-                cachedPlan = plan
-                planError = false
-                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
-            }
-            .catch { e ->
-                Napier.e("HomePresenter plan error", e)
-                planError = true
-                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
-            }
-            .launchIn(scope)
+        observeWorkouts()
+        observePlan()
 
         scope.launch {
             runCatching { ensureCoachData() }
@@ -117,7 +108,42 @@ class HomePresenterDelegate(
         }
     }
 
+    private fun observeWorkouts() {
+        workoutsJob?.cancel()
+        workoutsJob = trainingRepository.observeWorkouts()
+            .onEach { workouts ->
+                cachedWorkouts = workouts
+                workoutsError = false
+                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
+            }
+            .catch { e ->
+                Napier.e("HomePresenter workouts error", e)
+                workoutsError = true
+                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
+            }
+            .launchIn(scope)
+    }
+
+    private fun observePlan() {
+        planJob?.cancel()
+        planJob = nutritionRepository.observePlan()
+            .onEach { plan ->
+                cachedPlan = plan
+                planError = false
+                _state.update { buildHomeState(cachedWorkouts, cachedPlan).copy(errorMessage = combinedErrorMessage()) }
+            }
+            .catch { e ->
+                Napier.e("HomePresenter plan error", e)
+                planError = true
+                _state.update { it.copy(loading = false, errorMessage = combinedErrorMessage()) }
+            }
+            .launchIn(scope)
+    }
+
     override fun refresh() {
+        // Re-read what failed, not only regenerate: a finished collector never recovers by itself.
+        if (workoutsError || workoutsJob?.isActive != true) observeWorkouts()
+        if (planError || planJob?.isActive != true) observePlan()
         scope.launch {
             runCatching { ensureCoachData() }
                 .onSuccess { coachDataError = false; _state.update { it.copy(errorMessage = combinedErrorMessage()) } }
@@ -150,7 +176,8 @@ class HomePresenterDelegate(
     private fun buildHomeState(workouts: List<Workout>, plan: NutritionPlan?): HomeState {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val todayWorkouts = workouts.filter { it.date == today }
-        val todaySets = todayWorkouts.sumOf { it.sets.size }
+        // Each WorkoutSet is one exercise with its prescribed number of sets.
+        val todaySets = todayWorkouts.sumOf { workout -> workout.sets.sumOf { it.sets } }
         // If today has a workout, show its exercise count.
         // Fall back to the week's total exercise variety so the stat is never zero on rest days.
         val todayExercisesCount = todayWorkouts
@@ -158,9 +185,28 @@ class HomePresenterDelegate(
             .takeIf { it > 0 }
             ?: workouts.flatMap { it.sets }.map { it.exerciseId }.distinct().size
         val dayKey = today.dayOfWeek.toShortKey()
-        val dailyKcalPlan = plan?.mealsByDay?.get(dayKey)?.sumOf { it.kcal } ?: 0
+        val todayMeals = plan?.mealsByDay?.get(dayKey).orEmpty()
+        val dailyKcalPlan = todayMeals.sumOf { it.kcal }
         val sleepMinutes = sleepStore.getForDate(today.toString())
+        val todayWorkout = todayWorkouts.takeIf { it.isNotEmpty() }?.let { list ->
+            TodayWorkout(
+                label = list.map { it.label }.firstOrNull { it.isNotBlank() }.orEmpty(),
+                exercises = list.flatMap { it.sets }.map { it.exerciseId }.distinct().size,
+                sets = todaySets,
+            )
+        }
+        val todayMacros = todayMeals.takeIf { it.isNotEmpty() }?.let { meals ->
+            Macros(
+                proteinGrams = meals.sumOf { it.macros.proteinGrams },
+                fatGrams = meals.sumOf { it.macros.fatGrams },
+                carbsGrams = meals.sumOf { it.macros.carbsGrams },
+                kcal = dailyKcalPlan,
+            )
+        }
         return _state.value.copy(
+            todayWorkout = todayWorkout,
+            hasTrainingPlan = workouts.isNotEmpty(),
+            todayMacros = todayMacros,
             workouts = workouts,
             todaySets = todaySets,
             todayExercisesCount = todayExercisesCount,

@@ -23,12 +23,15 @@
     <string name="home_kcal_plan">Ккал / день</string>
     <string name="home_quick_actions">Быстрые действия</string>
     <string name="home_workout_today_title">Тренировка на сегодня</string>
-    <string name="home_workout_today_sub">Все тело — 45 мин — 8 упражнений</string>
+    <string name="home_workout_today_sub">Упражнений: %1$d · Подходов: %2$d</string>
+    <string name="home_workout_rest_day">Сегодня по плану отдых</string>
+    <string name="home_workout_no_plan">План тренировок ещё не готов</string>
     <string name="home_start">Старт</string>
     <string name="home_preview">Просмотр</string>
     <string name="home_nutrition_title">Питание</string>
     <string name="home_open_menu">Открыть меню</string>
-    <string name="home_macros_sample">Белки 120 г  Жиры 60 г  Углеводы 250 г</string>
+    <string name="home_macros_today">Белки %1$d г  Жиры %2$d г  Углеводы %3$d г</string>
+    <string name="home_nutrition_no_plan">Меню на сегодня ещё не готово</string>
     <string name="home_weight_checkin_title">Текущий вес</string>
     <string name="home_weight_checkin_subtitle">Обновляйте раз в неделю</string>
     <string name="home_weight_checkin_hint">Вес, кг</string>
