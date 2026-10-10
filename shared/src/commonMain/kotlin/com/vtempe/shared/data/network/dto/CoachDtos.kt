@@ -219,7 +219,8 @@ data class TrainingPlanDto(
                                     exerciseId = exerciseId,
                                     reps = set.reps,
                                     weightKg = set.weightKg,
-                                    rpe = set.rpe
+                                    rpe = set.rpe,
+                                    sets = set.sets
                                 )
                             }
                     )
