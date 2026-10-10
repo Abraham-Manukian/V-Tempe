@@ -99,7 +99,10 @@ internal fun normalizeNutritionPlan(
         normalizedMealsByDay[dayKey] = safeMeals
     }
 
-    val rawShopping = (plan.shoppingList + normalizedMealsByDay.values.flatten().flatMap { it.ingredients })
+    // One source of quantities (VT-AUD-030): the meals' own ingredients. The model's shoppingList
+    // (or this function's previous output) is a SUM of those same ingredients; adding it again
+    // double-counted every quantity and grew on each normalization (section → bundle).
+    val rawShopping = normalizedMealsByDay.values.flatten().flatMap { it.ingredients }
         .map(::sanitizeText)
         .filter { it.isNotEmpty() }
     // Group duplicates and sum quantities (e.g. "100г риса" + "Рис 480г" → "Рис — 580 г").

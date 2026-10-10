@@ -60,12 +60,13 @@ object ShoppingListNormalizer {
     private val KG_UNITS = setOf("кг", "kg")
     private val L_UNITS = setOf("л", "l", "литр")
     private val PIECE_UNITS = setOf("шт", "штук", "штука", "штуки", "pcs", "pc", "piece", "pieces")
-    private val SPOON_UNITS = setOf(
-        "ст.л", "ст. л", "стл", "tbsp", "tablespoon", "ч.л", "ч. л", "чл", "tsp", "teaspoon"
-    )
+    // A tablespoon is three teaspoons: the two are kept apart rather than summed as one unit
+    // (VT-AUD-031) — "1 tbsp + 1 tsp" is not "2 tbsp".
+    private val TABLESPOON_UNITS = setOf("ст.л", "ст. л", "стл", "tbsp", "tablespoon", "tablespoons")
+    private val TEASPOON_UNITS = setOf("ч.л", "ч. л", "чл", "tsp", "teaspoon", "teaspoons")
 
     private val QUANTITY_REGEX = Regex(
-        """(\d+[.,]?\d*)\s*(кг|kg|мл|ml|литр|л|l|грамм\w*|гр|г|g|шт\w*|pcs|pieces|piece|pc|ст\.?\s?л|ч\.?\s?л|tbsp|tablespoon|tsp|teaspoon|стакан\w*|cup\w*)?""",
+        """(\d+[.,]?\d*)\s*(кг|kg|мл|ml|литр|л|l|грамм\w*|гр|г|g|шт\w*|pcs|pieces|piece|pc|ст\.?\s?л|ч\.?\s?л|tbsp|tablespoons?|tsp|teaspoons?|стакан\w*|cup\w*)?""",
         RegexOption.IGNORE_CASE
     )
 
@@ -131,7 +132,8 @@ object ShoppingListNormalizer {
             in ML_UNITS -> "мл"
             in L_UNITS -> "л"
             in PIECE_UNITS -> "шт"
-            in SPOON_UNITS -> "ст.л"
+            in TABLESPOON_UNITS -> "ст.л"
+            in TEASPOON_UNITS -> "ч.л"
             else -> unit.trim()
         }
     }
