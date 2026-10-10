@@ -97,6 +97,7 @@ class ProfileRepositoryDb(
         // Order matters because WorkoutSet/MealIngredient depend on parent rows.
         db.workoutQueries.deleteAllWorkouts()
         db.nutritionQueries.deleteAllMealByDay()
+        db.nutritionQueries.deleteAllShoppingItems()
         db.nutritionQueries.deleteAllMealIngredients()
         db.nutritionQueries.deleteAllMeals()
 

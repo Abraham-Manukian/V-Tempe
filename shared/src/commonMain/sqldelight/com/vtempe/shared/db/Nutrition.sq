@@ -23,6 +23,15 @@ CREATE TABLE MealByDay(
   PRIMARY KEY(weekIndex, day, indexInDay)
 );
 
+-- The plan's own aggregated shopping list ("Rice — 200 г"), kept so a reload shows the same
+-- purchases as before it (VT-AUD-032). Added by migration 8.sqm.
+CREATE TABLE IF NOT EXISTS ShoppingItem(
+  weekIndex INTEGER NOT NULL,
+  position INTEGER NOT NULL,
+  item TEXT NOT NULL,
+  PRIMARY KEY(weekIndex, position)
+);
+
 CREATE INDEX IF NOT EXISTS idx_mealbyday_week ON MealByDay(weekIndex);
 CREATE INDEX IF NOT EXISTS idx_mealingredient_meal ON MealIngredient(mealId);
 
@@ -55,6 +64,21 @@ FROM MealByDay b
 JOIN MealIngredient i ON i.mealId = b.mealId
 WHERE b.weekIndex = ?
 ORDER BY i.ingredient;
+
+insertShoppingItem:
+INSERT OR REPLACE INTO ShoppingItem(weekIndex, position, item) VALUES (?, ?, ?);
+
+selectShoppingItemsForWeek:
+SELECT item FROM ShoppingItem WHERE weekIndex = ? ORDER BY position;
+
+deleteShoppingItemsForWeek:
+DELETE FROM ShoppingItem WHERE weekIndex = ?;
+
+deleteShoppingItemsFromWeek:
+DELETE FROM ShoppingItem WHERE weekIndex >= ?;
+
+deleteAllShoppingItems:
+DELETE FROM ShoppingItem;
 
 deleteAllMealByDay:
 DELETE FROM MealByDay;

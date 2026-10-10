@@ -1,0 +1,9 @@
+-- VT-AUD-032: the canonical (aggregated) shopping list of a week, as the plan carried it.
+-- Additive: weeks saved before this migration have no rows and keep the previous behaviour
+-- (a distinct list of their ingredients).
+CREATE TABLE IF NOT EXISTS ShoppingItem(
+  weekIndex INTEGER NOT NULL,
+  position INTEGER NOT NULL,
+  item TEXT NOT NULL,
+  PRIMARY KEY(weekIndex, position)
+);

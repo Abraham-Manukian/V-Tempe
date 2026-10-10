@@ -105,6 +105,7 @@ class NutritionRepositoryDb(
                 q.deleteIngredientsFromWeek(weekIndex.toLong())
                 q.deleteMealsFromWeek(weekIndex.toLong())
                 q.deleteMealByDayFromWeek(weekIndex.toLong())
+                q.deleteShoppingItemsFromWeek(weekIndex.toLong())
                 q.deleteOrphanMeals()
                 q.deleteOrphanIngredients()
             }
@@ -124,6 +125,10 @@ class NutritionRepositoryDb(
                 db.nutritionQueries.deleteIngredientsOfWeek(week)
                 db.nutritionQueries.deleteMealsOfWeek(week)
                 db.nutritionQueries.deleteMealsForWeek(week)
+                db.nutritionQueries.deleteShoppingItemsForWeek(week)
+                plan.shoppingList.forEachIndexed { position, item ->
+                    db.nutritionQueries.insertShoppingItem(week, position.toLong(), item)
+                }
                 plan.mealsByDay.forEach { (day, meals) ->
                     meals.forEachIndexed { idx, meal ->
                         val mealId = "m_${plan.weekIndex}_${day}_${idx}"
@@ -202,7 +207,9 @@ class NutritionRepositoryDb(
             mealsByDay[day] = meals
         }
         if (!hasMeals) return null
-        val shopping = db.nutritionQueries.selectShoppingListForWeek(weekIndex.toLong()).executeAsList()
+        // The saved canonical list; weeks stored before it existed fall back to their ingredients.
+        val shopping = db.nutritionQueries.selectShoppingItemsForWeek(weekIndex.toLong()).executeAsList()
+            .ifEmpty { db.nutritionQueries.selectShoppingListForWeek(weekIndex.toLong()).executeAsList() }
         return NutritionPlan(weekIndex, mealsByDay, shopping)
     }
 }
