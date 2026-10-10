@@ -74,6 +74,9 @@ class SleepStore(
         return true
     }
 
+    fun isReadableSnapshot(rawJson: String): Boolean = decode(rawJson) != null
+    fun isReadableNotesSnapshot(rawJson: String): Boolean = decodeNotes(rawJson) != null
+
     /** Minutes logged for [date], or 0 if not recorded. */
     fun getForDate(date: String): Int = load()[date] ?: 0
 

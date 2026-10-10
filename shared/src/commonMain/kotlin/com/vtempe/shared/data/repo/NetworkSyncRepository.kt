@@ -41,7 +41,7 @@ class NetworkSyncRepository(
             // sign-in switch mid-request can't redirect the upload to another account.
             val uid = owner.ownerUid() ?: return
             val token = auth.idTokenFor(uid) ?: return
-            val payload = snapshotOrNull(domain) ?: return
+            val payload = (readSnapshot(domain) as? LocalSnapshot.Present)?.payload ?: return
             upload(domain, payload, token)
         }
     }
@@ -49,8 +49,19 @@ class NetworkSyncRepository(
     override suspend fun pushAll(uid: String): Boolean = mutex.withLock {
         val token = auth.idTokenFor(uid) ?: return@withLock false
         SyncDomain.entries.all { domain ->
-            upload(domain, snapshotOrNull(domain) ?: RemoteSyncSnapshot.EMPTY_PAYLOAD, token)
+            val payload = when (val local = readSnapshot(domain)) {
+                is LocalSnapshot.Present -> local.payload
+                LocalSnapshot.Absent -> RemoteSyncSnapshot.EMPTY_PAYLOAD
+                // VT-AUD-058: a failed read is not "nothing here" — uploading "{}" would erase the
+                // account's good copy and let sign-out wipe the device as if it were backed up.
+                LocalSnapshot.Unreadable -> return@withLock false
+            }
+            upload(domain, payload, token)
         }
+    }
+
+    override suspend fun awaitIdle() {
+        mutex.withLock { }
     }
 
     override suspend fun fetchRemote(uid: String): RemoteSyncSnapshot? {
@@ -64,15 +75,32 @@ class NetworkSyncRepository(
         }
     }
 
+    override fun unreadableDomains(snapshot: RemoteSyncSnapshot): Set<SyncDomain> =
+        SyncDomain.entries.filterTo(mutableSetOf()) { domain ->
+            val payload = snapshot.payloads[domain.wireKey] ?: return@filterTo false
+            !isReadable(domain, payload)
+        }
+
     override suspend fun restore(snapshot: RemoteSyncSnapshot): Set<SyncDomain> = mutex.withLock {
-        val rejected = SyncDomain.entries.filterTo(mutableSetOf()) { domain ->
+        // All or nothing (VT-AUD-060): every payload is read first, so one unreadable domain never
+        // leaves a half-restored account behind.
+        val unreadable = unreadableDomains(snapshot)
+        if (unreadable.isNotEmpty()) {
+            Napier.w(tag = "Sync", message = "unreadable snapshot, nothing restored: ${unreadable.joinToString { it.wireKey }}")
+            return@withLock unreadable
+        }
+        SyncDomain.entries.filterTo(mutableSetOf()) { domain ->
             val payload = snapshot.payloads[domain.wireKey] ?: return@filterTo false
             !restoreDomain(domain, payload)
         }
-        if (rejected.isNotEmpty()) {
-            Napier.w(tag = "Sync", message = "unreadable snapshot kept local data: ${rejected.joinToString { it.wireKey }}")
-        }
-        rejected
+    }
+
+    private fun isReadable(domain: SyncDomain, payload: String): Boolean = when (domain) {
+        SyncDomain.PROFILE -> payload == RemoteSyncSnapshot.EMPTY_PAYLOAD || decodeProfile(payload) != null
+        SyncDomain.WORKOUT_PROGRESS -> workoutProgressStore.isReadableSnapshot(payload)
+        SyncDomain.SLEEP -> sleepStore.isReadableSnapshot(payload)
+        SyncDomain.SLEEP_NOTES -> sleepStore.isReadableNotesSnapshot(payload)
+        SyncDomain.WEIGHT -> weightStore.isReadableSnapshot(payload)
     }
 
     /** False when [payload] could not be read; local data for [domain] is then left as it was. */
@@ -90,10 +118,23 @@ class NetworkSyncRepository(
         return ok
     }
 
-    private suspend fun snapshotOrNull(domain: SyncDomain): String? =
+    /** What the device holds for one domain: data, deliberately nothing, or a read that failed. */
+    private sealed interface LocalSnapshot {
+        class Present(val payload: String) : LocalSnapshot
+        data object Absent : LocalSnapshot
+        data object Unreadable : LocalSnapshot
+    }
+
+    private suspend fun readSnapshot(domain: SyncDomain): LocalSnapshot =
         runCatching { snapshot(domain) }
-            .onFailure { if (it is CancellationException) throw it }
-            .getOrNull()
+            .fold(
+                onSuccess = { payload -> payload?.let(LocalSnapshot::Present) ?: LocalSnapshot.Absent },
+                onFailure = {
+                    if (it is CancellationException) throw it
+                    Napier.w(tag = "Sync", message = "local ${domain.wireKey} unreadable: ${it::class.simpleName}")
+                    LocalSnapshot.Unreadable
+                },
+            )
 
     private suspend fun snapshot(domain: SyncDomain): String? = when (domain) {
         SyncDomain.PROFILE -> profileRepository.getProfile()?.let { json.encodeToString(Profile.serializer(), it) }
@@ -105,12 +146,13 @@ class NetworkSyncRepository(
 
     private suspend fun restoreProfile(payload: String): Boolean {
         if (payload == RemoteSyncSnapshot.EMPTY_PAYLOAD) return true // the account deliberately has no profile
-        return runCatching { json.decodeFromString(Profile.serializer(), payload) }
-            .onSuccess { profileRepository.restoreProfile(it) }
-            .onFailure {
-                if (it is CancellationException) throw it
-                Napier.d(tag = "Sync", message = "profile restore failed: ${it::class.simpleName}")
-            }
-            .isSuccess
+        val profile = decodeProfile(payload) ?: return false
+        profileRepository.restoreProfile(profile) // a write failure propagates
+        return true
     }
+
+    private fun decodeProfile(payload: String): Profile? =
+        runCatching { json.decodeFromString(Profile.serializer(), payload) }
+            .onFailure { Napier.d(tag = "Sync", message = "profile snapshot unreadable: ${it::class.simpleName}") }
+            .getOrNull()
 }

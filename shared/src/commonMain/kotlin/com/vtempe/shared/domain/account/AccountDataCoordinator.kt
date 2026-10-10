@@ -33,7 +33,9 @@ class AccountDataCoordinator(
 
         val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
         if (!localData.hasUserData()) {
-            sync.restore(remote)
+            // Ready only once the account's data is actually on the device (VT-AUD-060): an
+            // unreadable snapshot fails and is retried, it never becomes an empty account.
+            if (sync.restore(remote).isNotEmpty()) return AccountDataOutcome.Failed
             owner.setOwnerUid(uid)
             return AccountDataOutcome.Ready
         }
@@ -47,19 +49,23 @@ class AccountDataCoordinator(
 
     suspend fun resolveGuestChoice(uid: String, choice: GuestDataChoice): AccountDataOutcome =
         when (choice) {
-            GuestDataChoice.KEEP_ACCOUNT_DATA -> {
-                val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
-                localData.clearUserData()
-                sync.restore(remote)
-                owner.setOwnerUid(uid)
-                AccountDataOutcome.Ready
-            }
+            GuestDataChoice.KEEP_ACCOUNT_DATA -> keepAccountData(uid)
             GuestDataChoice.REPLACE_WITH_DEVICE_DATA -> {
                 owner.setOwnerUid(uid)
                 uploadDeviceData(uid)
                 AccountDataOutcome.Ready
             }
         }
+
+    private suspend fun keepAccountData(uid: String): AccountDataOutcome {
+        val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
+        // Checked before the device copy is cleared, so a corrupt account never costs it.
+        if (sync.unreadableDomains(remote).isNotEmpty()) return AccountDataOutcome.Failed
+        localData.clearUserData()
+        if (sync.restore(remote).isNotEmpty()) return AccountDataOutcome.Failed
+        owner.setOwnerUid(uid)
+        return AccountDataOutcome.Ready
+    }
 
     /**
      * Signs out and removes the account's data from the device. Without [force], refuses when the
@@ -96,8 +102,10 @@ class AccountDataCoordinator(
     suspend fun deleteAccount(): AccountDeletionOutcome {
         val uid = auth.authState.value?.uid ?: return AccountDeletionOutcome.Failed
         val ownsDeviceData = owner.ownerUid() == uid
-        // Detach first: an upload landing after the server wipe would bring the data back.
+        // Detach first, then let an upload already under way finish: one landing after the server
+        // wipe would bring the data back (VT-AUD-059). Uploads starting later see no owner.
         if (ownsDeviceData) owner.setOwnerUid(null)
+        sync.awaitIdle()
         var outcome: AccountDeletionOutcome = AccountDeletionOutcome.Failed
         try {
             outcome = deleteServerDataThenAccount(uid)

@@ -43,6 +43,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -125,6 +126,11 @@ internal class TestDevice {
         pendingPushes.toList().also { pendingPushes.clear() }.distinct().forEach { sync.pushDomain(it) }
     }
 
+    /** Makes the stored profile unreadable, as a corrupt row would. */
+    fun corruptStoredProfile() {
+        driver.execute(null, "UPDATE Profile SET constraintsJson = 'not-json'", 0)
+    }
+
     fun close() = driver.close()
 }
 
@@ -161,6 +167,9 @@ internal class FakeSyncServer {
     private val json = Json { ignoreUnknownKeys = true }
     val blobs = mutableMapOf<String, MutableMap<String, String>>()
     var failRequests = false
+    /** When set, a PUT is held after it reached the server and before it is stored. */
+    var putGate: CompletableDeferred<Unit>? = null
+    val putReceived = CompletableDeferred<Unit>()
 
     fun seed(uid: String, domain: String, payload: String) {
         blobs.getOrPut(uid) { mutableMapOf() }[domain] = payload
@@ -181,6 +190,8 @@ internal class FakeSyncServer {
                     respond("", HttpStatusCode.NoContent)
                 }
                 request.method == HttpMethod.Put -> {
+                    putReceived.complete(Unit)
+                    putGate?.await()
                     val domain = request.url.encodedPath.substringAfterLast('/')
                     val body = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
                     seed(uid, domain, json.decodeFromString(SyncPushRequestDto.serializer(), body).payload)

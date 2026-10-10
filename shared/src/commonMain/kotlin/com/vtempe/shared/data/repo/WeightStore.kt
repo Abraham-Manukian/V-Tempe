@@ -55,6 +55,8 @@ class WeightStore(
         return true
     }
 
+    fun isReadableSnapshot(rawJson: String): Boolean = decode(rawJson) != null
+
     /** Latest recorded weight, or null if never logged. */
     fun latestWeight(): Double? =
         load().entries.maxByOrNull { it.key }?.value
