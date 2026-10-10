@@ -11,6 +11,7 @@ import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
 import com.vtempe.ui.util.toShortKey
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,9 @@ data class HomeState(
     val todayMacros: Macros? = null,
 )
 
+/** [HomeState.errorMessage] when the user's restrictions leave no safe plan. */
+const val RESTRICTIONS_CONFLICT = "restrictions_conflict"
+
 interface HomePresenter {
     val state: StateFlow<HomeState>
     fun refresh()
@@ -81,6 +85,7 @@ class HomePresenterDelegate(
     private var workoutsError = false
     private var planError = false
     private var coachDataError = false
+    private var restrictionConflict = false
     // A failed flow ends its collector; Retry starts a new one (VT-AUD-071).
     private var workoutsJob: Job? = null
     private var planJob: Job? = null
@@ -97,15 +102,7 @@ class HomePresenterDelegate(
         observeWorkouts()
         observePlan()
 
-        scope.launch {
-            runCatching { ensureCoachData() }
-                .onSuccess { coachDataError = false; _state.update { it.copy(errorMessage = combinedErrorMessage()) } }
-                .onFailure { e ->
-                    Napier.w("EnsureCoachData failed on Home", e)
-                    coachDataError = true
-                    _state.update { it.copy(errorMessage = combinedErrorMessage()) }
-                }
-        }
+        scope.launch { onCoachDataResult(runCatching { ensureCoachData() }, "Home") }
     }
 
     private fun observeWorkouts() {
@@ -144,19 +141,26 @@ class HomePresenterDelegate(
         // Re-read what failed, not only regenerate: a finished collector never recovers by itself.
         if (workoutsError || workoutsJob?.isActive != true) observeWorkouts()
         if (planError || planJob?.isActive != true) observePlan()
-        scope.launch {
-            runCatching { ensureCoachData() }
-                .onSuccess { coachDataError = false; _state.update { it.copy(errorMessage = combinedErrorMessage()) } }
-                .onFailure { e ->
-                    Napier.w("EnsureCoachData failed on Home refresh", e)
-                    coachDataError = true
-                    _state.update { it.copy(errorMessage = combinedErrorMessage()) }
-                }
-        }
+        scope.launch { onCoachDataResult(runCatching { ensureCoachData() }, "Home refresh") }
     }
 
-    private fun combinedErrorMessage(): String? =
-        if (workoutsError || planError || coachDataError) "load_failed" else null
+    private fun combinedErrorMessage(): String? = when {
+        coachDataError && restrictionConflict -> RESTRICTIONS_CONFLICT
+        workoutsError || planError || coachDataError -> "load_failed"
+        else -> null
+    }
+
+    private fun onCoachDataResult(result: Result<Boolean>, where: String) {
+        result
+            .onSuccess { coachDataError = false; restrictionConflict = false }
+            .onFailure { e ->
+                if (e is CancellationException) throw e
+                Napier.w("EnsureCoachData failed on $where", e)
+                coachDataError = true
+                restrictionConflict = e.isPlanRestrictionConflict()
+            }
+        _state.update { it.copy(errorMessage = combinedErrorMessage()) }
+    }
 
     override fun logWeight(kg: Double) {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date

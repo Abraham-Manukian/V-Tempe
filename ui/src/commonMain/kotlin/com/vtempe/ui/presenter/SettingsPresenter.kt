@@ -32,6 +32,8 @@ data class SettingsState(
     val saveFailed: Boolean = false,
     /** The profile was saved, but the plans could not be rebuilt for it yet. */
     val planUpdateFailed: Boolean = false,
+    /** The plans failed because the new restrictions leave no safe meal or exercise. */
+    val planRestrictionConflict: Boolean = false,
     val aiModelMode: AiModelMode = AiModelMode.PAID,
     val analyticsConsent: Boolean = false,
     val authUser: AuthUser? = null,
@@ -131,16 +133,18 @@ class SettingsPresenterDelegate(
     }
 
     private suspend fun rebuildPlans() {
-        _state.update { it.copy(planUpdateFailed = false) }
+        _state.update { it.copy(planUpdateFailed = false, planRestrictionConflict = false) }
+        var conflict = false
         val rebuilt = try {
             ensureCoachData(force = true)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             Napier.e("Plan rebuild after profile save failed", error)
+            conflict = error.isPlanRestrictionConflict()
             false
         }
-        if (!rebuilt) _state.update { it.copy(planUpdateFailed = true) }
+        if (!rebuilt) _state.update { it.copy(planUpdateFailed = true, planRestrictionConflict = conflict) }
     }
 
     override fun reset(onDone: () -> Unit) {

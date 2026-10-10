@@ -428,7 +428,7 @@
     <string name="paywall_title">Подписка Pro</string>
     <string name="paywall_desc">Разблокируйте дополнительные возможности. Биллинг будет добавлен позже.</string>
     <string name="paywall_active">Подписка активна</string>
-    <string name="paywall_cta">Оформить (заглушка)</string>
+    <string name="paywall_cta">Покупка скоро будет доступна</string>
     <string name="paywall_monthly">Месяц</string>
     <string name="paywall_yearly">Год</string>
     <string name="paywall_best_value">Лучшее предложение</string>
@@ -447,6 +447,8 @@
     <string name="settings_reset_confirm_message">С устройства удалятся все твои данные: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Язык и единицы измерения останутся.</string>
     <string name="settings_reset_confirm_message_account">Все твои данные удалятся с устройства и из аккаунта: профиль, планы, прогресс тренировок, сон, вес и переписка с тренером. Вход в аккаунт сохранится. Отменить это нельзя.</string>
     <string name="settings_reset_confirm">Удалить всё</string>
+    <string name="plan_restrictions_conflict_title">Нет безопасного плана под ваши ограничения</string>
+    <string name="plan_restrictions_conflict">Аллергии, диета или травмы исключают все блюда или упражнения, которые может предложить приложение. Проверьте их в профиле.</string>
     <string name="profile_load_failed">Не удалось прочитать профиль. Попробуйте ещё раз.</string>
     <string name="profile_missing">На этом устройстве пока нет профиля.</string>
     <string name="edit_profile_save_failed">Изменения не сохранились. Попробуйте ещё раз.</string>

@@ -111,7 +111,9 @@ fun SettingsScreen(
 
             if (state.planUpdateFailed) {
                 Text(
-                    stringResource(Res.string.settings_plan_update_failed),
+                    stringResource(
+                        if (state.planRestrictionConflict) Res.string.plan_restrictions_conflict else Res.string.settings_plan_update_failed
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )

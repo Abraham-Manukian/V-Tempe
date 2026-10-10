@@ -155,8 +155,11 @@ fun PaywallScreen(
                     enter = scaleIn(animationSpec = tween(250, delayMillis = 60)) + fadeIn(),
                     exit = fadeOut() + slideOutVertically()
                 ) {
+                    // No purchase flow exists yet (VT-AUD-054): the button says so and stays inactive
+                    // instead of looking like a working purchase that does nothing.
                     Button(
-                        onClick = { /* TODO billing */ },
+                        onClick = {},
+                        enabled = false,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AiPalette.DeepAccent,
                             contentColor = AiPalette.OnDeepAccent

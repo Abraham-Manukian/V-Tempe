@@ -4,6 +4,7 @@ package com.vtempe.ui.screens
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.HomePresenter
 import com.vtempe.ui.presenter.HomeState
+import com.vtempe.ui.presenter.RESTRICTIONS_CONFLICT
 import com.vtempe.ui.presenter.TodayWorkout
 import com.vtempe.shared.domain.model.Macros
 
@@ -85,9 +86,10 @@ fun HomeScreen(
                             visible = true,
                             enter = fadeIn(animationSpec = tween(300))
                         ) {
+                            val conflict = uiState.errorMessage == RESTRICTIONS_CONFLICT
                             ErrorState(
-                                title = stringResource(Res.string.home_load_error),
-                                subtitle = stringResource(Res.string.home_load_error_hint),
+                                title = stringResource(if (conflict) Res.string.plan_restrictions_conflict_title else Res.string.home_load_error),
+                                subtitle = stringResource(if (conflict) Res.string.plan_restrictions_conflict else Res.string.home_load_error_hint),
                                 onRetry = { homePresenter.refresh() }
                             )
                         }

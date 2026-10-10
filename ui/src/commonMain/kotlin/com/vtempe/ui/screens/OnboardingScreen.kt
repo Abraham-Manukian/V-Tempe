@@ -179,6 +179,7 @@ fun OnboardingScreen(
                         OnboardingError.INVALID_INPUT -> Res.string.error_invalid_input
                         OnboardingError.SAVE_FAILED -> Res.string.onboard_save_error
                         OnboardingError.GENERATION_FAILED -> Res.string.onboard_generation_error
+                        OnboardingError.RESTRICTIONS_CONFLICT -> Res.string.plan_restrictions_conflict
                         OnboardingError.CONSENT_REQUIRED -> Res.string.health_consent_required_error
                     }),
                     color = MaterialTheme.colorScheme.error,

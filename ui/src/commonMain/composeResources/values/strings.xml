@@ -436,7 +436,7 @@
     <string name="paywall_title">Pro version</string>
     <string name="paywall_desc">Unlock advanced features. Billing integration pending.</string>
     <string name="paywall_active">Subscription is active</string>
-    <string name="paywall_cta">Purchase (stub)</string>
+    <string name="paywall_cta">Purchases are coming soon</string>
     <string name="paywall_monthly">Monthly</string>
     <string name="paywall_yearly">Yearly</string>
     <string name="paywall_best_value">Best value</string>
@@ -456,6 +456,8 @@
     <string name="settings_reset_confirm_message_account">All your data will be deleted from this device and from your account: profile, plans, workout progress, sleep, weight and coach chat. You stay signed in. This can't be undone.</string>
     <string name="settings_reset_confirm">Delete everything</string>
     <string name="settings_reset_cancel">Cancel</string>
+    <string name="plan_restrictions_conflict_title">No safe plan for your restrictions</string>
+    <string name="plan_restrictions_conflict">Your allergies, diet or injuries rule out every meal or exercise the app can offer. Check them in your profile.</string>
     <string name="profile_load_failed">Couldn't read your profile. Try again.</string>
     <string name="profile_missing">There is no profile on this device yet.</string>
     <string name="edit_profile_save_failed">Your changes weren't saved. Try again.</string>

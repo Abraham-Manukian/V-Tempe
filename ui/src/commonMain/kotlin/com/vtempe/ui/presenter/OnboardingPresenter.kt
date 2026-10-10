@@ -37,7 +37,7 @@ const val TRAINING_FOCUS_GENERAL = "GENERAL"
 const val TRAINING_FOCUS_FAT_LOSS = "FAT_LOSS"
 internal const val EQUIPMENT_NOTE_MAX_CHARS = 200
 
-enum class OnboardingError { INVALID_INPUT, SAVE_FAILED, GENERATION_FAILED, CONSENT_REQUIRED }
+enum class OnboardingError { INVALID_INPUT, SAVE_FAILED, GENERATION_FAILED, RESTRICTIONS_CONFLICT, CONSENT_REQUIRED }
 
 data class OnboardingState(
     val age: String = "28",
@@ -210,7 +210,13 @@ class OnboardingPresenterDelegate(
                 // Backend/DB exception messages can contain profile data; keep UI and logs safe.
                 Napier.w("Onboarding failed at stage ${_state.value.savingStep}: ${error::class.simpleName}")
                 _state.update {
-                    it.copy(error = if (it.savingStep == 0) OnboardingError.SAVE_FAILED else OnboardingError.GENERATION_FAILED)
+                    it.copy(
+                        error = when {
+                            it.savingStep == 0 -> OnboardingError.SAVE_FAILED
+                            error.isPlanRestrictionConflict() -> OnboardingError.RESTRICTIONS_CONFLICT
+                            else -> OnboardingError.GENERATION_FAILED
+                        }
+                    )
                 }
             } finally {
                 _state.update { it.copy(saving = false) }
