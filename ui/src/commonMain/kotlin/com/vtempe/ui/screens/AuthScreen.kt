@@ -107,12 +107,38 @@ fun AuthScreen(
     }
 }
 
+/** This build has no working sign-in (VT-AUD-075): say so and keep the guest path open. */
+@Composable
+private fun SignInUnavailable(onSkip: (() -> Unit)?) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            stringResource(Res.string.auth_unavailable),
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        if (onSkip != null) {
+            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.auth_skip), color = Color.White)
+            }
+        }
+    }
+}
+
 @Composable
 private fun SignedOutContent(
     state: com.vtempe.ui.presenter.AuthUiState,
     presenter: AuthPresenter,
     onSkip: (() -> Unit)? = null
 ) {
+    if (!state.signInAvailable) {
+        SignInUnavailable(onSkip)
+        return
+    }
     var isSignUpMode by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

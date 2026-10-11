@@ -46,6 +46,11 @@ interface AuthRepository {
     /** null = signed out. Emits on every sign-in/sign-out. */
     val authState: StateFlow<AuthUser?>
 
+    /** False when this build cannot sign anyone in (no Firebase behind it, e.g. iOS until its
+     *  native bridge ships): account screens say so instead of offering a sign-in that can only
+     *  fail (VT-AUD-075). */
+    val isAvailable: Boolean get() = true
+
     /** Throws [AuthException] on failure. */
     suspend fun signUp(email: String, password: String): AuthUser
 

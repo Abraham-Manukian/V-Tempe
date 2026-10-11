@@ -31,6 +31,7 @@ class StubPurchasesRepository : PurchasesRepository {
 /** Used on iOS (Firebase iOS not wired yet) and Android builds without google-services.json —
  *  sign-up/sign-in always fail with a clear message rather than silently pretending to work. */
 class StubAuthRepository : AuthRepository {
+    override val isAvailable: Boolean = false
     override val authState: StateFlow<AuthUser?> = MutableStateFlow(null).asStateFlow()
 
     override suspend fun signUp(email: String, password: String): AuthUser =

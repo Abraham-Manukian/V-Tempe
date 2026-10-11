@@ -39,7 +39,9 @@ data class AuthUiState(
     /** Where the device data stands relative to the signed-in account (choice, failure, unsynced sign-out). */
     val accountData: AccountDataState = AccountDataState.Idle,
     /** Bumps whenever device data was cleared or replaced; the UI rebuilds from scratch. */
-    val localDataGeneration: Int = 0
+    val localDataGeneration: Int = 0,
+    /** False when this build cannot sign in at all (see [AuthRepository.isAvailable]). */
+    val signInAvailable: Boolean = true,
 )
 
 interface AuthPresenter {
@@ -76,7 +78,8 @@ class AuthPresenterDelegate(
     private val _state = MutableStateFlow(
         AuthUiState(
             accountData = accountSession.state.value,
-            localDataGeneration = accountSession.localDataGeneration.value
+            localDataGeneration = accountSession.localDataGeneration.value,
+            signInAvailable = authRepository.isAvailable,
         )
     )
     override val state: StateFlow<AuthUiState> = _state.asStateFlow()

@@ -1,6 +1,7 @@
 package com.vtempe.ui.presenter
 
 import com.vtempe.shared.data.network.dto.EntitlementDto
+import com.vtempe.shared.data.stub.StubAuthRepository
 import com.vtempe.shared.domain.account.AccountDataState
 import com.vtempe.shared.domain.account.AccountDeletionOutcome
 import com.vtempe.shared.domain.account.AccountSession
@@ -53,6 +54,14 @@ class AuthPresenterTest {
         assertNull(presenter.state.value.errorCode)
         assertEquals(user, presenter.state.value.user)
         assertEquals(listOf(user.uid), session.signedIn)
+    }
+
+    @Test
+    fun aBuildWithoutSignInSaysSoInsteadOfOfferingIt() = runTest {
+        // VT-AUD-075: iOS (and Android without Firebase config) run on the stub.
+        val withoutSignIn = AuthPresenterDelegate(StubAuthRepository(), entitlement, FakeSession(), backgroundScope)
+        assertFalse(withoutSignIn.state.value.signInAvailable)
+        assertTrue(AuthPresenterDelegate(FakeAuth(), entitlement, FakeSession(), backgroundScope).state.value.signInAvailable)
     }
 
     @Test

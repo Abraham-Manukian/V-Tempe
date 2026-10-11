@@ -449,6 +449,7 @@
     <string name="settings_reset_confirm">Удалить всё</string>
     <string name="plan_restrictions_conflict_title">Нет безопасного плана под ваши ограничения</string>
     <string name="plan_restrictions_conflict">Аллергии, диета или травмы исключают все блюда или упражнения, которые может предложить приложение. Проверьте их в профиле.</string>
+    <string name="auth_unavailable">Вход в аккаунт в этой версии приложения пока недоступен. Можно пользоваться без аккаунта — данные останутся на этом устройстве.</string>
     <string name="startup_storage_error">Не удалось открыть сохранённые данные. Ничего не удалено — попробуйте ещё раз.</string>
     <string name="profile_load_failed">Не удалось прочитать профиль. Попробуйте ещё раз.</string>
     <string name="profile_missing">На этом устройстве пока нет профиля.</string>
