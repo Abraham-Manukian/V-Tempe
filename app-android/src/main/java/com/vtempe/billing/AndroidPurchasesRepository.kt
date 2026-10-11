@@ -4,6 +4,7 @@ import android.content.Context
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.vtempe.shared.domain.repository.PurchasesRepository
@@ -15,7 +16,8 @@ class AndroidPurchasesRepository(
     private val billingClient: BillingClient by lazy {
         BillingClient.newBuilder(appContext)
             .setListener(this)
-            .enablePendingPurchases()
+            // Billing 8+ API (VT-AUD-082): pending purchases are enabled per product type.
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
             .build()
     }
 

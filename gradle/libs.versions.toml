@@ -19,7 +19,7 @@ multiplatformSettings = "1.1.1"
 napier = "2.7.1"
 androidxActivity = "1.9.2"
 composeCompiler = "1.5.15"
-billing = "6.2.1"
+billing = "9.1.0"
 firebaseBom = "33.3.0"
 googleServices = "4.4.2"
 firebaseCrashlyticsPlugin = "3.0.2"
@@ -120,7 +120,7 @@ multiplatform-settings-noarg = { module = "com.russhwolf:multiplatform-settings-
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
 # Billing (Android)
-play-billing = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
+play-billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 
 # Crash/Analytics/Auth placeholders
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
