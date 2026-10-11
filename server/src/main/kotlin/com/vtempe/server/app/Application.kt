@@ -8,6 +8,7 @@ import com.vtempe.server.features.ai.api.registerAiRoutes
 import com.vtempe.server.features.auth.UserIdKey
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
 import com.vtempe.server.features.entitlement.api.registerEntitlementRoutes
+import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.payments.yookassa.api.registerYooKassaWebhookRoutes
 import com.vtempe.server.features.sync.api.registerSyncRoutes
 import io.ktor.http.HttpStatusCode
@@ -22,6 +23,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -55,6 +58,12 @@ fun Application.module() {
     // X-Forwarded-For; the default (first entry) is attacker-controlled and would let a
     // caller spoof a fresh rate-limit bucket on every request.
     install(XForwardedHeaders) { useLastProxy() }
+    installStorageUnavailableResponse()
+
+    // Connect to the configured database right away (off the startup thread) so a failure is
+    // logged at boot; requests retry it until it is ready (VT-AUD-079).
+    val database: DatabaseConnector by inject()
+    launch(Dispatchers.IO) { database.state() }
 
     // Rate limiting: max 30 AI requests per minute per IP
     install(RateLimit) {
@@ -106,6 +115,7 @@ fun Application.module() {
         registerAccountRoutes()
         registerYooKassaWebhookRoutes()
         get("/health") { call.respondText("OK") }
+        readinessRoute(database)
     }
 }
 

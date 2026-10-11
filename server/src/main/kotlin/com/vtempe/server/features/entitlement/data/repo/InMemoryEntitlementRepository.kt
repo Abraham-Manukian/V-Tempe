@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Used in two places: unit tests, and as the DI fallback when DATABASE_URL isn't configured
- * (see DatabaseFactory). In the fallback case grants don't survive a server restart/redeploy —
+ * (see DatabaseConnector). In the fallback case grants don't survive a server restart/redeploy —
  * that's an accepted, logged trade-off for "still boots on a fresh checkout with no DB set up",
  * not a real production entitlement store.
  *

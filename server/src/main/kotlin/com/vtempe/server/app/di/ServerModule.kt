@@ -37,7 +37,7 @@ import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
 import com.vtempe.server.features.auth.IdTokenVerifier
 import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
-import com.vtempe.server.features.entitlement.data.db.DatabaseFactory
+import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementRepository
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
@@ -258,14 +258,15 @@ val serverModule = module {
     // --- Auth / Entitlement (payments feature) ---
     // FIREBASE_PROJECT_ID unset -> FirebaseTokenVerifier.verify() always returns null, every
     // /me/* request (and signed-in /ai/* call) is rejected as unauthenticated. DATABASE_URL
-    // unset -> falls back to an in-memory entitlement store that never survives a restart. The
-    // app still boots, the feature is just inert until the owner configures it (see docs in
-    // FirebaseTokenVerifier/DatabaseFactory).
+    // unset -> in-memory entitlement/sync stores (local development only). DATABASE_URL set ->
+    // always the durable stores; while the database is unreachable they answer 503 instead of
+    // silently switching to memory (VT-AUD-079, see DatabaseConnector).
     single { FirebaseTokenVerifier(projectId = Env["FIREBASE_PROJECT_ID"]?.takeIf { it.isNotBlank() }) }
     single<IdTokenVerifier> { get<FirebaseTokenVerifier>() }
+    single { DatabaseConnector.fromEnv() }
     single<EntitlementRepository> {
-        val database = DatabaseFactory.connectOrNull()
-        if (database != null) ExposedEntitlementRepository(database) else InMemoryEntitlementRepository()
+        val connector: DatabaseConnector = get()
+        if (connector.isConfigured) ExposedEntitlementRepository(connector::require) else InMemoryEntitlementRepository()
     }
     single { EntitlementService(repository = get()) }
 
@@ -279,11 +280,10 @@ val serverModule = module {
             hasPaidEntitlement = entitlements::isActiveOrGrace
         )
     }
-    // DatabaseFactory.connectOrNull() memoizes its result, so this shares the same connection
-    // pool as EntitlementRepository above rather than opening a second one.
+    // Same connector as EntitlementRepository above: one shared pool.
     single<SyncBlobRepository> {
-        val database = DatabaseFactory.connectOrNull()
-        if (database != null) ExposedSyncBlobRepository(database) else InMemorySyncBlobRepository()
+        val connector: DatabaseConnector = get()
+        if (connector.isConfigured) ExposedSyncBlobRepository(connector::require) else InMemorySyncBlobRepository()
     }
     single { SyncService(repository = get()) }
     single { AccountDeletionService(syncBlobs = get(), entitlements = get()) }

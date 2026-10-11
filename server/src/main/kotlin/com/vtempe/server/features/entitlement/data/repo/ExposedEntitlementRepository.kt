@@ -21,10 +21,10 @@ import org.jetbrains.exposed.sql.update
 import java.sql.SQLException
 import java.time.Instant
 
-class ExposedEntitlementRepository(private val database: Database) : EntitlementRepository {
+class ExposedEntitlementRepository(private val database: () -> Database) : EntitlementRepository {
 
     override suspend fun find(userId: String): EntitlementRecord? =
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             Entitlements.selectAll()
                 .where { Entitlements.userId eq userId }
                 .singleOrNull()
@@ -44,13 +44,13 @@ class ExposedEntitlementRepository(private val database: Database) : Entitlement
         source: PaymentSource,
         externalRef: String?
     ) {
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             grantUntilAtLeastInTransaction(userId, expiresAt, source, externalRef)
         }
     }
 
     override suspend fun revoke(userId: String) {
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             Entitlements.deleteWhere { Entitlements.userId eq userId }
         }
     }
@@ -63,7 +63,7 @@ class ExposedEntitlementRepository(private val database: Database) : Entitlement
         currency: String,
         rawPayload: String,
         newExpiry: (currentExpiry: Instant?) -> Instant
-    ): Instant? = newSuspendedTransaction(Dispatchers.IO, database) {
+    ): Instant? = newSuspendedTransaction(Dispatchers.IO, database()) {
         val isNewPayment = try {
             Payments.insert {
                 it[Payments.userId] = userId

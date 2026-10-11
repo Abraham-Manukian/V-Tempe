@@ -14,10 +14,10 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
 
-class ExposedSyncBlobRepository(private val database: Database) : SyncBlobRepository {
+class ExposedSyncBlobRepository(private val database: () -> Database) : SyncBlobRepository {
 
     override suspend fun push(userId: String, domain: String, payload: String) {
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             // insertIgnore + unconditional update, same pattern as ExposedEntitlementRepository —
             // avoids "insert, catch unique violation, retry as update" (Postgres aborts the whole
             // transaction on the failed insert, so a caught retry needs a SAVEPOINT it doesn't
@@ -37,7 +37,7 @@ class ExposedSyncBlobRepository(private val database: Database) : SyncBlobReposi
     }
 
     override suspend fun pullAll(userId: String): Map<String, SyncBlobRecord> =
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             SyncBlobs.selectAll()
                 .where { SyncBlobs.userId eq userId }
                 .associate { row ->
@@ -49,7 +49,7 @@ class ExposedSyncBlobRepository(private val database: Database) : SyncBlobReposi
         }
 
     override suspend fun deleteAll(userId: String) {
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        newSuspendedTransaction(Dispatchers.IO, database()) {
             SyncBlobs.deleteWhere { SyncBlobs.userId eq userId }
         }
     }
