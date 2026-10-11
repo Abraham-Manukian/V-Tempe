@@ -47,7 +47,7 @@
 		4011279C2EE7611D00FDCDE6 /* Vtempe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vtempe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		401127A92EE7611E00FDCDE6 /* VtempeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VtempeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		401127B32EE7611E00FDCDE6 /* VtempeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VtempeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		407E392A2EF1D85000D78F3F /* AppIos.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = AppIos.xcframework; path = "../../app-ios/build/XCFrameworks/debug/AppIos.xcframework"; sourceTree = "<group>"; };
+		407E392A2EF1D85000D78F3F /* AppIos.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = AppIos.xcframework; path = "../../app-ios/build/XCFrameworks/current/AppIos.xcframework"; sourceTree = "<group>"; };
 		40D2A1AA2F0A000100ABCD01 /* compose-resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "compose-resources"; path = "../../app-ios/build/compose-resources"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -145,8 +145,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 401127BD2EE7611E00FDCDE6 /* Build configuration list for PBXNativeTarget "Vtempe" */;
 			buildPhases = (
-				401127982EE7611D00FDCDE6 /* Sources */,
 				40D2A1AC2F0A000100ABCD03 /* Build Kotlin (XCFramework + Resources) */,
+				401127982EE7611D00FDCDE6 /* Sources */,
 				401127992EE7611D00FDCDE6 /* Frameworks */,
 				4011279A2EE7611D00FDCDE6 /* Resources */,
 				40C3A4512EE89E8400FE369C /* Embed Frameworks */,
@@ -291,10 +291,11 @@
 			);
 			name = "Build Kotlin (XCFramework + Resources)";
 			outputPaths = (
+				"$(SRCROOT)/../../app-ios/build/XCFrameworks/current/AppIos.xcframework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu; set -x; ROOT=$(cd \"$SRCROOT/../..\" && pwd); GRADLEW=\"$ROOT/gradlew\"; if [ -z \"${JAVA_HOME:-}\" ]; then JAVA_HOME=$(/usr/libexec/java_home -v 17 2>/dev/null || true); export JAVA_HOME; fi; if [ ! -x \"$GRADLEW\" ]; then chmod +x \"$GRADLEW\"; fi; CONFIG=\"${CONFIGURATION:-Debug}\"; TASK=\":app-ios:assembleAppIos${CONFIG}XCFramework\"; cd \"$ROOT\"; \"$GRADLEW\" --no-daemon \"$TASK\" :app-ios:prepareComposeResourcesForXcode;";
+			shellScript = "set -eu; set -x; ROOT=$(cd \"$SRCROOT/../..\" && pwd); GRADLEW=\"$ROOT/gradlew\"; if [ -z \"${JAVA_HOME:-}\" ]; then JAVA_HOME=$(/usr/libexec/java_home -v 17 2>/dev/null || true); export JAVA_HOME; fi; if [ ! -x \"$GRADLEW\" ]; then chmod +x \"$GRADLEW\"; fi; CONFIG=\"${CONFIGURATION:-Debug}\"; TASK=\":app-ios:assembleAppIos${CONFIG}XCFramework\"; cd \"$ROOT\"; \"$GRADLEW\" --no-daemon \"$TASK\" :app-ios:prepareComposeResourcesForXcode; CONFIG_DIR=$(echo \"$CONFIG\" | tr '[:upper:]' '[:lower:]'); STAGE_DIR=\"$ROOT/app-ios/build/XCFrameworks/current\"; rm -rf \"$STAGE_DIR\"; mkdir -p \"$STAGE_DIR\"; cp -R \"$ROOT/app-ios/build/XCFrameworks/$CONFIG_DIR/AppIos.xcframework\" \"$STAGE_DIR/\";";
 		};
 /* End PBXShellScriptBuildPhase section */
 
