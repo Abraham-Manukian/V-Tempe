@@ -63,31 +63,50 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         return parseApiResponse<Res>(response)
     }
 
-    /** For PUT endpoints that respond 204 No Content on success — there's no body to decode, so
-     *  this just reports whether the call succeeded, unlike [postResult]/[getResult]. */
+    /** For PUT endpoints that respond 204 No Content on success. The failure keeps why it failed
+     *  (HTTP status, network, timeout) instead of a bare false (VT-AUD-076). */
     suspend inline fun <reified Req : Any> putNoContent(
         path: String,
         body: Req,
         /** Pins the request to a specific user's token instead of whoever is signed in when it's sent. */
         bearerToken: String? = null
-    ): Boolean =
-        runCatching {
+    ): DataResult<Unit> {
+        val response = runCatching {
             httpClient.put("$baseUrl$path") {
                 bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 contentType(ContentType.Application.Json)
                 setBody(body)
-            }.status.isSuccess()
-        }.onFailure { if (it is CancellationException) throw it }
-            .getOrDefault(false)
+            }
+        }.getOrElse { throwable -> return mapApiThrowable(throwable) }
+        return noContentResult(response)
+    }
 
-    /** For DELETE endpoints that respond 204 No Content on success; reports whether the call succeeded. */
-    suspend fun deleteNoContent(path: String, bearerToken: String? = null): Boolean =
-        runCatching {
+    /** For DELETE endpoints that respond 204 No Content on success; same outcome as [putNoContent]. */
+    suspend fun deleteNoContent(path: String, bearerToken: String? = null): DataResult<Unit> {
+        val response = runCatching {
             httpClient.delete("$baseUrl$path") {
                 bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
-            }.status.isSuccess()
-        }.onFailure { if (it is CancellationException) throw it }
-            .getOrDefault(false)
+            }
+        }.getOrElse { throwable -> return mapApiThrowable(throwable) }
+        return noContentResult(response)
+    }
+
+    @PublishedApi
+    internal suspend fun noContentResult(response: HttpResponse): DataResult<Unit> =
+        if (response.status.isSuccess()) DataResult.Success(Unit) else httpFailure(response)
+
+    /** A non-2xx response: never decoded as a success DTO, its status kept for the caller. */
+    @PublishedApi
+    internal suspend fun httpFailure(response: HttpResponse, raw: String? = null): DataResult.Failure {
+        val body = raw ?: runCatching { response.bodyAsText() }.getOrNull()
+        // The message carries only the status; the body stays in rawPayload for diagnostics.
+        return DataResult.Failure(
+            reason = Reason.Http,
+            message = "HTTP ${response.status.value}",
+            code = response.status.value,
+            rawPayload = body
+        )
+    }
 
     suspend inline fun <reified Res : Any> getResult(path: String, bearerToken: String? = null): DataResult<Res> {
         val response = runCatching {
@@ -98,12 +117,18 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         return parseApiResponse<Res>(response)
     }
 
-    /** Parses a successful HTTP response into a [DataResult.Success], handling [SerializationException]. */
+    /**
+     * A 2xx response becomes [DataResult.Success] (or InvalidFormat when the body does not match);
+     * any other status is a [Reason.Http] failure with its code (VT-AUD-076). The client keeps
+     * Ktor's expectSuccess = false, so without this check a 401/403/500 whose JSON error body
+     * happened to fit the DTO (all fields defaulted) was reported as a successful answer.
+     */
     @PublishedApi
     internal suspend inline fun <reified Res : Any> parseApiResponse(
         response: HttpResponse
     ): DataResult<Res> {
         val raw = runCatching { response.bodyAsText() }.getOrNull()
+        if (!response.status.isSuccess()) return httpFailure(response, raw)
         return runCatching {
             val value = if (raw != null) parser.decodeFromString<Res>(raw) else response.body<Res>()
             DataResult.Success(value, rawPayload = raw)

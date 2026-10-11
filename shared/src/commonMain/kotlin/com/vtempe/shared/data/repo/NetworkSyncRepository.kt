@@ -69,7 +69,7 @@ class NetworkSyncRepository(
         return when (val result = api.getResult<SyncPullResponseDto>("/me/sync", bearerToken = token)) {
             is DataResult.Success -> RemoteSyncSnapshot(result.data.domains.mapValues { it.value.payload })
             is DataResult.Failure -> {
-                Napier.d(tag = "Sync", message = "fetch failed: ${result.message}")
+                Napier.d(tag = "Sync", message = "fetch failed: ${result.reason} ${result.code ?: ""}")
                 null
             }
         }
@@ -113,9 +113,11 @@ class NetworkSyncRepository(
     }
 
     private suspend fun upload(domain: SyncDomain, payload: String, token: String): Boolean {
-        val ok = api.putNoContent("/me/sync/${domain.wireKey}", SyncPushRequestDto(payload), bearerToken = token)
-        if (!ok) Napier.d(tag = "Sync", message = "push failed for ${domain.wireKey}")
-        return ok
+        val result = api.putNoContent("/me/sync/${domain.wireKey}", SyncPushRequestDto(payload), bearerToken = token)
+        if (result is DataResult.Failure) {
+            Napier.d(tag = "Sync", message = "push failed for ${domain.wireKey}: ${result.reason} ${result.code ?: ""}")
+        }
+        return result is DataResult.Success
     }
 
     /** What the device holds for one domain: data, deliberately nothing, or a read that failed. */

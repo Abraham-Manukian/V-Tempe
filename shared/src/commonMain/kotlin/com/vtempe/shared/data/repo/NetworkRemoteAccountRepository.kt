@@ -3,6 +3,7 @@ package com.vtempe.shared.data.repo
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.RemoteAccountRepository
+import com.vtempe.shared.domain.util.DataResult
 import io.github.aakira.napier.Napier
 
 class NetworkRemoteAccountRepository(
@@ -13,8 +14,10 @@ class NetworkRemoteAccountRepository(
     override suspend fun deleteAccountData(uid: String): Boolean {
         // Pinned to [uid]'s own token, like sync uploads: a sign-in switch can't redirect the delete.
         val token = auth.idTokenFor(uid) ?: return false
-        val ok = api.deleteNoContent("/me", bearerToken = token)
-        if (!ok) Napier.d(tag = "Account", message = "server account deletion failed")
-        return ok
+        val result = api.deleteNoContent("/me", bearerToken = token)
+        if (result is DataResult.Failure) {
+            Napier.d(tag = "Account", message = "server account deletion failed: ${result.reason} ${result.code ?: ""}")
+        }
+        return result is DataResult.Success
     }
 }
