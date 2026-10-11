@@ -458,6 +458,7 @@
     <string name="settings_reset_cancel">Cancel</string>
     <string name="plan_restrictions_conflict_title">No safe plan for your restrictions</string>
     <string name="plan_restrictions_conflict">Your allergies, diet or injuries rule out every meal or exercise the app can offer. Check them in your profile.</string>
+    <string name="startup_storage_error">Your saved data could not be opened. Nothing was deleted — try again.</string>
     <string name="profile_load_failed">Couldn't read your profile. Try again.</string>
     <string name="profile_missing">There is no profile on this device yet.</string>
     <string name="edit_profile_save_failed">Your changes weren't saved. Try again.</string>

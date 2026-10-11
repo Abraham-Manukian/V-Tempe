@@ -11,6 +11,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextAlign
+import com.vtempe.ui.Res
+import com.vtempe.ui.common_retry
+import com.vtempe.ui.startup_storage_error
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,11 +42,19 @@ import kotlinx.coroutines.CancellationException
 fun SplashScreen(onReady: (Destination) -> Unit = {}) {
     val scale = remember { Animatable(0.8f) }
     val decided: MutableState<Boolean> = remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        scale.animateTo(1f, animationSpec = tween(600))
-        val destination = determineStartDestination()
-        onReady(destination)
-        decided.value = true
+    // Bumped by Retry after the stored data could not be read (VT-AUD-077).
+    var attempt by remember { mutableIntStateOf(0) }
+    var storageFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(attempt) {
+        storageFailed = false
+        if (attempt == 0) scale.animateTo(1f, animationSpec = tween(600))
+        when (val decision = decideStart(startupDependencies())) {
+            is StartDecision.Go -> {
+                onReady(decision.destination)
+                decided.value = true
+            }
+            StartDecision.StorageFailed -> storageFailed = true
+        }
     }
     if (!decided.value) {
         Box(
@@ -42,17 +63,35 @@ fun SplashScreen(onReady: (Destination) -> Unit = {}) {
                 .background(AiGradients.lavenderMist()),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(42.dp)
-                    .scale(scale.value),
-                color = AiPalette.OnGradient
-            )
+            if (storageFailed) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        stringResource(Res.string.startup_storage_error),
+                        color = AiPalette.OnGradient,
+                        textAlign = TextAlign.Center
+                    )
+                    OutlinedButton(onClick = { attempt++ }) {
+                        Text(stringResource(Res.string.common_retry), color = AiPalette.OnGradient)
+                    }
+                }
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .scale(scale.value),
+                    color = AiPalette.OnGradient
+                )
+            }
         }
     }
 }
 
-expect suspend fun determineStartDestination(): Destination
+/** How this platform reaches launch dependencies; null while DI is not started. */
+expect fun startupDependencies(): StartupDependencies?
 
 /**
  * Where a user who already has a profile lands. Users onboarded before the health-data consent
