@@ -8,6 +8,9 @@ build/
 app-android/
 app-ios/
 shared/
+# ...except the two client exercise catalogs ExerciseCatalogDriftTest compares with the server's
+!shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/ExerciseLibrary.kt
+!shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/ExerciseBrowseCatalog.kt
 ui/
 core-designsystem/
 

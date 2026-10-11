@@ -32,11 +32,19 @@ dependencyResolutionManagement {\n\
 rootProject.name = "vtempe-server"\n\
 include(":server")\n' > settings.gradle.kts
 
-# Copy server source
+# Copy server source and what its contract tests read: the shared test cases (testdata/*.tsv)
+# and the client's exercise catalogs (ExerciseCatalogDriftTest). Nothing else of shared/ is sent.
 COPY server/ server/
+COPY testdata/ testdata/
+COPY shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/ExerciseLibrary.kt shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/
+COPY shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/ExerciseBrowseCatalog.kt shared/src/commonMain/kotlin/com/vtempe/shared/domain/exercise/
 
-# Build runnable distribution (bin/server script + all JARs under lib/)
-RUN ./gradlew :server:installDist --no-daemon -q \
+# Test gate (VT-AUD-080): the server tests run inside the image build, so every path that
+# produces a deployable image — the GitHub workflow or a manual Cloud Build — stops before
+# push/deploy when a test fails or the test sources do not compile. The runnable distribution
+# is then built from the same sources.
+RUN ./gradlew :server:test --no-daemon \
+    && ./gradlew :server:installDist --no-daemon -q \
     && rm -rf server/build/tmp
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────

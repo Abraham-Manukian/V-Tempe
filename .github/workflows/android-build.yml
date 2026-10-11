@@ -31,8 +31,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # Official wrapper JAR before anything executes it (VT-AUD-083); the distribution itself is
+      # checked against distributionSha256Sum in gradle-wrapper.properties.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
+
+      # Unit tests, including the database migration gate (MigrationEquivalenceTest, VT-AUD-084).
+      - name: Run unit tests
+        run: ./gradlew :shared:testDebugUnitTest :ui:testDebugUnitTest :app-android:testDebugUnitTest --stacktrace
 
       - name: Build debug APK
         run: ./gradlew :app-android:assembleDebug --stacktrace
