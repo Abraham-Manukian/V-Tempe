@@ -162,4 +162,9 @@ class FirebaseAuthRepository : AuthRepository {
  */
 fun createAuthRepository(): AuthRepository =
     runCatching { FirebaseAuthRepository() }
-        .getOrElse { com.vtempe.shared.data.stub.StubAuthRepository() }
+        .getOrElse { error ->
+            // Release builds cannot get here without Firebase config (verifyReleaseAuthConfig);
+            // a debug build without google-services.json runs as guest. Never silently.
+            android.util.Log.e("Auth", "Firebase Auth unavailable, sign-in disabled: ${error::class.simpleName}")
+            com.vtempe.shared.data.stub.StubAuthRepository()
+        }

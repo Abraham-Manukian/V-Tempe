@@ -51,6 +51,7 @@ fun webClientIdFromGoogleServices(): String {
 }
 
 val googleWebClientId: String = localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")
+    .ifBlank { providers.gradleProperty("GOOGLE_WEB_CLIENT_ID").orNull.orEmpty() }
     .ifBlank { webClientIdFromGoogleServices() }
 val keystorePath: String = localProps.getProperty("KEYSTORE_PATH", "")
 val keystorePass: String = localProps.getProperty("KEYSTORE_PASS", "")
@@ -100,20 +101,6 @@ android {
         }
     }
 
-    // Shipping a release with an empty web client id means Google sign-in is dead for every user
-    // of that build, and nothing about the build or the app says so. Fail loudly instead.
-    if (googleWebClientId.isBlank()) {
-        tasks.matching { it.name.contains("Release") && (it.name.startsWith("assemble") || it.name.startsWith("bundle")) }
-            .configureEach {
-                doFirst {
-                    error(
-                        "GOOGLE_WEB_CLIENT_ID is empty — Google sign-in would silently fail in this " +
-                            "release build. Set it in local.properties, or place a google-services.json " +
-                            "with a client_type 3 oauth_client in app-android/."
-                    )
-                }
-            }
-    }
 
     buildFeatures {
         compose = true
@@ -126,6 +113,29 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
+
+// A release build needs a working sign-in (VT-AUD-078): the Firebase app config AND the Google
+// web client id. A client id alone used to pass, and without google-services.json the app then
+// fell back to a stub at runtime — every sign-in UNAVAILABLE, nothing in the build said so.
+// Checked before any release variant is built (every release packaging task depends on
+// preReleaseBuild), so direct bundle/package tasks cannot skip it. Debug builds stay usable
+// without Firebase (guest/offline development).
+val releaseAuthProblems: List<String> = buildList {
+    if (!googleServicesJsonPresent) {
+        add("app-android/google-services.json is missing: Firebase (sign-in, Crashlytics) would not start")
+    }
+    if (googleWebClientId.isBlank()) {
+        add("GOOGLE_WEB_CLIENT_ID is empty: Google sign-in would fail (set it in local.properties or -P, or use a google-services.json with a client_type 3 oauth_client)")
+    }
+}
+val verifyReleaseAuthConfig = tasks.register("verifyReleaseAuthConfig") {
+    description = "Fails a release build that would ship without a working Firebase sign-in."
+    val problems = releaseAuthProblems
+    doLast {
+        if (problems.isNotEmpty()) error("Release sign-in is not configured:\n- " + problems.joinToString("\n- "))
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verifyReleaseAuthConfig) }
 
 dependencies {
     implementation(project(":shared"))
