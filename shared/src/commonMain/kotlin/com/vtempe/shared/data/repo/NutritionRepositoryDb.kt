@@ -106,6 +106,7 @@ class NutritionRepositoryDb(
                 q.deleteMealsFromWeek(weekIndex.toLong())
                 q.deleteMealByDayFromWeek(weekIndex.toLong())
                 q.deleteShoppingItemsFromWeek(weekIndex.toLong())
+                q.deleteDailyTargetsFromWeek(weekIndex.toLong())
                 q.deleteOrphanMeals()
                 q.deleteOrphanIngredients()
             }
@@ -126,6 +127,16 @@ class NutritionRepositoryDb(
                 db.nutritionQueries.deleteMealsOfWeek(week)
                 db.nutritionQueries.deleteMealsForWeek(week)
                 db.nutritionQueries.deleteShoppingItemsForWeek(week)
+                db.nutritionQueries.deleteDailyTargetForWeek(week)
+                plan.dailyTarget?.let { target ->
+                    db.nutritionQueries.insertDailyTarget(
+                        week,
+                        target.kcal.toLong(),
+                        target.proteinGrams.toLong(),
+                        target.fatGrams.toLong(),
+                        target.carbsGrams.toLong(),
+                    )
+                }
                 plan.shoppingList.forEachIndexed { position, item ->
                     db.nutritionQueries.insertShoppingItem(week, position.toLong(), item)
                 }
@@ -210,6 +221,9 @@ class NutritionRepositoryDb(
         // The saved canonical list; weeks stored before it existed fall back to their ingredients.
         val shopping = db.nutritionQueries.selectShoppingItemsForWeek(weekIndex.toLong()).executeAsList()
             .ifEmpty { db.nutritionQueries.selectShoppingListForWeek(weekIndex.toLong()).executeAsList() }
-        return NutritionPlan(weekIndex, mealsByDay, shopping)
+        val dailyTarget = db.nutritionQueries.selectDailyTarget(weekIndex.toLong()).executeAsOneOrNull()?.let {
+            Macros(proteinGrams = it.protein.toInt(), fatGrams = it.fat.toInt(), carbsGrams = it.carbs.toInt(), kcal = it.kcal.toInt())
+        }
+        return NutritionPlan(weekIndex, mealsByDay, shopping, dailyTarget)
     }
 }

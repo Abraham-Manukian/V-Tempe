@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.Meal
+import com.vtempe.shared.domain.model.Macros
+import com.vtempe.shared.domain.model.hasNutrition
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.ui.Res
@@ -121,14 +123,16 @@ internal fun DayWorkoutCard(
 internal fun DayNutritionCard(
     modifier: Modifier = Modifier,
     meals: List<Meal>,
+    totals: Macros?,
+    approximate: Boolean,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
     val primary = MaterialTheme.colorScheme.primary
 
-    val totalKcal = meals.sumOf { it.kcal }
-    val totalP    = meals.sumOf { it.macros.proteinGrams }
-    val totalF    = meals.sumOf { it.macros.fatGrams }
-    val totalC    = meals.sumOf { it.macros.carbsGrams }
+    val totalKcal = totals?.kcal ?: 0
+    val totalP    = totals?.proteinGrams ?: 0
+    val totalF    = totals?.fatGrams ?: 0
+    val totalC    = totals?.carbsGrams ?: 0
 
     Card(
         modifier = modifier,
@@ -170,20 +174,26 @@ internal fun DayNutritionCard(
                             color = contentColor,
                             modifier = Modifier.weight(1f),
                         )
-                        Text(
-                            "${meal.kcal} kcal",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.6f),
-                        )
+                        if (meal.hasNutrition) {
+                            Text(
+                                stringResource(Res.string.calendar_total_kcal).kmpFormat(meal.kcal),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = contentColor.copy(alpha = 0.6f),
+                            )
+                        }
                     }
+                    // A dish of an approximate menu states no numbers (VT-AUD-036).
                     Text(
-                        stringResource(Res.string.nutrition_macros_line)
-                            .kmpFormat(
+                        if (meal.hasNutrition) {
+                            stringResource(Res.string.nutrition_macros_line).kmpFormat(
                                 meal.kcal,
                                 meal.macros.proteinGrams,
                                 meal.macros.fatGrams,
                                 meal.macros.carbsGrams,
-                            ),
+                            )
+                        } else {
+                            meal.ingredients.joinToString()
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = contentColor.copy(alpha = 0.55f),
                     )
@@ -194,7 +204,7 @@ internal fun DayNutritionCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(Res.string.calendar_daily_totals),
+                    stringResource(if (approximate) Res.string.nutrition_day_target else Res.string.calendar_daily_totals),
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor.copy(alpha = 0.55f),
                 )

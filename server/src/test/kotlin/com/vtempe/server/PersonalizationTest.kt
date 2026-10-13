@@ -443,30 +443,25 @@ class PersonalizationTest {
         assertTrue(!allText.contains("йогурт"), "sanitized fallback template must not contain yogurt for a vegan, got: $allText")
     }
 
-    // ── BUG: fallbackNutrition() ignored the computed calorie target ───────────
+    // ── fallbackNutrition(): the computed target, never invented per-meal numbers ───────────
 
     @Test
-    fun `fallback nutrition scales to the computed calorie target instead of a flat number`() {
+    fun `fallback nutrition states the profile's daily target and no per-meal numbers (VT-AUD-036)`() {
         val bulkProfile = profile(goal = "GAIN_MUSCLE", weightKg = 52.0, heightCm = 190, age = 18, experienceLevel = 1)
         val cutProfile = profile(goal = "LOSE_FAT", weightKg = 104.0, heightCm = 178, age = 34)
         val bulkPlan = fallbackNutrition(AiNutritionRequest(bulkProfile, weekIndex = 0, locale = "ru"))
         val cutPlan = fallbackNutrition(AiNutritionRequest(cutProfile, weekIndex = 0, locale = "ru"))
 
-        val bulkMonKcal = bulkPlan.mealsByDay.getValue("Mon").sumOf { it.kcal }
-        val cutMonKcal = cutPlan.mealsByDay.getValue("Mon").sumOf { it.kcal }
-        assertTrue(
-            bulkMonKcal > cutMonKcal,
-            "bulk fallback ($bulkMonKcal) should exceed cut fallback ($cutMonKcal) — both were a flat 1968 before the fix"
+        val target = NutritionTargetCalculator.targetsFor(bulkProfile)
+        assertEquals(
+            Macros(proteinGrams = target.proteinG, fatGrams = target.fatG, carbsGrams = target.carbsG, kcal = target.kcal),
+            bulkPlan.dailyTarget,
         )
-
-        val target = NutritionTargetCalculator.targetsFor(bulkProfile).kcal
-        for (day in listOf("Mon", "Wed", "Sun")) {
-            val dayKcal = bulkPlan.mealsByDay.getValue(day).sumOf { it.kcal }
-            assertTrue(
-                kotlin.math.abs(dayKcal - target) < target * 0.15,
-                "$day kcal=$dayKcal should land within 15% of target=$target (Sunday used to be a flat 1408 regardless of target)"
-            )
-        }
+        assertTrue(bulkPlan.dailyTarget!!.kcal > cutPlan.dailyTarget!!.kcal, "the target follows the profile")
+        // The templates carry no portions: any per-meal number would be invented.
+        val meals = (bulkPlan.mealsByDay.values + cutPlan.mealsByDay.values).flatten()
+        assertTrue(meals.isNotEmpty())
+        assertTrue(meals.all { it.kcal == 0 && it.macros == Macros() }, "per-meal numbers: ${meals.map { it.kcal }}")
     }
 
     // ── BUG: fallbackTraining() ignored weeklySchedule and hardcoded 3 days ────

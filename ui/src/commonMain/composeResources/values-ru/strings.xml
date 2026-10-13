@@ -201,6 +201,10 @@
     <string name="equipment_mat">Коврик</string>
     <string name="equipment_cardio">Кардио-тренажёр</string>
     <string name="nutrition_meal_meta">%1$d ингредиентов · %2$d ккал</string>
+    <string name="nutrition_meal_meta_no_kcal">%1$d ингредиентов</string>
+    <string name="nutrition_day_target">Цель на день</string>
+    <string name="nutrition_approximate_note">Примерное меню без точных порций: тренер сейчас недоступен. Ориентируйтесь на дневную цель — она посчитана по вашему профилю.</string>
+    <string name="nutrition_approximate_meal">Точные порции для этого блюда не рассчитаны — ориентируйтесь на дневную цель.</string>
     <string name="nutrition_kcal_value">%1$d ккал</string>
     <string name="nutrition_macros_detail">Белки: %1$d г  Жиры: %2$d г  Углеводы: %3$d г</string>
     <string name="nutrition_grams_value">%1$d г</string>

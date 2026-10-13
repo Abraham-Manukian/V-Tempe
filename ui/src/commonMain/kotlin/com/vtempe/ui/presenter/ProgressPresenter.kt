@@ -2,7 +2,10 @@ package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.SleepStore
+import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.Meal
+import com.vtempe.shared.domain.model.dayTotals
+import com.vtempe.shared.domain.model.isApproximate
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
 import com.vtempe.shared.domain.model.WorkoutProgress
@@ -55,6 +58,10 @@ data class ProgressState(
     val selectedDate: LocalDate? = null,
     val dayWorkouts: List<Workout> = emptyList(),
     val dayMeals: List<Meal> = emptyList(),
+    /** What the selected day aims for: the meals' sum, or an approximate menu's target. */
+    val dayNutritionTotals: Macros? = null,
+    /** The selected day comes from an approximate menu: its meals state no numbers (VT-AUD-036). */
+    val dayNutritionApproximate: Boolean = false,
 )
 
 interface ProgressPresenter {
@@ -117,7 +124,7 @@ internal fun buildProgressState(
     val caloriesSeries = nutritionPlan
         ?.let { plan ->
             listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").map { day ->
-                plan.mealsByDay[day].orEmpty().sumOf { it.kcal }
+                plan.dayTotals(day)?.kcal ?: 0
             }
         }
         .orEmpty()
@@ -160,12 +167,13 @@ internal fun buildProgressState(
     // Show nutrition for any selected date that falls within the active plan's week.
     // No longer restricted to past dates — the nutrition plan covers the whole week
     // including future training days.
-    val dayMeals = if (selectedDate != null && nutritionPlan != null &&
+    val nutritionDay = if (selectedDate != null && nutritionPlan != null &&
         (epochDate == null || selectedDate >= epochDate) &&
         selectedDate in nutritionDates
     ) {
-        nutritionPlan.mealsByDay[selectedDate.dayOfWeek.toShortKey()].orEmpty()
-    } else emptyList()
+        selectedDate.dayOfWeek.toShortKey()
+    } else null
+    val dayMeals = nutritionDay?.let { nutritionPlan?.mealsByDay?.get(it) }.orEmpty()
 
     return ProgressState(
         totalWorkouts  = performed.size,
@@ -183,6 +191,8 @@ internal fun buildProgressState(
         selectedDate   = selectedDate,
         dayWorkouts    = dayWorkouts,
         dayMeals       = dayMeals,
+        dayNutritionTotals = nutritionDay?.let { nutritionPlan?.dayTotals(it) },
+        dayNutritionApproximate = nutritionDay != null && nutritionPlan?.isApproximate == true,
     )
 }
 

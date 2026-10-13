@@ -1,7 +1,10 @@
 package com.vtempe.ui.presenter
 
 import androidx.compose.runtime.Immutable
+import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.NutritionPlan
+import com.vtempe.shared.domain.model.dayTotals
+import com.vtempe.shared.domain.model.weekTotals
 import com.vtempe.shared.domain.repository.CoachCacheRepository
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -36,25 +39,13 @@ data class MacroTotals(
     }
 }
 
-fun computeDayMacros(plan: NutritionPlan, day: String): MacroTotals {
-    val meals = plan.mealsByDay[day].orEmpty()
-    return MacroTotals(
-        protein = meals.sumOf { it.macros.proteinGrams },
-        fat = meals.sumOf { it.macros.fatGrams },
-        carbs = meals.sumOf { it.macros.carbsGrams },
-        kcal = meals.sumOf { it.macros.kcal }
-    )
-}
+/** An approximate menu shows its daily target here (VT-AUD-036), never a day of zeros. */
+fun computeDayMacros(plan: NutritionPlan, day: String): MacroTotals =
+    plan.dayTotals(day)?.toTotals() ?: MacroTotals.EMPTY
 
-fun computeWeekMacros(plan: NutritionPlan): MacroTotals {
-    val meals = plan.mealsByDay.values.flatten()
-    return MacroTotals(
-        protein = meals.sumOf { it.macros.proteinGrams },
-        fat = meals.sumOf { it.macros.fatGrams },
-        carbs = meals.sumOf { it.macros.carbsGrams },
-        kcal = meals.sumOf { it.macros.kcal }
-    )
-}
+fun computeWeekMacros(plan: NutritionPlan): MacroTotals = plan.weekTotals().toTotals()
+
+private fun Macros.toTotals() = MacroTotals(protein = proteinGrams, fat = fatGrams, carbs = carbsGrams, kcal = kcal)
 
 fun currentWeekdayKey(): String {
     val day = Clock.System.now()

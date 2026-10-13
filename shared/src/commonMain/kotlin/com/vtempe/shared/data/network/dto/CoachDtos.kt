@@ -252,7 +252,9 @@ data class NutritionPlanDto(
     /** Server-normalized shopping list (grouped, deduped, quantities summed). Carried through so
      *  the nice list the server built actually reaches the UI instead of the client re-deriving a
      *  raw one. Empty for older payloads → toDomain() falls back to deriving from ingredients. */
-    val shoppingList: List<String> = emptyList()
+    val shoppingList: List<String> = emptyList(),
+    /** An approximate menu's daily target (VT-AUD-036); null for a regular plan. */
+    val dailyTarget: Macros? = null,
 ) {
     @Serializable
     data class MealDto(
@@ -295,7 +297,7 @@ data class NutritionPlanDto(
                     .distinct()
                     .sorted()
             }
-        return NutritionPlan(weekIndex, mealsDomain, shopping)
+        return NutritionPlan(weekIndex, mealsDomain, shopping, dailyTarget)
     }
 
     companion object {
@@ -321,7 +323,8 @@ data class NutritionPlanDto(
             return NutritionPlanDto(
                 weekIndex = plan.weekIndex,
                 mealsByDay = normalized,
-                shoppingList = plan.shoppingList
+                shoppingList = plan.shoppingList,
+                dailyTarget = plan.dailyTarget,
             )
         }
     }

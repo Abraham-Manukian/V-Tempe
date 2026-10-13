@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vtempe.shared.domain.model.Meal
+import com.vtempe.shared.domain.model.hasNutrition
 import com.vtempe.ui.Res
 import com.vtempe.ui.*
 import com.vtempe.ui.util.kmpFormat
@@ -79,16 +80,17 @@ internal fun NutritionMealCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            stringResource(Res.string.nutrition_meal_meta).kmpFormat(
-                                meal.ingredients.size,
-                                meal.macros.kcal,
-                            ),
+                            if (meal.hasNutrition) {
+                                stringResource(Res.string.nutrition_meal_meta).kmpFormat(meal.ingredients.size, meal.macros.kcal)
+                            } else {
+                                stringResource(Res.string.nutrition_meal_meta_no_kcal).kmpFormat(meal.ingredients.size)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF4B4B4B),
                         )
                     }
                 }
-                Text(
+                if (meal.hasNutrition) Text(
                     stringResource(Res.string.nutrition_kcal_value).kmpFormat(meal.kcal),
                     modifier = Modifier.widthIn(min = 68.dp),
                     style = MaterialTheme.typography.labelLarge,
@@ -101,8 +103,8 @@ internal fun NutritionMealCard(
                 )
             }
 
-            // ── Macros row ────────────────────────────────────────
-            Row(
+            // ── Macros row: an approximate menu's dish has none (VT-AUD-036) ──
+            if (meal.hasNutrition) Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,

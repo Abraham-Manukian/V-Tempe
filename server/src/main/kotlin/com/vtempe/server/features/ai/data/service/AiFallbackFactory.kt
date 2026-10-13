@@ -13,7 +13,6 @@ import com.vtempe.server.shared.dto.training.AiTrainingResponse
 import com.vtempe.server.shared.dto.training.AiWorkout
 import java.time.LocalDate
 import java.time.ZoneOffset
-import kotlin.math.roundToInt
 
 internal fun fallbackTraining(req: AiTrainingRequest): AiTrainingResponse {
     val today = LocalDate.now(ZoneOffset.UTC)
@@ -86,9 +85,11 @@ internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
     if (meals.isEmpty()) {
         throw NoSafeNutritionPlanException("No fallback meal is compatible with the user's food restrictions")
     }
-    val targetKcal = computeTargetNutrition(req.profile).kcal
-    val fullDayMeals = scaleMealsToTarget(meals, targetKcal)
-    val shortDayMeals = scaleMealsToTarget(meals.take(3), targetKcal)
+    // The templates have no portions, so per-meal numbers could only be invented: an approximate
+    // menu names the food and states the day's target once (VT-AUD-036).
+    val target = computeTargetNutrition(req.profile)
+    val fullDayMeals = meals.map(::withoutNumbers)
+    val shortDayMeals = fullDayMeals.take(3)
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val planMeals = days.associateWith { day -> if (day == "Sun") shortDayMeals else fullDayMeals }
     val shopping = meals.flatMap { it.ingredients }
@@ -96,36 +97,24 @@ internal fun fallbackNutrition(req: AiNutritionRequest): AiNutritionResponse {
         .filter { it.isNotEmpty() }
         .distinct()
         .sorted()
-    val plan = AiNutritionResponse(req.weekIndex, planMeals, shopping)
+    val plan = AiNutritionResponse(
+        weekIndex = req.weekIndex,
+        mealsByDay = planMeals,
+        shoppingList = shopping,
+        dailyTarget = Macros(
+            proteinGrams = target.proteinG,
+            fatGrams = target.fatG,
+            carbsGrams = target.carbsG,
+            kcal = target.kcal,
+        ),
+    )
     // Final gate over the finished plan, after every substitution (VT-AUD-028).
     val violations = nutritionSafetyViolations(plan, req.profile)
     check(violations.isEmpty()) { "fallback nutrition plan failed the safety gate: ${violations.size} violation(s)" }
     return plan
 }
 
-/** Scales a fixed meal template's kcal/macros to hit [targetKcal] — ingredient names stay
- *  generic (no gram quantities to rewrite), only the numbers are proportionally adjusted. */
-private fun scaleMealsToTarget(meals: List<AiMeal>, targetKcal: Int): List<AiMeal> {
-    val currentTotal = meals.sumOf { it.kcal }
-    if (currentTotal <= 0 || targetKcal <= 0) return meals
-    val factor = targetKcal.toDouble() / currentTotal
-    return meals.map { meal ->
-        val scaledKcal = (meal.kcal * factor).roundToInt()
-        AiMeal(
-            name = meal.name,
-            ingredients = meal.ingredients,
-            kcal = scaledKcal,
-            macros = Macros(
-                proteinGrams = (meal.macros.proteinGrams * factor).roundToInt(),
-                fatGrams = (meal.macros.fatGrams * factor).roundToInt(),
-                carbsGrams = (meal.macros.carbsGrams * factor).roundToInt(),
-                kcal = scaledKcal
-            ),
-            allergenTags = meal.allergenTags,
-            recipe = meal.recipe
-        )
-    }
-}
+private fun withoutNumbers(meal: AiMeal): AiMeal = meal.copy(kcal = 0, macros = Macros())
 
 internal fun fallbackAdvice(req: AiAdviceRequest): AiAdviceResponse {
     val locale = safeLocale(req.locale ?: req.profile.locale)

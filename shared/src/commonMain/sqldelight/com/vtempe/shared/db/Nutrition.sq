@@ -32,6 +32,16 @@ CREATE TABLE IF NOT EXISTS ShoppingItem(
   PRIMARY KEY(weekIndex, position)
 );
 
+-- The daily target of an approximate menu, whose meals state no numbers; no row for a regular
+-- plan (VT-AUD-036). Added by migration 10.sqm.
+CREATE TABLE IF NOT EXISTS NutritionDailyTarget(
+  weekIndex INTEGER NOT NULL PRIMARY KEY,
+  kcal INTEGER NOT NULL,
+  protein INTEGER NOT NULL,
+  fat INTEGER NOT NULL,
+  carbs INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_mealbyday_week ON MealByDay(weekIndex);
 CREATE INDEX IF NOT EXISTS idx_mealingredient_meal ON MealIngredient(mealId);
 
@@ -79,6 +89,21 @@ DELETE FROM ShoppingItem WHERE weekIndex >= ?;
 
 deleteAllShoppingItems:
 DELETE FROM ShoppingItem;
+
+insertDailyTarget:
+INSERT OR REPLACE INTO NutritionDailyTarget(weekIndex, kcal, protein, fat, carbs) VALUES (?, ?, ?, ?, ?);
+
+selectDailyTarget:
+SELECT kcal, protein, fat, carbs FROM NutritionDailyTarget WHERE weekIndex = ?;
+
+deleteDailyTargetForWeek:
+DELETE FROM NutritionDailyTarget WHERE weekIndex = ?;
+
+deleteDailyTargetsFromWeek:
+DELETE FROM NutritionDailyTarget WHERE weekIndex >= ?;
+
+deleteAllDailyTargets:
+DELETE FROM NutritionDailyTarget;
 
 deleteAllMealByDay:
 DELETE FROM MealByDay;

@@ -1,0 +1,9 @@
+-- VT-AUD-036: the daily target of an approximate menu, whose meals state no numbers.
+-- Additive: weeks saved before this migration have no row and are regular plans, as before.
+CREATE TABLE IF NOT EXISTS NutritionDailyTarget(
+  weekIndex INTEGER NOT NULL PRIMARY KEY,
+  kcal INTEGER NOT NULL,
+  protein INTEGER NOT NULL,
+  fat INTEGER NOT NULL,
+  carbs INTEGER NOT NULL
+);

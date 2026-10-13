@@ -6,6 +6,7 @@ import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.domain.model.Macros
 import com.vtempe.shared.domain.model.NutritionPlan
 import com.vtempe.shared.domain.model.Workout
+import com.vtempe.shared.domain.model.dayTotals
 import com.vtempe.shared.domain.repository.NutritionRepository
 import com.vtempe.shared.domain.repository.TrainingRepository
 import com.vtempe.shared.domain.usecase.EnsureCoachData
@@ -192,22 +193,15 @@ class HomePresenterDelegate(
             .takeIf { it > 0 }
             ?: workouts.flatMap { it.sets }.map { it.exerciseId }.distinct().size
         val dayKey = today.dayOfWeek.toShortKey()
-        val todayMeals = plan?.mealsByDay?.get(dayKey).orEmpty()
-        val dailyKcalPlan = todayMeals.sumOf { it.kcal }
+        // An approximate menu's daily target, or the sum of today's meals (VT-AUD-036).
+        val todayMacros = plan?.dayTotals(dayKey)
+        val dailyKcalPlan = todayMacros?.kcal ?: 0
         val sleepMinutes = sleepStore.getForDate(today.toString())
         val todayWorkout = todayWorkouts.takeIf { it.isNotEmpty() }?.let { list ->
             TodayWorkout(
                 label = list.map { it.label }.firstOrNull { it.isNotBlank() }.orEmpty(),
                 exercises = list.flatMap { it.sets }.map { it.exerciseId }.distinct().size,
                 sets = todaySets,
-            )
-        }
-        val todayMacros = todayMeals.takeIf { it.isNotEmpty() }?.let { meals ->
-            Macros(
-                proteinGrams = meals.sumOf { it.macros.proteinGrams },
-                fatGrams = meals.sumOf { it.macros.fatGrams },
-                carbsGrams = meals.sumOf { it.macros.carbsGrams },
-                kcal = dailyKcalPlan,
             )
         }
         return _state.value.copy(

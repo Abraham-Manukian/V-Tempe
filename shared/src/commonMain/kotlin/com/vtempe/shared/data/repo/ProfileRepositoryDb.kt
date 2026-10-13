@@ -98,6 +98,7 @@ class ProfileRepositoryDb(
         db.workoutQueries.deleteAllWorkouts()
         db.nutritionQueries.deleteAllMealByDay()
         db.nutritionQueries.deleteAllShoppingItems()
+        db.nutritionQueries.deleteAllDailyTargets()
         db.nutritionQueries.deleteAllMealIngredients()
         db.nutritionQueries.deleteAllMeals()
 

@@ -240,7 +240,10 @@ data class Meal(
 data class NutritionPlan(
     val weekIndex: Int,
     val mealsByDay: Map<String, List<Meal>>,
-    val shoppingList: List<String>
+    val shoppingList: List<String>,
+    /** Set only for an approximate menu (no AI plan available): its meals state no portions or
+     *  numbers, and this is the day's target instead (VT-AUD-036). Total via [dayTotals]. */
+    val dailyTarget: Macros? = null,
 )
 
 @Serializable

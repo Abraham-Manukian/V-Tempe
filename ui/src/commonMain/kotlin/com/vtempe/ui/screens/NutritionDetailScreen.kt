@@ -5,6 +5,7 @@ import com.vtempe.ui.*
 import com.vtempe.ui.presenter.NutritionPresenter
 import com.vtempe.ui.presenter.NutritionState
 import com.vtempe.ui.presenter.MacroTotals
+import com.vtempe.shared.domain.model.isApproximate
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -121,7 +122,13 @@ fun NutritionDetailScreen(
                                             color = Color(0xFF3A3A3A)
                                         )
                                     } else {
-                                        Text(stringResource(Res.string.nutrition_macros_unavailable), color = Color(0xFF323232))
+                                        Text(
+                                            stringResource(
+                                                if (ui.value.isApproximate) Res.string.nutrition_approximate_meal
+                                                else Res.string.nutrition_macros_unavailable
+                                            ),
+                                            color = Color(0xFF323232),
+                                        )
                                     }
                                     Text(
                                         stringResource(Res.string.nutrition_ingredients),

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.RingChart
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.shared.domain.model.NutritionPlan
+import com.vtempe.shared.domain.model.isApproximate
 import com.vtempe.ui.Res
 import com.vtempe.ui.*
 import com.vtempe.ui.presenter.MacroTotals
@@ -257,7 +258,16 @@ internal fun NutritionContent(
                         shape = MaterialTheme.shapes.extraLarge,
                     ) {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text(stringResource(Res.string.nutrition_day_totals), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = contentColor)
+                            Text(
+                                stringResource(if (plan.isApproximate) Res.string.nutrition_day_target else Res.string.nutrition_day_totals),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor,
+                            )
+                            if (plan.isApproximate) {
+                                // No AI plan: the dishes carry no portions, only this target is real (VT-AUD-036).
+                                Text(stringResource(Res.string.nutrition_approximate_note), style = MaterialTheme.typography.bodyMedium, color = contentColor)
+                            }
                             StatChipGrid(
                                 stats = listOf(
                                     StatChipInfo(stringResource(Res.string.nutrition_macro_protein).uppercase(), stringResource(Res.string.nutrition_grams_value).kmpFormat(proteinDay), Icons.Filled.Egg),

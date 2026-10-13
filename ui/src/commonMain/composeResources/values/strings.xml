@@ -199,6 +199,10 @@
     <string name="equipment_mat">Yoga mat</string>
     <string name="equipment_cardio">Cardio machine</string>
     <string name="nutrition_meal_meta">%1$d items · %2$d kcal</string>
+    <string name="nutrition_meal_meta_no_kcal">%1$d items</string>
+    <string name="nutrition_day_target">Daily target</string>
+    <string name="nutrition_approximate_note">Approximate menu without exact portions: the coach is unavailable right now. Aim for the daily target — it is calculated from your profile.</string>
+    <string name="nutrition_approximate_meal">Exact portions for this dish are not calculated — aim for the daily target.</string>
     <string name="nutrition_kcal_value">%1$d kcal</string>
     <string name="nutrition_macros_detail">Protein: %1$d g  Fat: %2$d g  Carbs: %3$d g</string>
     <string name="nutrition_grams_value">%1$d g</string>

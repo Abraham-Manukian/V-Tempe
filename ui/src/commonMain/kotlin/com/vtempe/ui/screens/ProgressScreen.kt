@@ -165,6 +165,8 @@ fun ProgressScreen(
                         DayNutritionCard(
                             modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
                             meals = state.dayMeals,
+                            totals = state.dayNutritionTotals,
+                            approximate = state.dayNutritionApproximate,
                         )
                     }
                 }

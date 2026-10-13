@@ -24,7 +24,6 @@ class OfflineNutritionPlanner {
     fun buildPlan(profile: Profile, weekIndex: Int, languageTag: String): NutritionPlan {
         val restrictions = FoodRestrictions.from(profile)
         val macrosDay = EnergyTargets.forProfile(profile)
-        val kcalTarget = macrosDay.kcal
         val library = weeklyMealTemplates(languageTag)
         val reserve = library.flatten() + plantBasedReserve(languageTag)
         val allowed = { template: MealTemplate -> template.isAllowedFor(restrictions) }
@@ -36,7 +35,7 @@ class OfflineNutritionPlanner {
         val shopping = linkedSetOf<String>()
         Days.forEachIndexed { index, day ->
             val dayTemplates = pickMeals(library[index % library.size], reserve.rotate(index * MealsPerDay), allowed)
-            val meals = buildMealsForDay(dayTemplates, macrosDay, kcalTarget)
+            val meals = dayTemplates.map(::toMeal)
             mealsByDay[day] = meals
             meals.forEach { meal ->
                 meal.ingredients.forEach { ingredient ->
@@ -45,7 +44,14 @@ class OfflineNutritionPlanner {
                 }
             }
         }
-        return NutritionPlan(weekIndex = weekIndex, mealsByDay = mealsByDay, shoppingList = shopping.toList().sorted())
+        // The templates have no portions, so per-meal numbers could only be invented: the plan
+        // names the food and states the day's target once (VT-AUD-036).
+        return NutritionPlan(
+            weekIndex = weekIndex,
+            mealsByDay = mealsByDay,
+            shoppingList = shopping.toList().sorted(),
+            dailyTarget = macrosDay,
+        )
     }
 
     /** The day's own templates when allowed; gaps are filled from [reserve] without repeats.
@@ -181,34 +187,12 @@ class OfflineNutritionPlanner {
             )
         }
 
-    private fun buildMealsForDay(templates: List<MealTemplate>, macrosDay: Macros, kcalTarget: Int): List<Meal> {
-        val count = templates.size.coerceAtLeast(1)
-        val calories = distributeTotal(kcalTarget, count)
-        val proteins = distributeTotal(macrosDay.proteinGrams, count)
-        val fats = distributeTotal(macrosDay.fatGrams, count)
-        val carbs = distributeTotal(macrosDay.carbsGrams, count)
-        return templates.mapIndexed { index, template ->
-            Meal(
-                name = template.name,
-                ingredients = template.ingredients,
-                kcal = calories[index],
-                macros = Macros(
-                    proteinGrams = proteins[index],
-                    fatGrams = fats[index],
-                    carbsGrams = carbs[index],
-                    kcal = calories[index]
-                )
-            )
-        }
-    }
-
-    private fun distributeTotal(total: Int, count: Int): List<Int> {
-        if (count <= 0) return emptyList()
-        if (total <= 0) return List(count) { 0 }
-        val base = total / count
-        val remainder = total % count
-        return List(count) { index -> base + if (index < remainder) 1 else 0 }
-    }
+    private fun toMeal(template: MealTemplate) = Meal(
+        name = template.name,
+        ingredients = template.ingredients,
+        kcal = 0,
+        macros = Macros(0, 0, 0, 0),
+    )
 
     private companion object {
         val Days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")

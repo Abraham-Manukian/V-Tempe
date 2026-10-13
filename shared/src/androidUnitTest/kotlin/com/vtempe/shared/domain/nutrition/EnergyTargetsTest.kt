@@ -1,6 +1,8 @@
 package com.vtempe.shared.domain.nutrition
 
 import com.vtempe.shared.data.nutrition.OfflineNutritionPlanner
+import com.vtempe.shared.domain.model.dayTotals
+import com.vtempe.shared.domain.model.hasNutrition
 import com.vtempe.shared.domain.model.Goal
 import com.vtempe.shared.domain.model.LifestyleActivity
 import com.vtempe.shared.domain.model.Profile
@@ -35,13 +37,16 @@ class EnergyTargetsTest {
     }
 
     @Test
-    fun offlineMealsAddUpToTheReportedTarget() {
+    fun offlinePlanStatesTheReportedTargetAndNoInventedMealNumbers() {
         val p = profile("FEMALE", 65, 150, 120.0, "LOSE_FAT", "SEDENTARY", 0)
-        val meals = OfflineNutritionPlanner().buildPlan(p, 0, "en").mealsByDay.getValue("Mon")
-        val declared = meals.sumOf { it.kcal }
-        val energy = meals.sumOf { it.macros.proteinGrams * 4 + it.macros.fatGrams * 9 + it.macros.carbsGrams * 4 }
-        assertEquals(1684, declared)
+        val plan = OfflineNutritionPlanner().buildPlan(p, 0, "en")
+        val target = checkNotNull(plan.dailyTarget)
+        val energy = target.proteinGrams * 4 + target.fatGrams * 9 + target.carbsGrams * 4
+        assertEquals(1684, target.kcal)
         assertTrue(energy in (1684 - 12)..1684, "macros give $energy kcal")
+        // VT-AUD-036: templates have no portions, so no meal states numbers; totals use the target.
+        assertTrue(plan.mealsByDay.values.flatten().none { it.hasNutrition })
+        assertEquals(target, plan.dayTotals("Mon"))
     }
 
     @Test
@@ -55,7 +60,7 @@ class EnergyTargetsTest {
 
         for (w in listOf(-1.0, 0.0, Double.NaN, Double.POSITIVE_INFINITY)) {
             val plan = OfflineNutritionPlanner().buildPlan(profile("MALE", 30, 180, w, "MAINTAIN", "SEDENTARY", 3), 0, "en")
-            assertTrue(plan.mealsByDay.values.flatten().all { it.kcal > 0 }, "weight $w")
+            assertTrue(checkNotNull(plan.dailyTarget).kcal > 0, "weight $w")
         }
     }
 }
