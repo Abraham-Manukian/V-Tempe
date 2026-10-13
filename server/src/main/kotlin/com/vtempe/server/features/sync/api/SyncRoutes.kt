@@ -20,10 +20,10 @@ import org.koin.ktor.ext.inject
 fun Route.registerSyncRoutes() {
     val syncService: SyncService by inject()
 
-    route("/me/sync") {
+    route("/sync") {
         put("/{domain}") {
-            // Set by the Firebase auth intercept in Application.kt; absent means that
-            // intercept already rejected the request with 401 before this handler runs.
+            // Set by UserAuthPlugin on the /me subtree (registerUserRoutes), which already answered
+            // 401 for a missing or invalid token; absent only if mounted outside it.
             val userId = call.attributes.getOrNull(UserIdKey)
                 ?: return@put call.respond(HttpStatusCode.Unauthorized)
             val domain = call.parameters["domain"]

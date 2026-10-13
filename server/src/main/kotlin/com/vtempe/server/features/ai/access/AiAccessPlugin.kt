@@ -1,13 +1,10 @@
 package com.vtempe.server.features.ai.access
 
 import com.vtempe.server.shared.dto.profile.AiProfile
+import com.vtempe.server.shared.http.StopWhenHandledHook
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.ApplicationCallPipeline
-import io.ktor.server.application.Hook
-import io.ktor.server.application.call
 import io.ktor.server.application.createRouteScopedPlugin
-import io.ktor.server.application.isHandled
 import io.ktor.server.response.respond
 import io.ktor.util.AttributeKey
 
@@ -26,7 +23,7 @@ class AiAccessPluginConfig {
  */
 val AiAccessPlugin = createRouteScopedPlugin("AiAccess", ::AiAccessPluginConfig) {
     val resolver = pluginConfig.resolver
-    on(AiAccessHook) { call ->
+    on(StopWhenHandledHook) { call ->
         val headers = call.request.headers
         when (val decision = resolver.resolve(headers["X-App-Token"], headers[HttpHeaders.Authorization])) {
             is AiAccessDecision.Granted -> call.attributes.put(AiAccessKey, decision)
@@ -39,15 +36,4 @@ val AiAccessPlugin = createRouteScopedPlugin("AiAccess", ::AiAccessPluginConfig)
 fun ApplicationCall.authorizedProfile(profile: AiProfile): AiProfile {
     val access = attributes[AiAccessKey]
     return profile.copy(llmMode = resolveLlmMode(profile.llmMode, access.maxTier))
-}
-
-/** Like `onCall`, but stops the pipeline once the handler has responded, so a rejected call
- *  never reaches the route handler. */
-private object AiAccessHook : Hook<suspend (ApplicationCall) -> Unit> {
-    override fun install(pipeline: ApplicationCallPipeline, handler: suspend (ApplicationCall) -> Unit) {
-        pipeline.intercept(ApplicationCallPipeline.Plugins) {
-            handler(call)
-            if (call.isHandled) finish()
-        }
-    }
 }

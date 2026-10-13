@@ -2,13 +2,13 @@ package com.vtempe.server
 
 import com.vtempe.server.app.installStorageUnavailableResponse
 import com.vtempe.server.app.readinessRoute
-import com.vtempe.server.features.auth.UserIdKey
+import com.vtempe.server.app.registerUserRoutes
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.entitlement.data.db.DatabaseState
 import com.vtempe.server.features.entitlement.data.db.StorageUnavailableException
-import com.vtempe.server.features.sync.api.registerSyncRoutes
 import com.vtempe.server.features.sync.data.repo.ExposedSyncBlobRepository
 import com.vtempe.server.features.sync.data.service.SyncService
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -16,8 +16,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.ApplicationCallPipeline
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
@@ -93,19 +91,19 @@ class DatabaseAvailabilityTest {
             install(Koin) { modules(module { single { SyncService(ExposedSyncBlobRepository(connector::require)) } }) }
             install(ContentNegotiation) { json() }
             installStorageUnavailableResponse()
-            intercept(ApplicationCallPipeline.Plugins) { call.attributes.put(UserIdKey, "uid-1") } // the /me auth intercept
             routing {
-                registerSyncRoutes()
+                registerUserRoutes { "uid-1" } // every token belongs to uid-1
                 readinessRoute(connector)
             }
         }
 
         val write = client.put("/me/sync/weight") {
+            bearerAuth("token")
             contentType(ContentType.Application.Json)
             setBody("""{"payload":"{}"}""")
         }
         assertEquals(HttpStatusCode.ServiceUnavailable, write.status)
-        assertEquals(HttpStatusCode.ServiceUnavailable, client.get("/me/sync").status)
+        assertEquals(HttpStatusCode.ServiceUnavailable, client.get("/me/sync") { bearerAuth("token") }.status)
         assertEquals(HttpStatusCode.ServiceUnavailable, client.get("/ready").status)
     }
 }

@@ -2,16 +2,11 @@
 
 import com.vtempe.server.app.di.serverModule
 import com.vtempe.server.config.Env
-import com.vtempe.server.features.account.api.registerAccountRoutes
 import com.vtempe.server.features.ai.access.AiAccessConfig
 import com.vtempe.server.features.ai.api.registerAiRoutes
-import com.vtempe.server.features.auth.UserIdKey
-import com.vtempe.server.features.auth.data.FirebaseTokenVerifier
-import com.vtempe.server.features.entitlement.api.registerEntitlementRoutes
+import com.vtempe.server.features.auth.IdTokenVerifier
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.payments.yookassa.api.registerYooKassaWebhookRoutes
-import com.vtempe.server.features.sync.api.registerSyncRoutes
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -22,7 +17,6 @@ import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.origin
-import io.ktor.server.request.path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -84,35 +78,17 @@ fun Application.module() {
     }
     log.info("AI access: paid tier policy={}, guests={}", aiAccess.paidAccessPolicy, aiAccess.guestAccessEnabled)
 
-    // Per-user auth for /me/* routes (entitlement, and future per-user data) — a Firebase ID
-    // token in the Authorization header, verified against the project's public keys (see
-    // FirebaseTokenVerifier). APP_SECRET proves "this is our app build", the Firebase token
-    // proves "this is a specific person".
-    val firebaseTokenVerifier: FirebaseTokenVerifier by inject()
-    intercept(ApplicationCallPipeline.Plugins) {
-        // path(), not uri: "/me" itself (DELETE /me, account deletion) must match too, and a
-        // query string must not let "/me?..." slip past the check.
-        val path = call.request.path()
-        if (path == "/me" || path.startsWith("/me/")) {
-            val authHeader = call.request.headers["Authorization"]
-            val idToken = authHeader?.removePrefix("Bearer ")?.takeIf { it != authHeader }
-            val userId = idToken?.let { firebaseTokenVerifier.verify(it) }
-            if (userId == null) {
-                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
-                finish()
-            } else {
-                call.attributes.put(UserIdKey, userId)
-            }
-        }
-    }
+    // Per-user auth for /me and everything under it: a Firebase ID token, verified against the
+    // project's public keys (see FirebaseTokenVerifier), enforced by UserAuthPlugin on the /me
+    // route subtree (registerUserRoutes). APP_SECRET proves "this is our app build", the Firebase
+    // token proves "this is a specific person".
+    val idTokenVerifier: IdTokenVerifier by inject()
 
     routing {
         rateLimit(RateLimitName("ai")) {
             registerAiRoutes()
         }
-        registerEntitlementRoutes()
-        registerSyncRoutes()
-        registerAccountRoutes()
+        registerUserRoutes(idTokenVerifier)
         registerYooKassaWebhookRoutes()
         get("/health") { call.respondText("OK") }
         readinessRoute(database)
