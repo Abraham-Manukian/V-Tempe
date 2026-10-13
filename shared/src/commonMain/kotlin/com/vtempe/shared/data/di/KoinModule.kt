@@ -28,6 +28,7 @@ import com.vtempe.shared.data.repo.NutritionRepositoryDb
 import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SettingsPreferencesRepository
+import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.repo.LocalChangeNotifier
 import com.vtempe.shared.data.repo.PendingSyncStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
@@ -158,7 +159,7 @@ object DI {
             NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get())
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
-        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
         single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
         single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }
@@ -187,7 +188,8 @@ object DI {
         factory { RefreshSleepAdvice(get(), get(), get()) }
         factory { RecordBodyWeight(get(), get()) }
         factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope")), get()) }
-        factory { ValidateSubscription(get()) }
+        single { LastKnownEntitlementStore(get()) }
+        factory { CheckSubscription(get(), get(), get()) }
         factory { SyncAnalyticsProfile(get(), get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }
         factory {

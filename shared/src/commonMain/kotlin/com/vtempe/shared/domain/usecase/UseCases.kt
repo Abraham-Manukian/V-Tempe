@@ -181,23 +181,6 @@ class EnsureCoachData(
 }
 
 /**
- * Full account reset / re-registration.
- *
- * Clears everything so the next launch starts from a clean slate:
- *  • Profile + all DB data (workouts, nutrition plans)
- *  • AI response cache
- *  • planEpochDateMs — week counter restarts from day 0 for the new user
- *
- * NOT called on regular profile edits — those keep the epoch and regenerate
- * plans for the current week via EnsureCoachData(force = true).
- */
-class ValidateSubscription(
-    private val purchasesRepository: PurchasesRepository
-) {
-    suspend operator fun invoke(): Boolean = purchasesRepository.isSubscriptionActive()
-}
-
-/**
  * Sends demographic analytics to Firebase — ONLY when the user has explicitly opted in
  * (see AnalyticsConsentPreferences). Everything is bucketed rather than exact, even with
  * consent: Google's own Firebase Analytics terms prohibit sending data that could reveal

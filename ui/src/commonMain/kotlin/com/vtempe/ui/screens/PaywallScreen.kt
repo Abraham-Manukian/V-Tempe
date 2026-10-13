@@ -54,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.components.BrandScreen
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.ui.*
+import com.vtempe.shared.domain.usecase.SubscriptionStatus
+import androidx.compose.material3.OutlinedButton
 import com.vtempe.ui.LocalBottomBarHeight
 import com.vtempe.ui.LocalTopBarHeight
 import org.jetbrains.compose.resources.stringResource
@@ -95,7 +97,25 @@ fun PaywallScreen(
                     color = contentColor.copy(alpha = 0.85f)
                 )
             }
-            if (state.active) {
+            // The server's entitlement decides (VT-AUD-053); never a client-side stub.
+            val status = state.status
+            val note = when {
+                status is SubscriptionStatus.Known && status.stale -> Res.string.paywall_stale
+                status is SubscriptionStatus.SignedOut -> Res.string.paywall_signed_out
+                status is SubscriptionStatus.Unknown -> Res.string.paywall_unknown
+                else -> null
+            }
+            note?.let {
+                Text(text = stringResource(it), color = contentColor.copy(alpha = 0.85f))
+            }
+            if (status is SubscriptionStatus.Unknown) {
+                OutlinedButton(onClick = presenter::refresh, enabled = !state.loading) {
+                    Text(stringResource(Res.string.common_retry), color = contentColor)
+                }
+            }
+            if (status == null || status is SubscriptionStatus.Unknown) {
+                // Still checking, or the status could not be confirmed: no plans, no claim either way.
+            } else if (status is SubscriptionStatus.Known && status.active) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),

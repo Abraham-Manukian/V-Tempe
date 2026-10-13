@@ -1,26 +1,15 @@
-﻿package com.vtempe.ui.vm
+package com.vtempe.ui.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vtempe.shared.domain.usecase.ValidateSubscription
+import com.vtempe.shared.domain.usecase.CheckSubscription
 import com.vtempe.ui.presenter.PaywallPresenter
+import com.vtempe.ui.presenter.PaywallPresenterDelegate
 import com.vtempe.ui.presenter.PaywallState
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
-class PaywallViewModel(
-    private val validateSubscription: ValidateSubscription
-) : ViewModel(), PaywallPresenter {
-    private val _state = MutableStateFlow(PaywallState())
-    override val state: StateFlow<PaywallState> = _state.asStateFlow()
-
-    override fun refresh() {
-        viewModelScope.launch {
-            val active = runCatching { validateSubscription() }.getOrDefault(false)
-            _state.value = PaywallState(active)
-        }
-    }
+class PaywallViewModel(checkSubscription: CheckSubscription) : ViewModel(), PaywallPresenter {
+    private val delegate = PaywallPresenterDelegate(checkSubscription, viewModelScope)
+    override val state: StateFlow<PaywallState> = delegate.state
+    override fun refresh() = delegate.refresh()
 }
-

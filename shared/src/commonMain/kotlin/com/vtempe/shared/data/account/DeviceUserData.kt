@@ -1,6 +1,7 @@
 package com.vtempe.shared.data.account
 
 import com.vtempe.shared.data.repo.ChatHistoryStore
+import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.repo.PendingSyncStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
@@ -25,6 +26,7 @@ class DeviceUserData(
     private val calibrations: ExerciseCalibrationRepository,
     private val advice: SettingsAdviceRepository,
     private val pendingSync: PendingSyncStore,
+    private val lastKnownEntitlement: LastKnownEntitlementStore,
 ) : LocalUserData {
 
     override suspend fun hasUserData(): Boolean =
@@ -45,5 +47,6 @@ class DeviceUserData(
         calibrations.clearAll()
         advice.clear()
         pendingSync.clear()
+        lastKnownEntitlement.clear()
     }
 }

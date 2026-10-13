@@ -428,6 +428,9 @@
     <string name="paywall_title">Подписка Pro</string>
     <string name="paywall_desc">Разблокируйте дополнительные возможности. Биллинг будет добавлен позже.</string>
     <string name="paywall_active">Подписка активна</string>
+    <string name="paywall_stale">Нет связи с сервером — это последний известный статус.</string>
+    <string name="paywall_signed_out">Подписка оформляется на аккаунт — войдите, чтобы её оформить.</string>
+    <string name="paywall_unknown">Не удалось проверить подписку. Проверьте соединение и попробуйте ещё раз.</string>
     <string name="paywall_cta">Покупка скоро будет доступна</string>
     <string name="paywall_monthly">Месяц</string>
     <string name="paywall_yearly">Год</string>

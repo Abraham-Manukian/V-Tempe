@@ -11,6 +11,7 @@ import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
 import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
+import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.repo.PendingSyncStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
@@ -95,7 +96,7 @@ internal class TestDevice {
         owner = owner,
         localData = DeviceUserData(
             profiles, AiResponseCache(settings), workouts, sleep, weight, chat,
-            ExerciseCalibrationSettingsRepository(settings), advice, pendingSync
+            ExerciseCalibrationSettingsRepository(settings), advice, pendingSync, LastKnownEntitlementStore(settings)
         ),
         sync = sync,
         remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)

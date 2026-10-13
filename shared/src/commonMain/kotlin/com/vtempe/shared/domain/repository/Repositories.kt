@@ -58,6 +58,8 @@ interface AdviceRepository {
     suspend fun hasAdvice(topic: String): Boolean
 }
 
+/** Store-side billing (Play Billing; the purchase flow is VT-AUD-054). Not the subscription
+ *  status shown to the user: that is the server's entitlement, via CheckSubscription. */
 interface PurchasesRepository {
     suspend fun isSubscriptionActive(): Boolean
 }

@@ -436,6 +436,9 @@
     <string name="paywall_title">Pro version</string>
     <string name="paywall_desc">Unlock advanced features. Billing integration pending.</string>
     <string name="paywall_active">Subscription is active</string>
+    <string name="paywall_stale">No connection to the server — this is the last known status.</string>
+    <string name="paywall_signed_out">A subscription belongs to an account — sign in to get one.</string>
+    <string name="paywall_unknown">Could not check your subscription. Check your connection and try again.</string>
     <string name="paywall_cta">Purchases are coming soon</string>
     <string name="paywall_monthly">Monthly</string>
     <string name="paywall_yearly">Yearly</string>
