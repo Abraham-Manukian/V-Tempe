@@ -71,13 +71,15 @@ interface EntitlementRepository {
     suspend fun fetchEntitlement(): DataResult<com.vtempe.shared.data.network.dto.EntitlementDto>
 }
 
-/** Keep in sync with the server's ALLOWED_SYNC_DOMAINS (server/.../features/sync/data/service/SyncService.kt). */
-enum class SyncDomain(val wireKey: String) {
-    PROFILE("profile"),
-    WORKOUT_PROGRESS("workoutProgress"),
-    SLEEP("sleep"),
-    SLEEP_NOTES("sleepNotes"),
-    WEIGHT("weight")
+/** Keep in sync with the server's ALLOWED_SYNC_DOMAINS and MERGEABLE_SYNC_DOMAINS
+ *  (server/.../features/sync/data/service/SyncService.kt). [diary]: entries keyed by date or
+ *  workout, merged with other devices' entries instead of replaced (VT-AUD-057). */
+enum class SyncDomain(val wireKey: String, val diary: Boolean) {
+    PROFILE("profile", diary = false),
+    WORKOUT_PROGRESS("workoutProgress", diary = true),
+    SLEEP("sleep", diary = true),
+    SLEEP_NOTES("sleepNotes", diary = true),
+    WEIGHT("weight", diary = true)
 }
 
 /**
@@ -119,10 +121,15 @@ interface SyncRepository {
      *  so after clearing it nothing more reaches the server from this device (VT-AUD-059). */
     suspend fun awaitIdle()
 
-    /** Uploads every domain for [uid]; domains the device has nothing for are stored as
-     *  [RemoteSyncSnapshot.EMPTY_PAYLOAD], so the account ends up mirroring the device.
-     *  Returns false if any upload failed. */
+    /** Replaces every domain of [uid] with the device's; domains the device has nothing for are
+     *  stored as [RemoteSyncSnapshot.EMPTY_PAYLOAD], so the account ends up mirroring the device
+     *  (a reset, or the device's data chosen over the account's). Returns false if any upload failed. */
     suspend fun pushAll(uid: String): Boolean
+
+    /** Delivers everything the device changed to [uid] — diaries merged with what other devices
+     *  added (VT-AUD-057), not replaced — so the device's data is safe on the server, e.g. before
+     *  signing out. Returns false if anything could not be delivered. */
+    suspend fun deliverAll(uid: String): Boolean
 }
 
 sealed interface RemoteFetch {

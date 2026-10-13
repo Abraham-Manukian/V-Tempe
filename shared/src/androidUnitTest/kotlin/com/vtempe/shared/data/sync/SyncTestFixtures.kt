@@ -13,6 +13,7 @@ import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.repo.PendingSyncStore
+import com.vtempe.shared.data.repo.SyncBaseStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
@@ -27,6 +28,7 @@ import com.vtempe.shared.domain.model.WorkoutProgress
 import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.SyncDomain
 import com.vtempe.shared.data.network.dto.SyncBlobDto
+import com.vtempe.shared.data.network.dto.SyncChangesDto
 import com.vtempe.shared.data.network.dto.SyncPullResponseDto
 import com.vtempe.shared.data.network.dto.SyncPushRequestDto
 import com.vtempe.shared.domain.repository.AuthErrorCode
@@ -49,6 +51,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import java.lang.reflect.Proxy
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -73,11 +76,11 @@ internal fun inMemorySettings(): Settings {
 }
 
 /** One phone: real stores on in-memory SQLite/Settings, real sync and coordinator, fake Firebase and server. */
-internal class TestDevice {
+/** [server] may be shared: two devices signed in to one account (VT-AUD-057). */
+internal class TestDevice(val server: FakeSyncServer = FakeSyncServer()) {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { AppDatabase.Schema.create(it) }
     private val db = AppDatabase(driver)
     val settings = inMemorySettings()
-    val server = FakeSyncServer()
     val auth = FakeAuthRepository()
     val owner = SettingsLocalDataOwnerStore(settings)
     private val pendingPushes = mutableListOf<SyncDomain>()
@@ -90,13 +93,15 @@ internal class TestDevice {
     val weight = WeightStore(settings, onChanged)
     val chat = ChatHistoryStore(settings)
     val advice = SettingsAdviceRepository(settings)
-    val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight, pendingSync)
+    val syncBase = SyncBaseStore(settings)
+    val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight, pendingSync, syncBase)
     val coordinator = AccountDataCoordinator(
         auth = auth,
         owner = owner,
         localData = DeviceUserData(
             profiles, AiResponseCache(settings), workouts, sleep, weight, chat,
-            ExerciseCalibrationSettingsRepository(settings), advice, pendingSync, LastKnownEntitlementStore(settings)
+            ExerciseCalibrationSettingsRepository(settings), advice, pendingSync, LastKnownEntitlementStore(settings),
+            syncBase,
         ),
         sync = sync,
         remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)
@@ -176,7 +181,9 @@ internal class FakeSyncServer {
     var failStatus = HttpStatusCode.ServiceUnavailable
     /** No connection: requests fail before reaching the server. */
     var offline = false
-    /** When set, a PUT is held after it reached the server and before it is stored. */
+    /** A server from before diary merging: PATCH is not routed (VT-AUD-057). */
+    var legacy = false
+    /** When set, a write (PUT or PATCH) is held after it reached the server and before it is stored. */
     var putGate: CompletableDeferred<Unit>? = null
     val putReceived = CompletableDeferred<Unit>()
 
@@ -197,6 +204,19 @@ internal class FakeSyncServer {
                 uid == null -> respond("", HttpStatusCode.Unauthorized)
                 request.method == HttpMethod.Delete -> {
                     blobs.remove(uid)
+                    respond("", HttpStatusCode.NoContent)
+                }
+                request.method == HttpMethod.Patch && legacy -> respond("", HttpStatusCode.NotFound)
+                request.method == HttpMethod.Patch -> {
+                    putReceived.complete(Unit)
+                    putGate?.await()
+                    val domain = request.url.encodedPath.substringAfterLast('/')
+                    val body = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
+                    val changes = json.decodeFromString(SyncChangesDto.serializer(), body)
+                    // Same merge as the server's mergeDiary.
+                    val stored = payload(uid, domain)?.let { json.parseToJsonElement(it) as? JsonObject }.orEmpty()
+                    val merged = LinkedHashMap(stored).apply { changes.deletes.forEach(::remove); putAll(changes.upserts) }
+                    seed(uid, domain, JsonObject(merged).toString())
                     respond("", HttpStatusCode.NoContent)
                 }
                 request.method == HttpMethod.Put -> {

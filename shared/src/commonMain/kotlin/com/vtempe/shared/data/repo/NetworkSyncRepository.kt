@@ -1,6 +1,7 @@
 package com.vtempe.shared.data.repo
 
 import com.vtempe.shared.data.network.ApiClient
+import com.vtempe.shared.data.network.dto.SyncChangesDto
 import com.vtempe.shared.data.network.dto.SyncPullResponseDto
 import com.vtempe.shared.data.network.dto.SyncPushRequestDto
 import com.vtempe.shared.domain.account.AccountDataFailure
@@ -29,6 +30,7 @@ class NetworkSyncRepository(
     private val sleepStore: SleepStore,
     private val weightStore: WeightStore,
     private val pending: PendingSyncStore,
+    private val syncBase: SyncBaseStore,
 ) : SyncRepository {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -56,11 +58,42 @@ class NetworkSyncRepository(
         }
     }
 
-    /** Uploads [domain] and marks it delivered at the revision read before its data (VT-AUD-056). */
-    private suspend fun uploadTracked(domain: SyncDomain, token: String) {
+    override suspend fun deliverAll(uid: String): Boolean = mutex.withLock {
+        val token = auth.idTokenFor(uid) ?: return@withLock false
+        SyncDomain.entries.all { uploadTracked(it, token) }
+    }
+
+    /**
+     * Delivers [domain] and marks it delivered at the revision read before its data (VT-AUD-056).
+     * A diary sends only what changed since the last synced state (VT-AUD-057); the profile is
+     * sent whole. True when delivered or there was nothing to deliver.
+     */
+    private suspend fun uploadTracked(domain: SyncDomain, token: String): Boolean {
         val revision = pending.currentRevision(domain)
-        val payload = (readSnapshot(domain) as? LocalSnapshot.Present)?.payload ?: return
-        if (upload(domain, payload, token)) pending.confirm(domain, revision)
+        val payload = when (val local = readSnapshot(domain)) {
+            is LocalSnapshot.Present -> local.payload
+            // An emptied diary removes its entries; no profile means nothing to send.
+            LocalSnapshot.Absent -> if (domain.diary) RemoteSyncSnapshot.EMPTY_PAYLOAD else return true
+            LocalSnapshot.Unreadable -> return false // VT-AUD-058: never sent as "nothing here"
+        }
+        val delivered = if (domain.diary) deliverDiary(domain, payload, token) else upload(domain, payload, token)
+        if (delivered) pending.confirm(domain, revision)
+        return delivered
+    }
+
+    private suspend fun deliverDiary(domain: SyncDomain, payload: String, token: String): Boolean {
+        val changes = diaryChanges(syncBase.load(domain), payload) ?: return upload(domain, payload, token)
+        if (changes.isEmpty) return true
+        val result = api.patchNoContent("/me/sync/${domain.wireKey}", changes, bearerToken = token)
+        return when {
+            result is DataResult.Success -> true.also { syncBase.save(domain, payload) }
+            // A server from before diary merging: the whole snapshot, as before.
+            result is DataResult.Failure && result.code in LEGACY_SERVER_CODES -> upload(domain, payload, token)
+            else -> false.also {
+                val failure = result as DataResult.Failure
+                Napier.d(tag = "Sync", message = "merge failed for ${domain.wireKey}: ${failure.reason} ${failure.code ?: ""}")
+            }
+        }
     }
 
     override suspend fun pushAll(uid: String): Boolean = mutex.withLock {
@@ -111,8 +144,11 @@ class NetworkSyncRepository(
             return@withLock unreadable
         }
         SyncDomain.entries.filterTo(mutableSetOf()) { domain ->
-            val payload = snapshot.payloads[domain.wireKey] ?: return@filterTo false
-            !restoreDomain(domain, payload)
+            val payload = snapshot.payloads[domain.wireKey]
+            val restored = payload == null || restoreDomain(domain, payload)
+            // The device now holds the account's diary: later uploads send changes against it.
+            if (restored && domain.diary) syncBase.save(domain, payload ?: RemoteSyncSnapshot.EMPTY_PAYLOAD)
+            !restored
         }
     }
 
@@ -138,6 +174,7 @@ class NetworkSyncRepository(
         if (result is DataResult.Failure) {
             Napier.d(tag = "Sync", message = "push failed for ${domain.wireKey}: ${result.reason} ${result.code ?: ""}")
         }
+        if (result is DataResult.Success && domain.diary) syncBase.save(domain, payload)
         return result is DataResult.Success
     }
 
@@ -172,6 +209,11 @@ class NetworkSyncRepository(
         val profile = decodeProfile(payload) ?: return false
         profileRepository.restoreProfile(profile) // a write failure propagates
         return true
+    }
+
+    private companion object {
+        /** No PATCH route yet: Not Found or Method Not Allowed. */
+        val LEGACY_SERVER_CODES = setOf(404, 405)
     }
 
     private fun decodeProfile(payload: String): Profile? =

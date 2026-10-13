@@ -86,7 +86,8 @@ class AccountDataCoordinator(
     suspend fun signOut(force: Boolean = false): SignOutOutcome {
         val uid = auth.authState.value?.uid
         val currentOwner = owner.ownerUid()
-        if (!force && uid != null && currentOwner == uid && !sync.pushAll(uid)) {
+        // Merged, not replaced: replacing would erase entries another device of the account added.
+        if (!force && uid != null && currentOwner == uid && !sync.deliverAll(uid)) {
             return SignOutOutcome.Unsynced
         }
         auth.signOut()

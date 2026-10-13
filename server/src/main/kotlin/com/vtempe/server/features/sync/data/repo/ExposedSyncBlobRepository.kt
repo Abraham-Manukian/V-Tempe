@@ -23,17 +23,25 @@ import java.time.Instant
 class ExposedSyncBlobRepository(private val database: () -> Database) : SyncBlobRepository {
 
     override suspend fun push(userId: String, domain: String, payload: String, now: Instant): Boolean =
+        update(userId, domain, now) { payload }
+
+    override suspend fun update(userId: String, domain: String, now: Instant, transform: (current: String?) -> String): Boolean =
         newSuspendedTransaction(Dispatchers.IO, database()) {
+            // The user's lock covers the read below too, so two devices' merges apply one after the
+            // other instead of both reading the same old snapshot (VT-AUD-057).
             lockUser(userId)
             val blocked = !SyncWriteBarriers.selectAll()
                 .where { (SyncWriteBarriers.userId eq userId) and (SyncWriteBarriers.blockedUntil greater now) }
                 .empty()
             if (blocked) return@newSuspendedTransaction false
+            val current = SyncBlobs.selectAll()
+                .where { (SyncBlobs.userId eq userId) and (SyncBlobs.domain eq domain) }
+                .singleOrNull()?.get(SyncBlobs.payload)
+            val payload = transform(current)
             // insertIgnore + unconditional update, same pattern as ExposedEntitlementRepository —
             // avoids "insert, catch unique violation, retry as update" (Postgres aborts the whole
             // transaction on the failed insert, so a caught retry needs a SAVEPOINT it doesn't
-            // have). Unlike entitlement's guarded update, sync is unconditionally last-write-wins:
-            // there's no "later expiry always wins" invariant here, just "newest push wins".
+            // have). The payload written is whatever [transform] computed under the user's lock.
             SyncBlobs.insertIgnore {
                 it[SyncBlobs.userId] = userId
                 it[SyncBlobs.domain] = domain

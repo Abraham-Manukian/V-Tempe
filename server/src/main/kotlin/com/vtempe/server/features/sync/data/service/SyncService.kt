@@ -2,12 +2,17 @@ package com.vtempe.server.features.sync.data.service
 
 import com.vtempe.server.features.sync.domain.port.SyncBlobRecord
 import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
+import kotlinx.serialization.json.JsonElement
 import java.time.Instant
 
 /** The domain names a client is allowed to sync — anything else is rejected before it reaches
  *  the repository, so this table can't be abused as an arbitrary per-user key-value store. Keep
  *  in sync with the client's SyncDomain enum (shared/.../domain/repository/Repositories.kt). */
 val ALLOWED_SYNC_DOMAINS = setOf("profile", "workoutProgress", "sleep", "sleepNotes", "weight")
+
+/** Diaries keyed by date or workout id: two devices' entries are merged, not overwritten (VT-AUD-057).
+ *  The profile is one record and stays last-write-wins. */
+val MERGEABLE_SYNC_DOMAINS = ALLOWED_SYNC_DOMAINS - "profile"
 
 /** A generous cap, not a tuned one — these are compact JSON snapshots (a profile, a few weeks of
  *  workout completions, a couple months of sleep/weight entries), normally a few KB. 256 KB stops
@@ -24,6 +29,21 @@ class SyncService(
         require(domain in ALLOWED_SYNC_DOMAINS) { "Unknown sync domain: $domain" }
         require(payload.length <= MAX_SYNC_PAYLOAD_CHARS) { "Sync payload too large" }
         return repository.push(userId, domain, payload, clock())
+    }
+
+    /**
+     * Applies one device's changes to the stored diary of [domain]: its added or changed entries
+     * replace those keys, its removed keys go; every other entry — another device's — stays.
+     * Throws [SyncPayloadTooLargeException] when the result would exceed the size cap; false when
+     * the account's writes are blocked after a deletion (VT-AUD-059).
+     */
+    suspend fun merge(userId: String, domain: String, upserts: Map<String, JsonElement>, deletes: Collection<String>): Boolean {
+        require(domain in MERGEABLE_SYNC_DOMAINS) { "Not a mergeable sync domain: $domain" }
+        return repository.update(userId, domain, clock()) { current ->
+            mergeDiary(current, upserts, deletes).also {
+                if (it.length > MAX_SYNC_PAYLOAD_CHARS) throw SyncPayloadTooLargeException()
+            }
+        }
     }
 
     suspend fun pullAll(userId: String): Map<String, SyncBlobRecord> = repository.pullAll(userId)

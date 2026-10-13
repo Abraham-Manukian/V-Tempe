@@ -22,6 +22,13 @@ class InMemorySyncBlobRepository : SyncBlobRepository {
             true
         }
 
+    override suspend fun update(userId: String, domain: String, now: Instant, transform: (current: String?) -> String): Boolean =
+        writes.withLock {
+            if (barriers[userId]?.isAfter(now) == true) return@withLock false
+            blobs[userId to domain] = SyncBlobRecord(transform(blobs[userId to domain]?.payload), now)
+            true
+        }
+
     override suspend fun pullAll(userId: String): Map<String, SyncBlobRecord> =
         blobs.entries
             .filter { it.key.first == userId }

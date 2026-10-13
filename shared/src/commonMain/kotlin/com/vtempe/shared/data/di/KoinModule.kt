@@ -31,6 +31,7 @@ import com.vtempe.shared.data.repo.SettingsPreferencesRepository
 import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.repo.LocalChangeNotifier
 import com.vtempe.shared.data.repo.PendingSyncStore
+import com.vtempe.shared.data.repo.SyncBaseStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
@@ -71,6 +72,7 @@ object DI {
         // near-identical block repeated per store rather than factored out). Runs on appScope:
         // sync is fire-and-forget background work, not something a local save should block on.
         single { PendingSyncStore(get()) }
+        single { SyncBaseStore(get()) }
         single { LocalChangeNotifier(get(), get(named("appScope"))) { get<SyncRepository>() } }
         single {
             WorkoutProgressStore(get(), get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
@@ -156,10 +158,10 @@ object DI {
         // Firebase SDK dependency like Auth/Analytics have. Uploads are pinned to the account
         // that owns the device data (see AccountDataCoordinator).
         single<SyncRepository> {
-            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get())
+            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
-        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
         single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
         single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }

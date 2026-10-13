@@ -9,6 +9,11 @@ interface SyncBlobRepository {
      *  false and writes nothing while [deleteAll] blocks writes for [userId]. */
     suspend fun push(userId: String, domain: String, payload: String, now: Instant = Instant.now()): Boolean
 
+    /** Replaces the stored snapshot of (userId, domain) with [transform] of the current one (null
+     *  when none is stored), atomically with other writes of the same user. Returns false and
+     *  writes nothing while [deleteAll] blocks writes for [userId]. */
+    suspend fun update(userId: String, domain: String, now: Instant, transform: (current: String?) -> String): Boolean
+
     /** Every domain currently stored for [userId], keyed by domain name. */
     suspend fun pullAll(userId: String): Map<String, SyncBlobRecord>
 
