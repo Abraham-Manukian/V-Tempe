@@ -2,6 +2,7 @@ package com.vtempe.server
 
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
 import kotlinx.coroutines.runBlocking
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.Instant
 
 class AccountDeletionServiceTest {
@@ -63,14 +65,14 @@ class AccountDeletionServiceTest {
             amountMinor = 49_900,
             currency = "RUB",
             rawPayload = "{}",
-        ) { expiresAt }
+        ) { GrantWindow(expiresAt.minus(Duration.ofDays(30)), expiresAt) }
 
         service.deleteAccountData("user-1")
 
         assertNull(entitlements.find("user-1"))
         // The ledger still knows the payment: a redelivered webhook is recognised as a duplicate.
         assertNull(
-            entitlements.recordPaymentAndExtend("pay-1", "user-1", PaymentSource.YOOKASSA, 49_900, "RUB", "{}") { expiresAt }
+            entitlements.recordPaymentAndExtend("pay-1", "user-1", PaymentSource.YOOKASSA, 49_900, "RUB", "{}") { GrantWindow(expiresAt.minus(Duration.ofDays(30)), expiresAt) }
         )
     }
 }

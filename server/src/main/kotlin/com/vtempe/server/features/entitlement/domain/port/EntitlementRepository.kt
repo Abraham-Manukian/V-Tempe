@@ -1,6 +1,9 @@
 package com.vtempe.server.features.entitlement.domain.port
 
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import com.vtempe.server.features.entitlement.domain.model.RefundResult
+import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
 import java.time.Instant
 
 /** Raw persisted row — no status field, [com.vtempe.server.features.entitlement.domain.model.Entitlement]
@@ -30,10 +33,11 @@ interface EntitlementRepository {
      * permanently strand a paying user, since a retried delivery would then see the payment as
      * already-processed and skip granting again).
      *
-     * [newExpiry] receives the user's current expiry (null when there is no row) READ INSIDE the
-     * same transaction, serialized per user, and returns the new one (VT-AUD-051): two different
-     * payments processed at the same time both extend, instead of both computing from the same
-     * old expiry. The result never shortens existing access.
+     * [grant] receives the user's current expiry (null when there is no row) READ INSIDE the
+     * same transaction, serialized per user, and returns the window this payment buys (VT-AUD-051):
+     * two different payments processed at the same time both extend, instead of both computing
+     * from the same old expiry. The new expiry is the window's end and never shortens existing
+     * access; the window is kept so a refund can take back exactly it (VT-AUD-052).
      *
      * Returns the resulting expiry, or null if [externalId] was already recorded — the grant is
      * NOT reapplied in that case, since the original processing already applied it.
@@ -45,6 +49,14 @@ interface EntitlementRepository {
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        newExpiry: (currentExpiry: Instant?) -> Instant
+        grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant?
+
+    /**
+     * Applies a verified refund once (idempotent on its id) under the same per-user serialization
+     * as payments (VT-AUD-052): a full refund removes the part of its payment's window after [now]
+     * from the user's expiry and moves the user's later windows up by it; a partial refund, or one
+     * whose payment has no window, changes no access. Every refund is recorded with its outcome.
+     */
+    suspend fun recordRefund(refund: VerifiedRefund, now: Instant): RefundResult
 }

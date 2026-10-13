@@ -2,7 +2,10 @@ package com.vtempe.server.features.entitlement.data.service
 
 import com.vtempe.server.features.entitlement.domain.model.Entitlement
 import com.vtempe.server.features.entitlement.domain.model.EntitlementStatus
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import com.vtempe.server.features.entitlement.domain.model.RefundResult
+import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
 import java.time.Duration
 import java.time.Instant
@@ -58,6 +61,9 @@ class EntitlementService(
     ): Instant? = repository.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload) { current ->
         val now = clock()
         val base = if (current != null && now.isBefore(current.plus(gracePeriod))) current else now
-        base.plus(period)
+        GrantWindow(from = base, until = base.plus(period))
     }
+
+    /** Takes back what a verified refund paid for — see [EntitlementRepository.recordRefund]. */
+    suspend fun applyRefund(refund: VerifiedRefund): RefundResult = repository.recordRefund(refund, clock())
 }

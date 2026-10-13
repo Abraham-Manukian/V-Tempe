@@ -95,7 +95,7 @@ class DatabaseConnector(
             return try {
                 Database.connect(dataSource).also { database ->
                     transaction(database) {
-                        SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments, SyncBlobs, SyncWriteBarriers)
+                        SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments, GrantWindows, PaymentRefunds, SyncBlobs, SyncWriteBarriers)
                     }
                 }
             } catch (error: Exception) {

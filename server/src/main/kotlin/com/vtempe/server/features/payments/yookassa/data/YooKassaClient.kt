@@ -11,6 +11,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -24,8 +25,27 @@ data class YooKassaPayment(
     val status: String,
     val paid: Boolean,
     val amount: YooKassaAmount,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    /** Total refunded so far, across every refund of this payment. */
+    @SerialName("refunded_amount") val refundedAmount: YooKassaAmount? = null,
 )
+
+@Serializable
+data class YooKassaRefund(
+    val id: String,
+    val status: String,
+    @SerialName("payment_id") val paymentId: String,
+    val amount: YooKassaAmount,
+)
+
+/** The provider calls the webhook needs, verified against YooKassa itself; faked in tests. */
+interface YooKassaApi {
+    /** Null only when YooKassa confirms no such payment; throws [YooKassaVerificationUnavailable] otherwise. */
+    suspend fun fetchPayment(paymentId: String): YooKassaPayment?
+
+    /** Null only when YooKassa confirms no such refund; throws [YooKassaVerificationUnavailable] otherwise. */
+    suspend fun fetchRefund(refundId: String): YooKassaRefund?
+}
 
 /** Thrown when a payment's status genuinely could not be determined (network error, YooKassa
  *  API outage, unexpected HTTP status, missing shop credentials) — distinct from [fetchPayment]
@@ -40,7 +60,7 @@ class YooKassaVerificationUnavailable(message: String, cause: Throwable? = null)
  * status directly from YooKassa, never to trust a webhook body on its own (see
  * YooKassaWebhookRoutes kdoc for why).
  */
-class YooKassaClient(private val shopId: String?, private val secretKey: String?) {
+class YooKassaClient(private val shopId: String?, private val secretKey: String?) : YooKassaApi {
     private val logger = LoggerFactory.getLogger(YooKassaClient::class.java)
 
     private val http = HttpClient(OkHttp) {
@@ -56,37 +76,41 @@ class YooKassaClient(private val shopId: String?, private val secretKey: String?
      *  or when [paymentId] doesn't even look like a real YooKassa id (see [PAYMENT_ID_PATTERN]),
      *  in which case we never even build a URL from it. Throws [YooKassaVerificationUnavailable]
      *  for every other failure mode (missing credentials, network error, non-2xx/404 status). */
-    suspend fun fetchPayment(paymentId: String): YooKassaPayment? {
+    override suspend fun fetchPayment(paymentId: String): YooKassaPayment? = fetch("payments", paymentId)
+
+    override suspend fun fetchRefund(refundId: String): YooKassaRefund? = fetch("refunds", refundId)
+
+    private suspend inline fun <reified T> fetch(collection: String, id: String): T? {
         val shopId = this.shopId
         val secretKey = this.secretKey
         if (shopId == null || secretKey == null) {
             throw YooKassaVerificationUnavailable("YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY not set")
         }
-        if (!PAYMENT_ID_PATTERN.matches(paymentId)) {
-            // paymentId is attacker-controlled (parsed from an unauthenticated webhook body) —
-            // never interpolate it into a URL unvalidated, it could contain "/", "?", "#" and
-            // redirect this authenticated request to an arbitrary path/query on YooKassa's API.
-            logger.warn("YooKassa webhook: payment id does not match the expected shape, refusing to look it up: {}", paymentId)
+        if (!PAYMENT_ID_PATTERN.matches(id)) {
+            // The id is attacker-controlled (parsed from an unauthenticated webhook body) — never
+            // interpolate it into a URL unvalidated, it could contain "/", "?", "#" and redirect
+            // this authenticated request to an arbitrary path/query on YooKassa's API.
+            logger.warn("YooKassa webhook: {} id does not match the expected shape, refusing to look it up: {}", collection, id)
             return null
         }
         return try {
-            val response: HttpResponse = http.get("https://api.yookassa.ru/v3/payments/$paymentId") {
+            val response: HttpResponse = http.get("https://api.yookassa.ru/v3/$collection/$id") {
                 basicAuth(shopId, secretKey)
             }
             when {
                 response.status == HttpStatusCode.NotFound -> null
                 response.status.isSuccess() -> response.body()
-                else -> throw YooKassaVerificationUnavailable("YooKassa lookup failed: id=$paymentId status=${response.status}")
+                else -> throw YooKassaVerificationUnavailable("YooKassa lookup failed: $collection/$id status=${response.status}")
             }
         } catch (e: YooKassaVerificationUnavailable) {
             throw e
         } catch (e: Exception) {
-            throw YooKassaVerificationUnavailable("YooKassa lookup error: id=$paymentId error=${e.message}", e)
+            throw YooKassaVerificationUnavailable("YooKassa lookup error: $collection/$id error=${e.message}", e)
         }
     }
 
     private companion object {
-        // YooKassa payment ids are UUID-shaped (32 lowercase hex chars, no dashes in practice,
+        // YooKassa payment and refund ids are UUID-shaped (32 lowercase hex chars, no dashes in practice,
         // but accept dashes too since that's the more common UUID rendering) — this is purely a
         // "does this look like a real id" gate, not a strict format contract.
         val PAYMENT_ID_PATTERN = Regex("^[0-9a-f-]{16,64}$")

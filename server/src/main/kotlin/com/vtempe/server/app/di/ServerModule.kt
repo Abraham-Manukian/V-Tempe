@@ -42,7 +42,9 @@ import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementReposi
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
+import com.vtempe.server.features.payments.yookassa.data.YooKassaApi
 import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
+import com.vtempe.server.features.payments.yookassa.data.YooKassaWebhookProcessor
 import com.vtempe.server.features.sync.data.repo.ExposedSyncBlobRepository
 import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
 import com.vtempe.server.features.sync.data.service.SyncService
@@ -287,12 +289,13 @@ val serverModule = module {
     }
     single { SyncService(repository = get()) }
     single { AccountDeletionService(syncBlobs = get(), entitlements = get()) }
-    single {
+    single<YooKassaApi> {
         YooKassaClient(
             shopId = Env["YOOKASSA_SHOP_ID"]?.takeIf { it.isNotBlank() },
             secretKey = Env["YOOKASSA_SECRET_KEY"]?.takeIf { it.isNotBlank() }
         )
     }
+    single { YooKassaWebhookProcessor(entitlements = get(), api = get(), json = get()) }
 }
 
 private fun parseModelList(raw: String?): List<String> = raw

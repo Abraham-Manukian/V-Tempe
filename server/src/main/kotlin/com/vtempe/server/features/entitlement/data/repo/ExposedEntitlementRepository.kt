@@ -1,8 +1,14 @@
 package com.vtempe.server.features.entitlement.data.repo
 
 import com.vtempe.server.features.entitlement.data.db.Entitlements
+import com.vtempe.server.features.entitlement.data.db.GrantWindows
+import com.vtempe.server.features.entitlement.data.db.PaymentRefunds
 import com.vtempe.server.features.entitlement.data.db.Payments
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import com.vtempe.server.features.entitlement.domain.model.RefundOutcome
+import com.vtempe.server.features.entitlement.domain.model.RefundResult
+import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRecord
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +68,7 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        newExpiry: (currentExpiry: Instant?) -> Instant
+        grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant? = newSuspendedTransaction(Dispatchers.IO, database()) {
         val isNewPayment = try {
             Payments.insert {
@@ -82,7 +88,78 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
         // whole transaction rolls back INCLUDING the payment insert, so a retried webhook
         // delivery sees no recorded payment and reprocesses cleanly from scratch — never
         // "marked processed, but never actually granted".
-        if (isNewPayment) extendInTransaction(userId, source, externalId, newExpiry) else null
+        if (isNewPayment) extendInTransaction(userId, source, externalId, grant) else null
+    }
+
+    override suspend fun recordRefund(refund: VerifiedRefund, now: Instant): RefundResult =
+        newSuspendedTransaction(Dispatchers.IO, database()) {
+            // The refund row first: a redelivered refund conflicts on refund_id and changes nothing,
+            // and a concurrent duplicate waits on the unique key until this one commits.
+            val isNewRefund = PaymentRefunds.insertIgnore {
+                it[refundId] = refund.refundId
+                it[paymentExternalId] = refund.paymentExternalId
+                it[amountMinor] = refund.amountMinor
+                it[currency] = refund.currency
+                it[outcome] = RefundOutcome.DUPLICATE.name // placeholder, replaced below
+                it[removedSeconds] = 0
+                it[rawPayload] = refund.rawPayload
+                it[createdAt] = now
+            }.insertedCount > 0
+            if (!isNewRefund) return@newSuspendedTransaction RefundResult(RefundOutcome.DUPLICATE)
+
+            val userId = Payments.selectAll()
+                .where { Payments.externalId eq refund.paymentExternalId }
+                .singleOrNull()?.get(Payments.userId)
+            // Same lock order as a payment (entitlement row first), so a payment and a refund of
+            // one user apply one after the other.
+            userId?.let { lockEntitlement(it) }
+            val window = GrantWindows.selectAll()
+                .where { GrantWindows.paymentExternalId eq refund.paymentExternalId }
+                .singleOrNull()
+                ?.let { GrantWindow(it[GrantWindows.grantedFrom], it[GrantWindows.grantedUntil]) }
+            val result = when {
+                userId == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW)
+                !refund.full -> RefundResult(RefundOutcome.PARTIAL_REVIEW, userId)
+                window == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW, userId)
+                else -> takeBack(userId, refund.paymentExternalId, RefundCut.of(window, now))
+            }
+            PaymentRefunds.update({ PaymentRefunds.refundId eq refund.refundId }) {
+                it[PaymentRefunds.userId] = result.userId
+                it[outcome] = result.outcome.name
+                it[removedSeconds] = result.removed.seconds
+            }
+            result
+        }
+
+    private fun Transaction.lockEntitlement(userId: String) {
+        Entitlements.selectAll().where { Entitlements.userId eq userId }.forUpdate().singleOrNull()
+    }
+
+    private fun Transaction.takeBack(userId: String, paymentId: String, cut: RefundCut): RefundResult {
+        if (!cut.removed.isZero) {
+            val refunded = cut.refundedWindow
+            GrantWindows.update({ GrantWindows.paymentExternalId eq paymentId }) {
+                it[grantedUntil] = refunded.until
+            }
+            GrantWindows.selectAll()
+                .where { GrantWindows.userId eq userId }
+                .map { it[GrantWindows.paymentExternalId] to GrantWindow(it[GrantWindows.grantedFrom], it[GrantWindows.grantedUntil]) }
+                .filter { (id, window) -> id != paymentId && cut.movesUp(window) }
+                .forEach { (id, window) ->
+                    val moved = cut.movedUp(window)
+                    GrantWindows.update({ GrantWindows.paymentExternalId eq id }) {
+                        it[grantedFrom] = moved.from
+                        it[grantedUntil] = moved.until
+                    }
+                }
+            Entitlements.selectAll().where { Entitlements.userId eq userId }.singleOrNull()?.let { row ->
+                Entitlements.update({ Entitlements.userId eq userId }) {
+                    it[expiresAt] = row[Entitlements.expiresAt].minus(cut.removed)
+                    it[updatedAt] = Instant.now()
+                }
+            }
+        }
+        return RefundResult(RefundOutcome.ACCESS_REDUCED, userId, cut.removed)
     }
 
     /**
@@ -96,7 +173,7 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
         userId: String,
         source: PaymentSource,
         externalRef: String,
-        newExpiry: (currentExpiry: Instant?) -> Instant,
+        grant: (currentExpiry: Instant?) -> GrantWindow,
     ): Instant {
         val created = Entitlements.insertIgnore {
             it[Entitlements.userId] = userId
@@ -110,7 +187,14 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
             .forUpdate()
             .single()[Entitlements.expiresAt]
         val current = if (created) null else stored
-        val target = newExpiry(current).let { if (current != null && current > it) current else it }
+        val window = grant(current)
+        GrantWindows.insert {
+            it[paymentExternalId] = externalRef
+            it[GrantWindows.userId] = userId
+            it[grantedFrom] = window.from
+            it[grantedUntil] = window.until
+        }
+        val target = if (current != null && current > window.until) current else window.until
         Entitlements.update({ Entitlements.userId eq userId }) {
             it[Entitlements.expiresAt] = target
             it[Entitlements.paymentSource] = source.name

@@ -14,7 +14,8 @@ import java.time.Instant
  * Added: a write barrier (`sync_write_barriers`, uid only) that refuses pushes of the deleted
  * user until every ID token issued before the deletion has expired.
  *
- * Deliberately RETAINED: the `payments` ledger. Russian tax and accounting law requires payment
+ * Deliberately RETAINED: the `payments` ledger, with its `payment_refunds` and the `grant_windows`
+ * each payment bought (VT-AUD-052). Russian tax and accounting law requires payment
  * records to be kept for 5 years, so those rows stay untouched. They hold no profile or health
  * data, and the Firebase uid they carry no longer maps to an account once the client deletes the
  * Firebase user.

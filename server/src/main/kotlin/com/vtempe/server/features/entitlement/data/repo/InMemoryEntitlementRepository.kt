@@ -1,6 +1,10 @@
 package com.vtempe.server.features.entitlement.data.repo
 
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import com.vtempe.server.features.entitlement.domain.model.RefundOutcome
+import com.vtempe.server.features.entitlement.domain.model.RefundResult
+import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRecord
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
 import kotlinx.coroutines.sync.Mutex
@@ -14,12 +18,14 @@ import java.util.concurrent.ConcurrentHashMap
  * that's an accepted, logged trade-off for "still boots on a fresh checkout with no DB set up",
  * not a real production entitlement store.
  *
- * [recordPaymentAndExtend] runs under one lock, so concurrent payments extend one after the
- * other exactly like the per-user row lock of [ExposedEntitlementRepository].
+ * Payments and refunds run under one lock, so they apply one after the other exactly like the
+ * per-user row lock of [ExposedEntitlementRepository].
  */
 class InMemoryEntitlementRepository : EntitlementRepository {
     private val entitlements = ConcurrentHashMap<String, EntitlementRecord>()
-    private val paymentIds = ConcurrentHashMap.newKeySet<String>()
+    private val payments = HashMap<String, String>() // externalId -> userId
+    private val windows = HashMap<String, Pair<String, GrantWindow>>() // externalId -> (userId, window)
+    private val refunds = HashMap<String, RefundOutcome>()
     private val paymentLock = Mutex()
 
     override suspend fun find(userId: String): EntitlementRecord? = entitlements[userId]
@@ -42,12 +48,36 @@ class InMemoryEntitlementRepository : EntitlementRepository {
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        newExpiry: (currentExpiry: Instant?) -> Instant
+        grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant? = paymentLock.withLock {
-        if (!paymentIds.add(externalId)) return@withLock null
+        if (payments.putIfAbsent(externalId, userId) != null) return@withLock null
         val current = entitlements[userId]?.expiresAt
-        val target = newExpiry(current).let { if (current != null && current > it) current else it }
+        val window = grant(current)
+        windows[externalId] = userId to window
+        val target = if (current != null && current > window.until) current else window.until
         entitlements[userId] = EntitlementRecord(userId, target, source, externalId)
         target
+    }
+
+    override suspend fun recordRefund(refund: VerifiedRefund, now: Instant): RefundResult = paymentLock.withLock {
+        if (refund.refundId in refunds) return@withLock RefundResult(RefundOutcome.DUPLICATE)
+        val userId = payments[refund.paymentExternalId]
+        val window = windows[refund.paymentExternalId]?.second
+        val result = when {
+            userId == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW)
+            !refund.full -> RefundResult(RefundOutcome.PARTIAL_REVIEW, userId)
+            window == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW, userId)
+            else -> {
+                val cut = RefundCut.of(window, now)
+                windows[refund.paymentExternalId] = userId to cut.refundedWindow
+                windows.entries
+                    .filter { (id, entry) -> id != refund.paymentExternalId && entry.first == userId && cut.movesUp(entry.second) }
+                    .forEach { it.setValue(userId to cut.movedUp(it.value.second)) }
+                entitlements.computeIfPresent(userId) { _, record -> record.copy(expiresAt = record.expiresAt.minus(cut.removed)) }
+                RefundResult(RefundOutcome.ACCESS_REDUCED, userId, cut.removed)
+            }
+        }
+        refunds[refund.refundId] = result.outcome
+        result
     }
 }
