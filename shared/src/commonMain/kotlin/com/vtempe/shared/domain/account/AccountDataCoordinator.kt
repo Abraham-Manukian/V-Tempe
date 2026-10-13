@@ -4,6 +4,7 @@ import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.RemoteAccountRepository
+import com.vtempe.shared.domain.repository.RemoteFetch
 import com.vtempe.shared.domain.repository.SyncRepository
 
 /**
@@ -31,11 +32,14 @@ class AccountDataCoordinator(
             clearDeviceData()
         }
 
-        val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
+        val remote = when (val fetch = sync.fetchRemote(uid)) {
+            is RemoteFetch.Fetched -> fetch.snapshot
+            is RemoteFetch.Failed -> return AccountDataOutcome.Failed(fetch.reason)
+        }
         if (!localData.hasUserData()) {
             // Ready only once the account's data is actually on the device (VT-AUD-060): an
             // unreadable snapshot fails and is retried, it never becomes an empty account.
-            if (sync.restore(remote).isNotEmpty()) return AccountDataOutcome.Failed
+            if (sync.restore(remote).isNotEmpty()) return unreadable
             owner.setOwnerUid(uid)
             return AccountDataOutcome.Ready
         }
@@ -63,11 +67,14 @@ class AccountDataCoordinator(
         }
 
     private suspend fun keepAccountData(uid: String): AccountDataOutcome {
-        val remote = sync.fetchRemote(uid) ?: return AccountDataOutcome.Failed
+        val remote = when (val fetch = sync.fetchRemote(uid)) {
+            is RemoteFetch.Fetched -> fetch.snapshot
+            is RemoteFetch.Failed -> return AccountDataOutcome.Failed(fetch.reason)
+        }
         // Checked before the device copy is cleared, so a corrupt account never costs it.
-        if (sync.unreadableDomains(remote).isNotEmpty()) return AccountDataOutcome.Failed
+        if (sync.unreadableDomains(remote).isNotEmpty()) return unreadable
         localData.clearUserData()
-        if (sync.restore(remote).isNotEmpty()) return AccountDataOutcome.Failed
+        if (sync.restore(remote).isNotEmpty()) return unreadable
         owner.setOwnerUid(uid)
         return AccountDataOutcome.Ready
     }
@@ -136,6 +143,8 @@ class AccountDataCoordinator(
             else AccountDeletionOutcome.Failed
         }
     }
+
+    private val unreadable = AccountDataOutcome.Failed(AccountDataFailure.UNREADABLE_DATA)
 
     private suspend fun clearDeviceData() {
         localData.clearUserData()

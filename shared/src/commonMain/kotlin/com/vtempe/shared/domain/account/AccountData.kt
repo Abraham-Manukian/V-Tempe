@@ -33,8 +33,29 @@ sealed interface AccountDataOutcome {
     /** A guest with local data signed into an account that already has data; the user must pick one side. */
     data object NeedsGuestChoice : AccountDataOutcome
 
-    /** The account's data could not be fetched. Nothing is synced until [AccountDataCoordinator.onSignedIn] succeeds. */
-    data object Failed : AccountDataOutcome
+    /** The account's data could not be loaded. Nothing is synced until [AccountDataCoordinator.onSignedIn] succeeds. */
+    data class Failed(val reason: AccountDataFailure) : AccountDataOutcome
+}
+
+/** Why the account's data could not be loaded: decides what the user is told (VT-AUD-076). */
+enum class AccountDataFailure {
+    /** The server no longer accepts this sign-in (401) or the account is no longer signed in. */
+    SESSION_EXPIRED,
+
+    /** The server refuses this account access (403). */
+    ACCESS_DENIED,
+
+    /** No connection, or the server did not answer in time. */
+    OFFLINE,
+
+    /** The server failed (5xx) or answered with something unexpected. */
+    SERVER,
+
+    /** The account's saved data cannot be read by this version of the app; none of it was written. */
+    UNREADABLE_DATA,
+
+    /** Something failed on the device itself. */
+    UNEXPECTED,
 }
 
 enum class GuestDataChoice {

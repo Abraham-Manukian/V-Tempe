@@ -6,7 +6,7 @@ sealed interface AccountDataState {
     data object Idle : AccountDataState
     data object Syncing : AccountDataState
     data class NeedsGuestChoice(val uid: String) : AccountDataState
-    data class Failed(val uid: String) : AccountDataState
+    data class Failed(val uid: String, val reason: AccountDataFailure) : AccountDataState
     data object SignOutUnsynced : AccountDataState
 }
 

@@ -172,6 +172,10 @@ internal class FakeSyncServer {
     private val json = Json { ignoreUnknownKeys = true }
     val blobs = mutableMapOf<String, MutableMap<String, String>>()
     var failRequests = false
+    /** The status every request fails with while [failRequests] is set. */
+    var failStatus = HttpStatusCode.ServiceUnavailable
+    /** No connection: requests fail before reaching the server. */
+    var offline = false
     /** When set, a PUT is held after it reached the server and before it is stored. */
     var putGate: CompletableDeferred<Unit>? = null
     val putReceived = CompletableDeferred<Unit>()
@@ -188,7 +192,8 @@ internal class FakeSyncServer {
         val engine = MockEngine { request ->
             val uid = request.headers[HttpHeaders.Authorization]?.removePrefix("Bearer token-")
             when {
-                failRequests -> respond("", HttpStatusCode.ServiceUnavailable)
+                offline -> throw java.io.IOException("offline")
+                failRequests -> respond("", failStatus)
                 uid == null -> respond("", HttpStatusCode.Unauthorized)
                 request.method == HttpMethod.Delete -> {
                     blobs.remove(uid)

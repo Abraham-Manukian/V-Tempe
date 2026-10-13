@@ -427,6 +427,11 @@
     <string name="account_data_choice_keep_device">Use this device</string>
     <string name="account_data_failed_title">Couldn't load account data</string>
     <string name="account_data_failed_message">Check your connection and try again. Until then your progress isn't synced.</string>
+    <string name="account_data_failed_session">Your sign-in has expired. Sign out and sign in to your account again.</string>
+    <string name="account_data_failed_denied">The server denied this account access to its data. Try again later or sign in to another account.</string>
+    <string name="account_data_failed_server">The server is having trouble right now. Try again a bit later — until then your progress isn't synced.</string>
+    <string name="account_data_failed_unreadable">This version of the app can't read your account's data, so none of it was loaded. Update the app and try again.</string>
+    <string name="account_data_failed_unexpected">Something went wrong on the device. Try again.</string>
     <string name="account_data_retry">Try again</string>
     <string name="account_data_unsynced_title">Progress isn't saved to the account</string>
     <string name="account_data_unsynced_message">Some recent progress couldn't be uploaded. If you sign out now, it will be deleted from this device.</string>

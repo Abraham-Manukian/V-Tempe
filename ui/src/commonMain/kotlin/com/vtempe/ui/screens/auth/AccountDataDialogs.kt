@@ -6,6 +6,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.account.AccountDataState
 import com.vtempe.shared.domain.account.GuestDataChoice
 import com.vtempe.ui.*
@@ -29,7 +30,7 @@ internal fun AccountDataDialogs(state: AccountDataState, presenter: AuthPresente
         )
         is AccountDataState.Failed -> AccountDataDialog(
             title = Res.string.account_data_failed_title,
-            message = Res.string.account_data_failed_message,
+            message = state.reason.message(),
             confirm = Res.string.account_data_retry to presenter::retryAccountData,
             dismiss = Res.string.auth_sign_out to presenter::confirmSignOut
         )
@@ -42,6 +43,16 @@ internal fun AccountDataDialogs(state: AccountDataState, presenter: AuthPresente
         )
         AccountDataState.Idle, AccountDataState.Syncing -> Unit
     }
+}
+
+/** What the user is told, and so can act on, for each reason (VT-AUD-076). */
+internal fun AccountDataFailure.message(): StringResource = when (this) {
+    AccountDataFailure.SESSION_EXPIRED -> Res.string.account_data_failed_session
+    AccountDataFailure.ACCESS_DENIED -> Res.string.account_data_failed_denied
+    AccountDataFailure.OFFLINE -> Res.string.account_data_failed_message
+    AccountDataFailure.SERVER -> Res.string.account_data_failed_server
+    AccountDataFailure.UNREADABLE_DATA -> Res.string.account_data_failed_unreadable
+    AccountDataFailure.UNEXPECTED -> Res.string.account_data_failed_unexpected
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.vtempe.shared.data.sync
 
+import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.account.AccountDataOutcome
 import com.vtempe.shared.domain.account.AccountDeletionOutcome
 import com.vtempe.shared.domain.account.GuestDataChoice
@@ -62,7 +63,7 @@ class SyncFailureSafetyTest {
         device.server.seed("anna", "weight", """{"2026-09-01":70.0}""")
         device.auth.signInAs("anna")
 
-        assertEquals(AccountDataOutcome.Failed, device.coordinator.onSignedIn("anna"))
+        assertEquals(AccountDataOutcome.Failed(AccountDataFailure.UNREADABLE_DATA), device.coordinator.onSignedIn("anna"))
         assertNull(device.owner.ownerUid())
         assertNull(device.weight.latestWeight(), "all or nothing: no half-restored account")
 
@@ -79,7 +80,10 @@ class SyncFailureSafetyTest {
         device.auth.signInAs("anna")
         assertEquals(AccountDataOutcome.NeedsGuestChoice, device.coordinator.onSignedIn("anna"))
 
-        assertEquals(AccountDataOutcome.Failed, device.coordinator.resolveGuestChoice("anna", GuestDataChoice.KEEP_ACCOUNT_DATA))
+        assertEquals(
+            AccountDataOutcome.Failed(AccountDataFailure.UNREADABLE_DATA),
+            device.coordinator.resolveGuestChoice("anna", GuestDataChoice.KEEP_ACCOUNT_DATA)
+        )
         assertEquals("guest-profile", device.profiles.getProfile()?.id)
         assertNull(device.owner.ownerUid())
     }

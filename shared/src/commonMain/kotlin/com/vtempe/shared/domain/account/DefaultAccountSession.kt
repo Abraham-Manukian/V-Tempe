@@ -119,7 +119,8 @@ class DefaultAccountSession(
         _state.value = AccountDataState.Syncing
         scope.launch {
             mutex.withLock {
-                _state.value = runStep(step) ?: AccountDataState.Failed(auth.authState.value?.uid.orEmpty())
+                _state.value = runStep(step)
+                    ?: AccountDataState.Failed(auth.authState.value?.uid.orEmpty(), AccountDataFailure.UNEXPECTED)
             }
         }
     }
@@ -141,6 +142,6 @@ class DefaultAccountSession(
     private fun AccountDataOutcome.toState(uid: String): AccountDataState = when (this) {
         AccountDataOutcome.Ready -> AccountDataState.Idle
         AccountDataOutcome.NeedsGuestChoice -> AccountDataState.NeedsGuestChoice(uid)
-        AccountDataOutcome.Failed -> AccountDataState.Failed(uid)
+        is AccountDataOutcome.Failed -> AccountDataState.Failed(uid, reason)
     }
 }

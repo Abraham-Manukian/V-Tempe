@@ -1,5 +1,6 @@
 package com.vtempe.shared.data.sync
 
+import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.account.AccountDataOutcome
 import com.vtempe.shared.domain.account.GuestDataChoice
 import com.vtempe.shared.domain.account.SignOutOutcome
@@ -154,7 +155,7 @@ class AccountSwitchLeakTest {
 
         server.failRequests = true
         auth.signInAs("boris")
-        assertEquals(AccountDataOutcome.Failed, coordinator.onSignedIn("boris"))
+        assertEquals(AccountDataOutcome.Failed(AccountDataFailure.SERVER), coordinator.onSignedIn("boris"))
         assertNoLocalData()
 
         server.failRequests = false

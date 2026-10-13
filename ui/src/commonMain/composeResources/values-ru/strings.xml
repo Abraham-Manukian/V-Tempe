@@ -410,6 +410,11 @@
     <string name="account_data_choice_keep_device">С этого устройства</string>
     <string name="account_data_failed_title">Не удалось загрузить данные аккаунта</string>
     <string name="account_data_failed_message">Проверь подключение и попробуй ещё раз. Пока прогресс не синхронизируется.</string>
+    <string name="account_data_failed_session">Сеанс входа истёк. Выйди и войди в аккаунт заново.</string>
+    <string name="account_data_failed_denied">Сервер не дал доступ к данным этого аккаунта. Попробуй позже или войди в другой аккаунт.</string>
+    <string name="account_data_failed_server">Сервер сейчас работает с ошибками. Попробуй чуть позже — пока прогресс не синхронизируется.</string>
+    <string name="account_data_failed_unreadable">Эта версия приложения не может прочитать данные аккаунта, поэтому они не загружены. Обнови приложение и попробуй ещё раз.</string>
+    <string name="account_data_failed_unexpected">Что-то пошло не так на устройстве. Попробуй ещё раз.</string>
     <string name="account_data_retry">Повторить</string>
     <string name="account_data_unsynced_title">Прогресс не сохранён в аккаунте</string>
     <string name="account_data_unsynced_message">Часть последнего прогресса не удалось отправить. Если выйти сейчас, он удалится с этого устройства.</string>

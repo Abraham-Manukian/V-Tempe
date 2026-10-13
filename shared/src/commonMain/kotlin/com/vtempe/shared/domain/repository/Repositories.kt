@@ -1,5 +1,6 @@
 ﻿package com.vtempe.shared.domain.repository
 
+import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.model.*
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.flow.Flow
@@ -102,9 +103,9 @@ interface SyncRepository {
      *  failed offline, even across a restart (VT-AUD-056). Same owner rule as [pushDomain]. */
     suspend fun pushPending()
 
-    /** Everything the server holds for [uid], or null if it couldn't be fetched (offline,
-     *  [uid] no longer signed in, server error). */
-    suspend fun fetchRemote(uid: String): RemoteSyncSnapshot?
+    /** Everything the server holds for [uid], or why it couldn't be fetched (offline, [uid] no
+     *  longer signed in, refused, server error). */
+    suspend fun fetchRemote(uid: String): RemoteFetch
 
     /** Writes [snapshot] into local storage. Domains missing from it are left untouched, so
      *  callers that switch accounts clear local data first. All or nothing: when any payload can't
@@ -122,6 +123,11 @@ interface SyncRepository {
      *  [RemoteSyncSnapshot.EMPTY_PAYLOAD], so the account ends up mirroring the device.
      *  Returns false if any upload failed. */
     suspend fun pushAll(uid: String): Boolean
+}
+
+sealed interface RemoteFetch {
+    data class Fetched(val snapshot: RemoteSyncSnapshot) : RemoteFetch
+    data class Failed(val reason: AccountDataFailure) : RemoteFetch
 }
 
 /** Server-side sync blobs keyed by [SyncDomain.wireKey]. */

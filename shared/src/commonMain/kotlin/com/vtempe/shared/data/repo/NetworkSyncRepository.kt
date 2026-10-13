@@ -3,9 +3,11 @@ package com.vtempe.shared.data.repo
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.data.network.dto.SyncPullResponseDto
 import com.vtempe.shared.data.network.dto.SyncPushRequestDto
+import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.account.LocalDataOwnerStore
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.AuthRepository
+import com.vtempe.shared.domain.repository.RemoteFetch
 import com.vtempe.shared.domain.repository.RemoteSyncSnapshot
 import com.vtempe.shared.domain.repository.SyncDomain
 import com.vtempe.shared.domain.repository.SyncRepository
@@ -80,13 +82,16 @@ class NetworkSyncRepository(
         mutex.withLock { }
     }
 
-    override suspend fun fetchRemote(uid: String): RemoteSyncSnapshot? {
-        val token = auth.idTokenFor(uid) ?: return null
+    override suspend fun fetchRemote(uid: String): RemoteFetch {
+        val token = auth.idTokenFor(uid) ?: return RemoteFetch.Failed(
+            // Still signed in as [uid] but no token: it could not be refreshed, usually offline.
+            if (auth.authState.value?.uid == uid) AccountDataFailure.OFFLINE else AccountDataFailure.SESSION_EXPIRED
+        )
         return when (val result = api.getResult<SyncPullResponseDto>("/me/sync", bearerToken = token)) {
-            is DataResult.Success -> RemoteSyncSnapshot(result.data.domains.mapValues { it.value.payload })
+            is DataResult.Success -> RemoteFetch.Fetched(RemoteSyncSnapshot(result.data.domains.mapValues { it.value.payload }))
             is DataResult.Failure -> {
                 Napier.d(tag = "Sync", message = "fetch failed: ${result.reason} ${result.code ?: ""}")
-                null
+                RemoteFetch.Failed(result.toAccountDataFailure())
             }
         }
     }
