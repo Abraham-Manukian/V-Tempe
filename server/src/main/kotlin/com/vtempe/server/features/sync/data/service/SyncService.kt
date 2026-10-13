@@ -2,6 +2,7 @@ package com.vtempe.server.features.sync.data.service
 
 import com.vtempe.server.features.sync.domain.port.SyncBlobRecord
 import com.vtempe.server.features.sync.domain.port.SyncBlobRepository
+import java.time.Instant
 
 /** The domain names a client is allowed to sync — anything else is rejected before it reaches
  *  the repository, so this table can't be abused as an arbitrary per-user key-value store. Keep
@@ -14,11 +15,15 @@ val ALLOWED_SYNC_DOMAINS = setOf("profile", "workoutProgress", "sleep", "sleepNo
  *  size this data legitimately reaches. */
 const val MAX_SYNC_PAYLOAD_CHARS = 256 * 1024
 
-class SyncService(private val repository: SyncBlobRepository) {
-    suspend fun push(userId: String, domain: String, payload: String) {
+class SyncService(
+    private val repository: SyncBlobRepository,
+    private val clock: () -> Instant = Instant::now,
+) {
+    /** False when the account's data was just deleted and its writes are still refused (VT-AUD-059). */
+    suspend fun push(userId: String, domain: String, payload: String): Boolean {
         require(domain in ALLOWED_SYNC_DOMAINS) { "Unknown sync domain: $domain" }
         require(payload.length <= MAX_SYNC_PAYLOAD_CHARS) { "Sync payload too large" }
-        repository.push(userId, domain, payload)
+        return repository.push(userId, domain, payload, clock())
     }
 
     suspend fun pullAll(userId: String): Map<String, SyncBlobRecord> = repository.pullAll(userId)

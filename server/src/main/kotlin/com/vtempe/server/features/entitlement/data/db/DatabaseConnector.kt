@@ -2,6 +2,7 @@ package com.vtempe.server.features.entitlement.data.db
 
 import com.vtempe.server.config.Env
 import com.vtempe.server.features.sync.data.db.SyncBlobs
+import com.vtempe.server.features.sync.data.db.SyncWriteBarriers
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
@@ -94,7 +95,7 @@ class DatabaseConnector(
             return try {
                 Database.connect(dataSource).also { database ->
                     transaction(database) {
-                        SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments, SyncBlobs)
+                        SchemaUtils.createMissingTablesAndColumns(Entitlements, Payments, SyncBlobs, SyncWriteBarriers)
                     }
                 }
             } catch (error: Exception) {

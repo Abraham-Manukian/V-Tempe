@@ -36,7 +36,10 @@ fun Route.registerSyncRoutes() {
                 return@put call.respond(HttpStatusCode.PayloadTooLarge)
             }
 
-            syncService.push(userId, domain, request.payload)
+            if (!syncService.push(userId, domain, request.payload)) {
+                // The account was deleted moments ago; this device's copy must not bring it back.
+                return@put call.respond(HttpStatusCode.Gone, mapOf("error" to "account_deleted"))
+            }
             call.respond(HttpStatusCode.NoContent)
         }
 
