@@ -25,7 +25,8 @@ class NetworkSyncRepository(
     private val profileRepository: ProfileRepositoryDb,
     private val workoutProgressStore: WorkoutProgressStore,
     private val sleepStore: SleepStore,
-    private val weightStore: WeightStore
+    private val weightStore: WeightStore,
+    private val pending: PendingSyncStore,
 ) : SyncRepository {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -41,14 +42,29 @@ class NetworkSyncRepository(
             // sign-in switch mid-request can't redirect the upload to another account.
             val uid = owner.ownerUid() ?: return
             val token = auth.idTokenFor(uid) ?: return
-            val payload = (readSnapshot(domain) as? LocalSnapshot.Present)?.payload ?: return
-            upload(domain, payload, token)
+            uploadTracked(domain, token)
         }
+    }
+
+    override suspend fun pushPending() {
+        mutex.withLock {
+            val uid = owner.ownerUid() ?: return
+            val token = auth.idTokenFor(uid) ?: return
+            pending.pendingDomains().forEach { uploadTracked(it, token) }
+        }
+    }
+
+    /** Uploads [domain] and marks it delivered at the revision read before its data (VT-AUD-056). */
+    private suspend fun uploadTracked(domain: SyncDomain, token: String) {
+        val revision = pending.currentRevision(domain)
+        val payload = (readSnapshot(domain) as? LocalSnapshot.Present)?.payload ?: return
+        if (upload(domain, payload, token)) pending.confirm(domain, revision)
     }
 
     override suspend fun pushAll(uid: String): Boolean = mutex.withLock {
         val token = auth.idTokenFor(uid) ?: return@withLock false
         SyncDomain.entries.all { domain ->
+            val revision = pending.currentRevision(domain)
             val payload = when (val local = readSnapshot(domain)) {
                 is LocalSnapshot.Present -> local.payload
                 LocalSnapshot.Absent -> RemoteSyncSnapshot.EMPTY_PAYLOAD
@@ -56,7 +72,7 @@ class NetworkSyncRepository(
                 // account's good copy and let sign-out wipe the device as if it were backed up.
                 LocalSnapshot.Unreadable -> return@withLock false
             }
-            upload(domain, payload, token)
+            upload(domain, payload, token).also { delivered -> if (delivered) pending.confirm(domain, revision) }
         }
     }
 

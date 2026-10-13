@@ -28,6 +28,8 @@ import com.vtempe.shared.data.repo.NutritionRepositoryDb
 import com.vtempe.shared.domain.usecase.*
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
 import com.vtempe.shared.data.repo.SettingsPreferencesRepository
+import com.vtempe.shared.data.repo.LocalChangeNotifier
+import com.vtempe.shared.data.repo.PendingSyncStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
@@ -67,20 +69,16 @@ object DI {
         // inside a single{}/factory{} definition lambda, not hoisted to a shared val — hence the
         // near-identical block repeated per store rather than factored out). Runs on appScope:
         // sync is fire-and-forget background work, not something a local save should block on.
+        single { PendingSyncStore(get()) }
+        single { LocalChangeNotifier(get(), get(named("appScope"))) { get<SyncRepository>() } }
         single {
-            WorkoutProgressStore(get(), get(), onLocalChange = { domain ->
-                get<CoroutineScope>(named("appScope")).launch { get<SyncRepository>().pushDomain(domain) }
-            })
+            WorkoutProgressStore(get(), get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
         }
         single {
-            SleepStore(get(), onLocalChange = { domain ->
-                get<CoroutineScope>(named("appScope")).launch { get<SyncRepository>().pushDomain(domain) }
-            })
+            SleepStore(get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
         }
         single {
-            WeightStore(get(), onLocalChange = { domain ->
-                get<CoroutineScope>(named("appScope")).launch { get<SyncRepository>().pushDomain(domain) }
-            })
+            WeightStore(get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
         }
         single { ChatHistoryStore(get()) }
         single<ExerciseCalibrationRepository> { ExerciseCalibrationSettingsRepository(get()) }
@@ -94,9 +92,7 @@ object DI {
         // NetworkSyncRepository needs restoreProfile(), which isn't part of that interface —
         // only the sync system should be able to write a profile without triggering a push.
         single {
-            ProfileRepositoryDb(get(), onLocalChange = { domain ->
-                get<CoroutineScope>(named("appScope")).launch { get<SyncRepository>().pushDomain(domain) }
-            })
+            ProfileRepositoryDb(get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
         }
         single<ProfileRepository> { get<ProfileRepositoryDb>() }
         // Health data leaves the device only with the user's consent (152-FZ art. 10/12): both AI
@@ -159,10 +155,10 @@ object DI {
         // Firebase SDK dependency like Auth/Analytics have. Uploads are pinned to the account
         // that owns the device data (see AccountDataCoordinator).
         single<SyncRepository> {
-            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get())
+            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get())
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
-        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get()) }
+        single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
         single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
         single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }

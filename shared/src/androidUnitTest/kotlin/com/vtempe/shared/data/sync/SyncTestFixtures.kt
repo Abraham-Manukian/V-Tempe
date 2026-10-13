@@ -11,6 +11,7 @@ import com.vtempe.shared.data.repo.ExerciseCalibrationSettingsRepository
 import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.ProfileRepositoryDb
+import com.vtempe.shared.data.repo.PendingSyncStore
 import com.vtempe.shared.data.repo.SettingsAdviceRepository
 import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
@@ -79,19 +80,22 @@ internal class TestDevice {
     val auth = FakeAuthRepository()
     val owner = SettingsLocalDataOwnerStore(settings)
     private val pendingPushes = mutableListOf<SyncDomain>()
-    val profiles = ProfileRepositoryDb(db) { pendingPushes += it }
-    val workouts = WorkoutProgressStore(settings, db) { pendingPushes += it }
-    val sleep = SleepStore(settings, onLocalChange = { pendingPushes += it })
-    val weight = WeightStore(settings) { pendingPushes += it }
+    val pendingSync = PendingSyncStore(settings)
+    /** Like LocalChangeNotifier, but the upload is queued for [flushPushes] instead of launched. */
+    private val onChanged: (SyncDomain) -> Unit = { pendingSync.markChanged(it); pendingPushes += it }
+    val profiles = ProfileRepositoryDb(db, onChanged)
+    val workouts = WorkoutProgressStore(settings, db, onChanged)
+    val sleep = SleepStore(settings, onLocalChange = onChanged)
+    val weight = WeightStore(settings, onChanged)
     val chat = ChatHistoryStore(settings)
     val advice = SettingsAdviceRepository(settings)
-    val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight)
+    val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight, pendingSync)
     val coordinator = AccountDataCoordinator(
         auth = auth,
         owner = owner,
         localData = DeviceUserData(
             profiles, AiResponseCache(settings), workouts, sleep, weight, chat,
-            ExerciseCalibrationSettingsRepository(settings), advice
+            ExerciseCalibrationSettingsRepository(settings), advice, pendingSync
         ),
         sync = sync,
         remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)

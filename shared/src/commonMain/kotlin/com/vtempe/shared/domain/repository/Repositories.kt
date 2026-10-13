@@ -96,6 +96,10 @@ interface SyncRepository {
      *  successful push naturally carries the latest state. */
     suspend fun pushDomain(domain: SyncDomain)
 
+    /** Uploads every domain with local changes the server has not confirmed yet — e.g. ones that
+     *  failed offline, even across a restart (VT-AUD-056). Same owner rule as [pushDomain]. */
+    suspend fun pushPending()
+
     /** Everything the server holds for [uid], or null if it couldn't be fetched (offline,
      *  [uid] no longer signed in, server error). */
     suspend fun fetchRemote(uid: String): RemoteSyncSnapshot?

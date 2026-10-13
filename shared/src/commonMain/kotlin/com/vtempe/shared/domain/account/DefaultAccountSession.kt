@@ -63,7 +63,11 @@ class DefaultAccountSession(
         val currentOwner = owner.ownerUid()
         val unsettled = (currentOwner != null && currentOwner != uid) ||
             (uid != null && (currentOwner == null || owner.isFullPushPending()))
-        if (!unsettled) return@withLock
+        if (!unsettled) {
+            // Settled: deliver what earlier uploads left behind (offline, app killed). Best effort.
+            if (uid != null) runStep { coordinator.deliverPending(uid); AccountDataState.Idle }
+            return@withLock
+        }
 
         // Choices and failures are only surfaced as state; the account screen shows them when opened.
         _state.value = runStep {

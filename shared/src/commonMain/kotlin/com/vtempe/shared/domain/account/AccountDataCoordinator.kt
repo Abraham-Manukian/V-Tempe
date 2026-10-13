@@ -23,7 +23,7 @@ class AccountDataCoordinator(
     suspend fun onSignedIn(uid: String): AccountDataOutcome {
         val currentOwner = owner.ownerUid()
         if (currentOwner == uid) {
-            if (owner.isFullPushPending()) uploadDeviceData(uid)
+            if (owner.isFullPushPending()) uploadDeviceData(uid) else sync.pushPending()
             return AccountDataOutcome.Ready
         }
         if (currentOwner != null) {
@@ -45,6 +45,11 @@ class AccountDataCoordinator(
             return AccountDataOutcome.Ready
         }
         return AccountDataOutcome.NeedsGuestChoice
+    }
+
+    /** Delivers changes a failed or interrupted upload left behind, when [uid] owns the device data. */
+    suspend fun deliverPending(uid: String) {
+        if (owner.ownerUid() == uid) sync.pushPending()
     }
 
     suspend fun resolveGuestChoice(uid: String, choice: GuestDataChoice): AccountDataOutcome =
