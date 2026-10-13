@@ -79,17 +79,26 @@ class DatabaseConnector(
                 LoggerFactory.getLogger(DatabaseConnector::class.java)
                     .warn("DATABASE_URL is not set — entitlement/sync use in-memory stores (local development only)")
             }
-            return DatabaseConnector(url, open = { openPostgres(checkNotNull(url)) })
+            return DatabaseConnector(url, open = {
+                openPostgres(
+                    url = checkNotNull(url),
+                    user = Env["DATABASE_USER"],
+                    password = Env["DATABASE_PASSWORD"],
+                    poolSize = Env["DATABASE_POOL_SIZE"]?.toIntOrNull() ?: 5,
+                )
+            })
         }
 
-        private fun openPostgres(url: String): Database {
+        /** Opens the pool and creates missing tables and columns; internal so integration tests
+         *  open a throwaway database exactly the way production does. */
+        internal fun openPostgres(url: String, user: String?, password: String?, poolSize: Int): Database {
             val dataSource = HikariDataSource(
                 HikariConfig().apply {
                     jdbcUrl = url
-                    username = Env["DATABASE_USER"]
-                    password = Env["DATABASE_PASSWORD"]
+                    username = user
+                    this.password = password
                     driverClassName = "org.postgresql.Driver"
-                    maximumPoolSize = Env["DATABASE_POOL_SIZE"]?.toIntOrNull() ?: 5
+                    maximumPoolSize = poolSize
                 }
             )
             return try {
