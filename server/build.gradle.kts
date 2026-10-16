@@ -7,6 +7,8 @@
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
+    // Raises the Netty that ktor-server-netty pulls in to a patched 4.1.x (see `netty` in the catalog).
+    implementation(platform(libs.netty.bom))
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.forwarded.header)

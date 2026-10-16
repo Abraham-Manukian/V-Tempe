@@ -1,5 +1,6 @@
 package com.vtempe.server.features.auth.data
 
+import com.auth0.jwk.JwkProvider
 import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -22,25 +23,21 @@ import org.slf4j.LoggerFactory
  * returns null, so every request under /me — and every signed-in /ai call — is rejected as
  * unauthenticated until the owner creates a Firebase project and sets the env var.
  */
-class FirebaseTokenVerifier(private val projectId: String?) : IdTokenVerifier {
-    private val logger = LoggerFactory.getLogger(FirebaseTokenVerifier::class.java)
+class FirebaseTokenVerifier internal constructor(
+    private val projectId: String?,
+    /** Source of the signing keys; tests pass local keys instead of Google's JWKS endpoint. */
+    private val jwkProvider: JwkProvider?,
+) : IdTokenVerifier {
+    constructor(projectId: String?) : this(projectId, projectId?.let { googleSigningKeys() })
 
-    private val jwkProvider = projectId?.let {
-        // The service-account email in this path contains "@" — java.net.URI's strict RFC 3986
-        // parser rejects the literal character here (even though "@" is a valid pchar), so it
-        // must be percent-encoded before constructing the URI.
-        JwkProviderBuilder(URI("https://www.googleapis.com/service_accounts/v1/jwk/securetoken%40system.gserviceaccount.com").toURL())
-            .cached(10, 1, TimeUnit.HOURS)
-            .rateLimited(10, 1, TimeUnit.MINUTES)
-            .build()
-    }
+    private val logger = LoggerFactory.getLogger(FirebaseTokenVerifier::class.java)
 
     /** Returns the Firebase `uid` if [idToken] is a valid, unexpired token issued for this
      *  project; null on any failure (missing config, expired, wrong project/audience, bad
      *  signature, malformed token) — callers treat every failure mode identically as
      *  "unauthenticated", never distinguishing why.
      *
-     *  suspend + Dispatchers.IO: on a JWKS cache miss (rare — cached for 10h), the underlying
+     *  suspend + Dispatchers.IO: on a JWKS cache miss (rare — up to 10 keys cached for 1h), the underlying
      *  jwks-rsa provider does a synchronous HTTP fetch; calling this directly from a Ktor
      *  request-pipeline coroutine would otherwise block a Netty event-loop thread. */
     override suspend fun verify(idToken: String): String? {
@@ -65,5 +62,16 @@ class FirebaseTokenVerifier(private val projectId: String?) : IdTokenVerifier {
                 null
             }
         }
+    }
+
+    private companion object {
+        fun googleSigningKeys(): JwkProvider =
+            // The service-account email in this path contains "@" — java.net.URI's strict RFC 3986
+            // parser rejects the literal character here (even though "@" is a valid pchar), so it
+            // must be percent-encoded before constructing the URI.
+            JwkProviderBuilder(URI("https://www.googleapis.com/service_accounts/v1/jwk/securetoken%40system.gserviceaccount.com").toURL())
+                .cached(10, 1, TimeUnit.HOURS)
+                .rateLimited(10, 1, TimeUnit.MINUTES)
+                .build()
     }
 }
