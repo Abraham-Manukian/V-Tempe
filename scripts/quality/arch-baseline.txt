@@ -1,0 +1,8 @@
+# Known architecture violations that existed when the rule was introduced (2026-10-16).
+# The gate fails only on violations NOT listed here. Fix one, then delete its line; the gate
+# reports entries that are no longer violated. Never add a line to silence a new violation
+# without the owner's decision recorded in the commit message.
+#
+# Format: <RULE> <path> -> <offending import or edge>
+DOM shared/src/commonMain/kotlin/com/vtempe/shared/domain/usecase/CheckSubscription.kt -> com.vtempe.shared.data.repo.LastKnownEntitlementStore
+DOM shared/src/commonMain/kotlin/com/vtempe/shared/domain/usecase/RecordBodyWeight.kt -> com.vtempe.shared.data.repo.WeightStore

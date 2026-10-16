@@ -72,3 +72,7 @@ server/server/logs/
 
 # GCP service account key (never commit)
 gcp-sa-key.json
+
+# Claude Code quality system: per-machine state (gate results, session edit logs, review bundles)
+.claude/state/
+__pycache__/

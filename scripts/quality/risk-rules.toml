@@ -1,0 +1,199 @@
+# Risk classification for changes (used by review_bundle.py and the /engineering-task workflow).
+#
+# Each changed file takes the FIRST path_rule whose glob matches (rules are ordered from most
+# specific/risky to least), so a payments route is "payments-entitlement", not "server-logic".
+# A change gets the highest level any of its files or added lines triggers. `reviewers` lists
+# the specialists that rule makes relevant; the level then decides how many of them run
+# (see .claude/engineering/risk-matrix.md). Globs are fnmatch-style: `*` also matches `/`.
+
+levels = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+
+[[path_rule]]
+id = "payments-entitlement"
+risk = "CRITICAL"
+reason = "money and paid access (YooKassa, entitlements, billing)"
+paths = ["server/src/main/*/features/payments/*", "server/src/main/*/features/entitlement/*",
+         "app-android/src/*/billing/*", "shared/src/*Purchase*", "shared/src/*Subscription*"]
+reviewers = ["security-reviewer", "api-contract-reviewer", "database-reviewer"]
+
+[[path_rule]]
+id = "authn-authz"
+risk = "CRITICAL"
+reason = "authentication, authorization and AI access policy"
+paths = ["server/src/main/*/features/auth/*", "server/src/main/*/features/ai/access/*",
+         "server/src/main/*/app/Application.kt", "shared/src/*/data/account/*", "app-android/src/*/auth/*"]
+reviewers = ["security-reviewer", "api-contract-reviewer"]
+
+[[path_rule]]
+id = "personal-data"
+risk = "CRITICAL"
+reason = "account deletion, consent, health/PII handling"
+paths = ["server/src/main/*/features/account/*", "server/src/main/*/features/ai/data/privacy/*",
+         "shared/src/*/consent/*", "shared/src/*/legal/*"]
+reviewers = ["security-reviewer", "database-reviewer"]
+
+[[path_rule]]
+id = "production-deploy"
+risk = "CRITICAL"
+reason = "a push to main deploys the server (server-deploy.yml -> cloudbuild.yaml)"
+paths = ["cloudbuild.yaml", ".github/workflows/server-deploy.yml", "Dockerfile", ".dockerignore"]
+reviewers = ["security-reviewer", "dependency-reviewer"]
+
+[[path_rule]]
+id = "release-signing"
+risk = "CRITICAL"
+reason = "release signing, R8 rules and secrets in the Android build"
+paths = ["app-android/build.gradle.kts", "app-android/proguard-rules.pro", "*.jks", "*.keystore"]
+reviewers = ["security-reviewer", "dependency-reviewer"]
+
+[[path_rule]]
+id = "client-db-migration"
+risk = "HIGH"
+reason = "SQLDelight schema/migrations on user devices (data loss is unrecoverable)"
+paths = ["shared/src/commonMain/sqldelight/*"]
+reviewers = ["database-reviewer", "regression-reviewer"]
+
+[[path_rule]]
+id = "server-persistence"
+risk = "HIGH"
+reason = "Exposed/PostgreSQL tables, repositories and transactions"
+paths = ["server/src/main/*/data/db/*", "server/src/main/*/data/repo/*", "server/src/main/*/DatabaseFactory*"]
+reviewers = ["database-reviewer", "performance-reviewer"]
+
+[[path_rule]]
+id = "sync"
+risk = "HIGH"
+reason = "multi-device sync: concurrency, merge semantics, idempotency"
+paths = ["server/src/main/*/features/sync/*", "shared/src/*/sync/*", "shared/src/*Sync*"]
+reviewers = ["database-reviewer", "api-contract-reviewer", "performance-reviewer"]
+
+[[path_rule]]
+id = "http-api"
+risk = "HIGH"
+reason = "HTTP routes and DTOs shared by deployed clients"
+paths = ["server/src/main/*/api/*", "server/src/main/*Routes.kt", "server/src/main/*/shared/dto/*",
+         "server/src/main/*/shared/http/*", "shared/src/*/data/network/*"]
+reviewers = ["api-contract-reviewer", "security-reviewer"]
+
+[[path_rule]]
+id = "llm-pipeline"
+risk = "HIGH"
+reason = "LLM prompts/parsing: prompt injection, allergen and injury safety rules"
+paths = ["server/src/main/*/features/ai/data/llm/*", "server/src/main/*/features/ai/data/service/*",
+         "server/src/main/*PromptSafety*", "server/src/main/*Safety*", "server/src/main/*Injury*", "server/src/main/*Allergen*"]
+reviewers = ["security-reviewer", "performance-reviewer"]
+
+[[path_rule]]
+id = "build-dependencies"
+risk = "HIGH"
+reason = "dependencies, plugins, Gradle wrapper (supply chain)"
+paths = ["gradle/libs.versions.toml", "gradle/wrapper/*", "build.gradle.kts", "settings.gradle.kts",
+         "*/build.gradle.kts", "gradle.properties"]
+reviewers = ["dependency-reviewer", "architecture-reviewer"]
+
+[[path_rule]]
+id = "ci"
+risk = "HIGH"
+reason = "CI workflows and quality gates"
+paths = [".github/workflows/*"]
+reviewers = ["security-reviewer", "dependency-reviewer"]
+
+[[path_rule]]
+id = "server-logic"
+risk = "MEDIUM"
+reason = "server business logic"
+paths = ["server/src/main/*"]
+reviewers = ["architecture-reviewer", "clean-code-reviewer"]
+
+[[path_rule]]
+id = "shared-logic"
+risk = "MEDIUM"
+reason = "shared domain/data logic used by both apps"
+paths = ["shared/src/commonMain/*", "shared/src/androidMain/*", "shared/src/iosMain/*"]
+reviewers = ["architecture-reviewer", "clean-code-reviewer"]
+
+[[path_rule]]
+id = "ui-logic"
+risk = "MEDIUM"
+reason = "presenters, view models and screens"
+paths = ["ui/src/*/presenter/*", "ui/src/*/vm/*", "ui/src/*.kt", "app-android/src/main/*", "app-ios/src/*",
+         "core-designsystem/src/*"]
+reviewers = ["clean-code-reviewer", "architecture-reviewer"]
+
+[[path_rule]]
+id = "engineering-system"
+risk = "MEDIUM"
+reason = "the Claude Code quality system itself (hooks, gate, agents, skills)"
+paths = [".claude/*", "scripts/quality/*", "CLAUDE.md"]
+reviewers = ["regression-reviewer"]
+
+[[path_rule]]
+id = "repo-ignore-rules"
+risk = "MEDIUM"
+reason = "ignore rules decide which secrets and local files can reach git or the Docker image"
+paths = [".gitignore", ".dockerignore", "*/.gitignore"]
+reviewers = ["security-reviewer"]
+
+[[path_rule]]
+id = "tests-only"
+risk = "LOW"
+reason = "tests and test data"
+paths = ["*/src/test/*", "*/src/*Test/*", "testdata/*"]
+reviewers = []
+
+[[path_rule]]
+id = "docs"
+risk = "LOW"
+reason = "documentation"
+paths = ["*.md", "docs/*"]
+reviewers = []
+
+[[path_rule]]
+id = "assets-and-notes"
+risk = "LOW"
+reason = "images, office documents and loose notes (not built)"
+paths = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif", "*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.txt"]
+reviewers = []
+
+# Added-line signals: raise the level when the diff introduces these constructs anywhere.
+[[content_rule]]
+id = "crypto"
+risk = "CRITICAL"
+reason = "cryptography / signatures / secure comparison"
+pattern = '\b(MessageDigest|Cipher\.|SecretKeySpec|Mac\.getInstance|SecureRandom|Signature\.getInstance|KeyStore|JWT\.|JWTVerifier|Algorithm\.RSA)'
+reviewers = ["security-reviewer"]
+
+[[content_rule]]
+id = "auth-signal"
+risk = "HIGH"
+reason = "authentication/authorization code"
+pattern = '\b(principal|authenticate|Authorization|X-App-Token|verifyIdToken|uid\b|isAdmin|entitlement)'
+reviewers = ["security-reviewer"]
+
+[[content_rule]]
+id = "concurrency"
+risk = "HIGH"
+reason = "coroutines, locks or shared mutable state"
+pattern = '\b(Mutex|synchronized|AtomicReference|AtomicInteger|ConcurrentHashMap|runBlocking|GlobalScope|newSingleThreadContext|Dispatchers\.(IO|Default|Unconfined)|withContext|SupervisorJob)\b'
+reviewers = ["performance-reviewer"]
+
+[[content_rule]]
+id = "sql"
+risk = "HIGH"
+reason = "SQL statements or database transactions"
+pattern = '(\btransaction\s*\{|newSuspendedTransaction|\bexec\(|\b(SELECT|INSERT INTO|UPDATE\s+\w+\s+SET|DELETE FROM|ALTER TABLE|DROP TABLE|CREATE TABLE)\b)'
+reviewers = ["database-reviewer"]
+
+[[content_rule]]
+id = "secrets-env"
+risk = "HIGH"
+reason = "secrets/configuration read from the environment"
+pattern = '(System\.getenv|BuildConfig\.APP_TOKEN|APP_SECRET|API_KEY)'
+reviewers = ["security-reviewer"]
+
+[[content_rule]]
+id = "network-client"
+risk = "MEDIUM"
+reason = "outbound HTTP, retries and timeouts"
+pattern = '\b(HttpClient|HttpTimeout|retry|requestTimeoutMillis|OkHttp)\b'
+reviewers = ["performance-reviewer"]

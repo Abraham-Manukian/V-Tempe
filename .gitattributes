@@ -1,0 +1,2 @@
+# Hook launcher runs under bash on every OS; CRLF would break it after a Windows checkout.
+.claude/hooks/*.sh text eol=lf
