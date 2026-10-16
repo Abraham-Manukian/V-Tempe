@@ -62,7 +62,11 @@ SHELLS = {"bash", "sh", "zsh", "dash", "pwsh", "powershell", "cmd"}
 HTTP_CLIENTS = {"curl", "wget", "http", "https", "invoke-webrequest", "iwr", "invoke-restmethod", "irm"}
 UPLOAD_ARG_RE = re.compile(r"^(@.+|\S*=@.+)$")
 UPLOAD_FLAGS = {"-T", "--upload-file", "--post-file", "-InFile", "-infile"}
-REMOTE_EXEC_RE = re.compile(r"(curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^|]*\|\s*(sudo\s+)?(sh|bash|zsh|python3?|iex|Invoke-Expression)\b", re.IGNORECASE)
+# A download piped into an interpreter that EXECUTES stdin (`| bash`, `| sh -s -- args`, `| python -`, `| iex`).
+# `| python -c "..."` or `| jq` only parse the response and are fine.
+REMOTE_EXEC_RE = re.compile(r"(curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^|\n]*\|\s*(?:sudo\s+)?"
+                            r"(?:(?:sh|bash|zsh|dash|python3?|py|node|perl|ruby)(?:\s+-s\b|\s+-(?=\s|$)|\s*(?=$|[;&|)\n]))"
+                            r"|iex\b|Invoke-Expression\b)", re.IGNORECASE)
 DB_URL_RE = re.compile(r"\b(?:postgres(?:ql)?|mysql)://(?:[^@/\s'\"]*@)?([^:/\s?'\"]+)", re.IGNORECASE)
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "[::1]", "host.docker.internal"}
 SETTINGS_WRITE_RE = re.compile(
