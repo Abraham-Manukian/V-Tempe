@@ -37,6 +37,8 @@ import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
 import com.vtempe.shared.data.repo.NetworkEntitlementRepository
+import com.vtempe.shared.data.repo.NetworkReferralRepository
+import com.vtempe.shared.domain.referral.ReferralRepository
 import com.vtempe.shared.data.repo.NetworkSyncRepository
 import com.vtempe.shared.data.repo.NetworkRemoteAccountRepository
 import com.vtempe.shared.data.stub.NoOpAnalyticsRepository
@@ -168,6 +170,7 @@ object DI {
         single<AnalyticsRepository> { NoOpAnalyticsRepository() }
         single<AuthRepository> { StubAuthRepository() }
         single<EntitlementRepository> { NetworkEntitlementRepository(get()) }
+        single<ReferralRepository> { NetworkReferralRepository(get()) }
 
         // Google OAuth "web" client id, needed by Credential Manager's GetGoogleIdOption on
         // Android. Empty here; overridden with the real value (read from google-services.json

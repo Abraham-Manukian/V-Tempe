@@ -15,6 +15,9 @@ data class ReferralSummaryResponse(
     val rewardedCount: Int,
     val balances: List<ReferralBalanceDto>,
     val redeemOffers: List<RedeemOfferDto>,
+    /** The current rules, so clients never hard-code them: share of the first payment, hold days. */
+    val sharePercent: Int,
+    val holdDays: Int,
 )
 
 @Serializable

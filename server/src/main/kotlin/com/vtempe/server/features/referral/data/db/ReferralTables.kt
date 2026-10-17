@@ -47,6 +47,8 @@ object ReferralLedger : Table("referral_ledger") {
     val amountMinor = long("amount_minor")
     val availableAt = timestamp("available_at")
     val periodDays = integer("period_days").nullable()
+    val baseMinor = long("base_minor").nullable()
+    val sharePercent = integer("share_percent").nullable()
     val completed = bool("completed")
     val createdAt = timestamp("created_at")
 

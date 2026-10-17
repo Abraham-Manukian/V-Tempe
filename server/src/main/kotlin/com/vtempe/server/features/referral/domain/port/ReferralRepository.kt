@@ -32,7 +32,8 @@ interface ReferralRepository {
     suspend fun appendIfAbsent(entry: LedgerEntry): Boolean
 
     /**
-     * Takes back part of the accrual that [paymentExternalId] earned, once per [refundId].
+     * Takes back part of the accrual that [paymentExternalId] earned, once per [refundId] (any
+     * idempotency key; the reversal's sourceRef is `reversal:<refundId>`).
      * [amountFor] gets the accrual and what earlier refunds already took back, and returns how
      * much this refund takes (it is capped at the remainder). Returns the reversal, or null when
      * the payment earned nothing, nothing remains, or this refund was already applied.

@@ -86,7 +86,8 @@ class ExposedReferralRepository(private val database: () -> Database) : Referral
             .sumOf { it[ReferralLedger.amountMinor] }
         val amount = reversalMinor(accrual.amountMinor, reversed, amountFor(accrual, reversed))
         if (amount == 0L) return@tx null
-        val reversal = accrual.copy(kind = LedgerKind.REVERSAL, sourceRef = sourceRef, amountMinor = -amount, createdAt = now)
+        val reversal = accrual.copy(kind = LedgerKind.REVERSAL, sourceRef = sourceRef, amountMinor = -amount, createdAt = now,
+            baseMinor = null, sharePercent = null)
         if (insertEntry(reversal)) reversal else null
     }
 
@@ -161,6 +162,8 @@ class ExposedReferralRepository(private val database: () -> Database) : Referral
         it[amountMinor] = entry.amountMinor
         it[availableAt] = entry.availableAt
         it[periodDays] = entry.periodDays
+        it[baseMinor] = entry.baseMinor
+        it[sharePercent] = entry.sharePercent
         it[completed] = entry.completed
         it[createdAt] = entry.createdAt
     }.insertedCount > 0
@@ -175,6 +178,8 @@ class ExposedReferralRepository(private val database: () -> Database) : Referral
         amountMinor = this[ReferralLedger.amountMinor],
         availableAt = this[ReferralLedger.availableAt],
         periodDays = this[ReferralLedger.periodDays],
+        baseMinor = this[ReferralLedger.baseMinor],
+        sharePercent = this[ReferralLedger.sharePercent],
         completed = this[ReferralLedger.completed],
         createdAt = this[ReferralLedger.createdAt],
     )

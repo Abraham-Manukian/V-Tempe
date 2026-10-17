@@ -26,6 +26,7 @@ class InMemoryEntitlementRepository : EntitlementRepository {
     private val payments = LinkedHashMap<String, Pair<String, PaymentSource>>() // externalId -> (userId, source), recording order
     private val windows = HashMap<String, Pair<String, GrantWindow>>() // externalId -> (userId, window)
     private val refunds = HashMap<String, RefundOutcome>()
+    private val refundedByPayment = HashMap<String, Long>() // paymentExternalId -> total refunded
     private val paymentLock = Mutex()
 
     override suspend fun find(userId: String): EntitlementRecord? = entitlements[userId]
@@ -38,6 +39,9 @@ class InMemoryEntitlementRepository : EntitlementRepository {
     }
 
     override suspend fun hasPayments(userId: String): Boolean = paymentLock.withLock { payments.values.any { it.first == userId } }
+
+    override suspend fun refundedMinor(paymentExternalId: String): Long =
+        paymentLock.withLock { refundedByPayment[paymentExternalId] ?: 0 }
 
     override suspend fun firstProviderPaymentId(userId: String): String? = paymentLock.withLock {
         payments.entries.firstOrNull { (_, v) -> v.first == userId && v.second != PaymentSource.REFERRAL_BALANCE }?.key
@@ -84,6 +88,7 @@ class InMemoryEntitlementRepository : EntitlementRepository {
             }
         }
         refunds[refund.refundId] = result.outcome
+        refundedByPayment.merge(refund.paymentExternalId, refund.amountMinor, Long::plus)
         result
     }
 }

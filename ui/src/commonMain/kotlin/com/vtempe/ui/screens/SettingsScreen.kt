@@ -79,6 +79,7 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     onEditProfile: () -> Unit = {},
     onAccount: () -> Unit = {},
+    onReferral: () -> Unit = {},
     presenter: SettingsPresenter = rememberSettingsPresenter(),
     platformActions: SettingsPlatformActions = rememberSettingsPlatformActions()
 ) {
@@ -191,6 +192,17 @@ fun SettingsScreen(
                         ) { Text(stringResource(Res.string.settings_edit_profile)) }
                     }
                 }
+            }
+
+            PreferenceCard(
+                title = stringResource(Res.string.settings_referral),
+                onClick = onReferral
+            ) {
+                Text(
+                    stringResource(Res.string.settings_referral_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             }
 
             PreferenceCard(

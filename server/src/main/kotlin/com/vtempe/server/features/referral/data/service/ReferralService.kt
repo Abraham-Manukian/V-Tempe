@@ -37,6 +37,8 @@ class ReferralService(
             rewardedCount = rewardedInvitees(entries),
             balances = balancesOf(entries, clock()),
             offers = policy.offers,
+            sharePercent = policy.sharePercent,
+            holdDays = policy.hold.toDays().toInt(),
         )
     }
 

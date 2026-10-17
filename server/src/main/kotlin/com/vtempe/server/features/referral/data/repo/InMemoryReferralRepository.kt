@@ -61,7 +61,8 @@ class InMemoryReferralRepository : ReferralRepository {
             .sumOf { it.amountMinor }
         val amount = reversalMinor(accrual.amountMinor, reversed, amountFor(accrual, reversed))
         if (amount == 0L) return@withLock null
-        accrual.copy(kind = LedgerKind.REVERSAL, sourceRef = sourceRef, amountMinor = -amount, createdAt = now)
+        accrual.copy(kind = LedgerKind.REVERSAL, sourceRef = sourceRef, amountMinor = -amount, createdAt = now,
+            baseMinor = null, sharePercent = null)
             .also { addIfAbsent(it) }
     }
 

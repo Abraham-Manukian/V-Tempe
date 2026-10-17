@@ -31,6 +31,9 @@ interface EntitlementRepository {
      *  except [PaymentSource.REFERRAL_BALANCE]), in recording order; null if there is none. */
     suspend fun firstProviderPaymentId(userId: String): String?
 
+    /** The total of every verified refund recorded for [paymentExternalId] (0 when none). */
+    suspend fun refundedMinor(paymentExternalId: String): Long
+
     /** Immediately ends access — refund/chargeback/cancellation. */
     suspend fun revoke(userId: String)
 

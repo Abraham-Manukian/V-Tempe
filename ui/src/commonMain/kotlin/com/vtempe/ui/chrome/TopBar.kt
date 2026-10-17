@@ -32,6 +32,7 @@ internal fun TopBar(
     val currentTitle = when (current) {
         is Destination.Home          -> stringResource(Res.string.app_name)
         is Destination.Settings      -> stringResource(Res.string.settings_title)
+        is Destination.Referral      -> stringResource(Res.string.referral_title)
         is Destination.Nutrition     -> stringResource(Res.string.nav_nutrition)
         is Destination.Chat          -> stringResource(Res.string.chat_title)
         is Destination.Workout       -> stringResource(Res.string.nav_workout)

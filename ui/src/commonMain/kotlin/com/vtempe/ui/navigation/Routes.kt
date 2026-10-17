@@ -29,6 +29,8 @@ sealed class Destination {
     @kotlinx.serialization.Serializable
     object Settings : Destination()
     @kotlinx.serialization.Serializable
+    object Referral : Destination()
+    @kotlinx.serialization.Serializable
     object EditProfile : Destination()
     @kotlinx.serialization.Serializable
     object Auth : Destination()

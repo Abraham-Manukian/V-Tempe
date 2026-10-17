@@ -16,6 +16,7 @@ import com.vtempe.ui.vm.HomeViewModel
 import com.vtempe.ui.vm.NutritionViewModel
 import com.vtempe.ui.vm.OnboardingViewModel
 import com.vtempe.ui.vm.PaywallViewModel
+import com.vtempe.ui.vm.ReferralViewModel
 import com.vtempe.ui.vm.ProgressViewModel
 import com.vtempe.ui.vm.SettingsViewModel
 import com.vtempe.ui.vm.SleepViewModel
@@ -53,6 +54,7 @@ object AppModule {
         viewModel { SleepViewModel(get(), get(), get()) }
         viewModel { ProgressViewModel(get(), get(), get(), get()) }
         viewModel { PaywallViewModel(get()) }
+        viewModel { ReferralViewModel(get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
         viewModel { AuthViewModel(get(), get(), get()) }

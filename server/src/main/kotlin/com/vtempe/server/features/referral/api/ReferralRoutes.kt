@@ -47,6 +47,8 @@ fun Route.registerReferralRoutes() {
                     rewardedCount = summary.rewardedCount,
                     balances = summary.balances.map { ReferralBalanceDto(it.currency, it.availableMinor, it.pendingMinor) },
                     redeemOffers = summary.offers.map { RedeemOfferDto(it.currency, it.priceMinor, it.periodDays) },
+                    sharePercent = summary.sharePercent,
+                    holdDays = summary.holdDays,
                 )
             )
         }

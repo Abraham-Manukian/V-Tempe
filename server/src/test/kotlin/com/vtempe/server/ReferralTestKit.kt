@@ -69,8 +69,9 @@ class ReferralWorld {
                     source: PaymentSource = PaymentSource.YOOKASSA) =
         entitlements.recordVerifiedPayment(VerifiedPayment(id, user, source, amount, refunded, currency), "{}", month)
 
-    suspend fun refund(id: String, payment: String, amount: Long, full: Boolean) =
-        rewards.onRefund(VerifiedRefund(id, payment, amount, "RUB", full, "{}"))
+    /** Through EntitlementService, like a provider webhook: recorded first, then observed. */
+    suspend fun refund(id: String, payment: String, amount: Long, full: Boolean, providerTotal: Long = 0) =
+        entitlements.applyRefund(VerifiedRefund(id, payment, amount, "RUB", full, "{}", paymentRefundedMinor = providerTotal))
 
     suspend fun codeOf(user: String): String = (service.issueCode(user) as IssueCodeResult.Issued).code
 

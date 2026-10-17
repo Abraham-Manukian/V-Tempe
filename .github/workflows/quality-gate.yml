@@ -43,9 +43,26 @@ jobs:
         run: python scripts/quality/quality_gate.py --profile ci --base "origin/${BASE_REF:-main}"
 
   server-tests:
+    # Name kept: branch protection may require this check by name.
     name: Server tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # A throwaway database for PostgresIntegrationTest (it drops the public schema, so only a
+    # localhost database is accepted). Test-only credentials, not a secret.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vtempe
+          POSTGRES_PASSWORD: vtempe_ci
+          POSTGRES_DB: vtempe_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vtempe -d vtempe_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -69,8 +86,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # The same tests the Docker build runs before deploy (VT-AUD-080), now also on pull requests.
+      # The same tests the Docker build runs before deploy (VT-AUD-080), now also on pull requests,
+      # plus the PostgreSQL integration tests against the service above.
       - name: Run server tests
+        env:
+          VTEMPE_PG_TEST_URL: jdbc:postgresql://localhost:5432/vtempe_test
+          VTEMPE_PG_TEST_USER: vtempe
+          VTEMPE_PG_TEST_PASSWORD: vtempe_ci
         run: |
           chmod +x gradlew
           ./gradlew :server:test --stacktrace
+
+      # assumeTrue() skips the PostgreSQL tests when the service or env is wrong; fail instead of
+      # going green without them.
+      - name: Check that the PostgreSQL tests ran
+        run: |
+          python3 - <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          suite = ET.parse("server/build/test-results/test/TEST-com.vtempe.server.PostgresIntegrationTest.xml").getroot()
+          tests, skipped = int(suite.get("tests")), int(suite.get("skipped"))
+          print(f"PostgresIntegrationTest: {tests} tests, {skipped} skipped")
+          sys.exit(1 if tests == 0 or skipped > 0 else 0)
+          PY

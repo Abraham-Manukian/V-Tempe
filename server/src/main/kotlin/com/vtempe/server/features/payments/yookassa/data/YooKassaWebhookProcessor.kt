@@ -106,6 +106,7 @@ class YooKassaWebhookProcessor(
                 currency = refund.amount.currency,
                 full = full,
                 rawPayload = json.encodeToString(YooKassaRefund.serializer(), refund),
+                paymentRefundedMinor = payment?.refundedAmount?.minorUnits() ?: 0,
             )
         )
         logger.info(

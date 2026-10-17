@@ -15,6 +15,9 @@ data class VerifiedRefund(
     /** The payment is now refunded in full (this refund alone or together with earlier ones). */
     val full: Boolean,
     val rawPayload: String,
+    /** The provider's total refunded for the payment at verification time (all refunds so far),
+     *  0 when unknown. Lets settlement count refunds whose own notification never arrived. */
+    val paymentRefundedMinor: Long = 0,
 )
 
 /**

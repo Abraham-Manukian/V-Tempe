@@ -105,8 +105,12 @@ class ReferralRoutesTest {
         val boris = client.get("/me/referral") { header(HttpHeaders.Authorization, "Bearer token-boris") }
         assertEquals(HttpStatusCode.OK, boris.status)
         val body = Json.parseToJsonElement(boris.bodyAsText()).jsonObject
+        assertEquals(setOf("code", "canInvite", "referred", "invitedCount", "rewardedCount", "balances", "redeemOffers",
+            "sharePercent", "holdDays"), body.keys, "the deployed-client contract")
         assertEquals("BRSKCDM2", body["code"]!!.jsonPrimitive.content)
         assertEquals("true", body["canInvite"]!!.jsonPrimitive.content)
+        assertEquals("20", body["sharePercent"]!!.jsonPrimitive.content)
+        assertEquals("30", body["holdDays"]!!.jsonPrimitive.content)
         assertTrue(boris.bodyAsText().contains(""""redeemOffers":[{"currency":"RUB","priceMinor":2000,"periodDays":7}]"""))
 
         val anna = client.get("/me/referral") { header(HttpHeaders.Authorization, "Bearer token-anna") }

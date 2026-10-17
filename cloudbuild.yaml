@@ -38,7 +38,11 @@ steps:
       - --max-instances=5
       # Pre-billing testing phase: every user gets the paid LLM tier. Switch to
       # AI_PAID_ACCESS=entitlement (the server default) once subscriptions are sold.
-      - --set-env-vars=AI_PAID_ACCESS=everyone
+      # Referrals: 20% of the invited user's first payment, held 30 days (owner, 2026-10-17).
+      # --set-env-vars replaces the whole set on every deploy, so the values live here, not in
+      # the console. REFERRAL_REDEEM_OFFERS stays unset until the owner fixes a price: balances
+      # accrue but cannot be spent yet.
+      - --set-env-vars=AI_PAID_ACCESS=everyone,REFERRAL_SHARE_PERCENT=20,REFERRAL_HOLD_DAYS=30
       - --set-secrets=APP_SECRET=APP_SECRET:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,OPENROUTER_FREE_API_KEY=OPENROUTER_FREE_API_KEY:latest,OPENROUTER_BASE_URL=OPENROUTER_BASE_URL:latest,OPENROUTER_SITE_URL=OPENROUTER_SITE_URL:latest,OPENROUTER_APP_NAME=OPENROUTER_APP_NAME:latest,OPENROUTER_MODEL=OPENROUTER_MODEL:latest,OPENROUTER_BOOTSTRAP_MODEL=OPENROUTER_BOOTSTRAP_MODEL:latest,OPENROUTER_FREE_MODEL=OPENROUTER_FREE_MODEL:latest,AI_QUALITY_MODE=AI_QUALITY_MODE:latest,AI_PREFER_DECOMPOSED_BUNDLE_FIRST=AI_PREFER_DECOMPOSED_BUNDLE_FIRST:latest,AI_DECOMPOSE_BUNDLE_ON_FAILURE=AI_DECOMPOSE_BUNDLE_ON_FAILURE:latest,AI_LLM_TIMEOUT_MS=AI_LLM_TIMEOUT_MS:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID:latest,DATABASE_URL=DATABASE_URL:latest,DATABASE_USER=DATABASE_USER:latest,DATABASE_PASSWORD=DATABASE_PASSWORD:latest
 
 images:

@@ -82,7 +82,17 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         return noContentResult(response)
     }
 
-    /** For DELETE endpoints that respond 204 No Content on success; same outcome as [putNoContent]. */
+    /** Same as [putNoContent], for POST endpoints that answer 204 No Content. */
+    suspend inline fun <reified Req : Any> postNoContent(path: String, body: Req): DataResult<Unit> {
+        val response = runCatching {
+            httpClient.post("$baseUrl$path") {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }.getOrElse { throwable -> return mapApiThrowable(throwable) }
+        return noContentResult(response)
+    }
+
     /** Same as [putNoContent], for PATCH. */
     suspend inline fun <reified Req : Any> patchNoContent(
         path: String,
@@ -99,6 +109,7 @@ class ApiClient(val httpClient: HttpClient, val baseUrl: String) {
         return noContentResult(response)
     }
 
+    /** For DELETE endpoints that respond 204 No Content on success; same outcome as [putNoContent]. */
     suspend fun deleteNoContent(path: String, bearerToken: String? = null): DataResult<Unit> {
         val response = runCatching {
             httpClient.delete("$baseUrl$path") {

@@ -1,7 +1,10 @@
 package com.vtempe.server
 
 import com.vtempe.server.features.referral.data.repo.ExposedReferralRepository
+import com.vtempe.server.features.entitlement.domain.model.VerifiedPayment
+import com.vtempe.server.features.referral.data.service.ReferralRewards
 import com.vtempe.server.features.referral.domain.model.DebitResult
+import com.vtempe.server.features.referral.domain.model.ReferralPolicy
 import com.vtempe.server.features.referral.domain.model.LedgerEntry
 import com.vtempe.server.features.referral.domain.model.LedgerKind
 import com.vtempe.server.features.account.data.service.AccountDeletionService
@@ -45,9 +48,10 @@ import java.time.Instant
  * compilation only): the schema upgrade, the per-user locks of payments, refunds, deletion and
  * diary merges under real concurrency.
  *
- * Runs only with VTEMPE_PG_TEST_URL (+ _USER, _PASSWORD) pointing at a throwaway database on this
- * machine — it drops the public schema before every test, so any other host is refused. Skipped
- * otherwise (CI, the image build).
+ * Runs only with VTEMPE_PG_TEST_URL (+ _USER, _PASSWORD) pointing at a throwaway database on
+ * localhost - it drops the public schema before every test, so any other host is refused. CI runs
+ * it against a PostgreSQL 16 service (quality-gate.yml, which fails if it was skipped); the image
+ * build and a plain local run skip it.
  */
 class PostgresIntegrationTest {
     private val url: String? = System.getenv("VTEMPE_PG_TEST_URL")
@@ -306,5 +310,25 @@ class PostgresIntegrationTest {
         assertTrue(results.all { it == DebitResult.AccountClosed }, "results: $results")
         assertEquals(5980L, runBlocking { referrals.entries("boris").sumOf { it.amountMinor } })
         assertEquals(null, runBlocking { referrals.codeOf("boris") })
+    }
+
+    @Test
+    fun `concurrent partial refunds settle to the share of what was kept`() {
+        database = open()
+        val entitlementRepo = ExposedEntitlementRepository { database }
+        val referrals = ExposedReferralRepository { database }
+        val rewards = ReferralRewards(referrals, entitlementRepo, ReferralPolicy(20, Duration.ofDays(30), emptyList())) { start }
+        val service = EntitlementService(entitlementRepo, observer = rewards) { start }
+        runBlocking {
+            referrals.saveCode("boris", "BRSKCDM2", start)
+            referrals.attach("anna", "boris", "BRSKCDM2", start)
+            service.recordVerifiedPayment(VerifiedPayment("pay-anna", "anna", PaymentSource.YOOKASSA, 29900, 0, "RUB"), "{}", month)
+        }
+
+        // 2999 does not divide evenly at 20%: per-refund deltas would leave 1787, the target leaves 1781.
+        concurrently(7) { i -> service.applyRefund(VerifiedRefund("r-$i", "pay-anna", 2999, "RUB", full = false, rawPayload = "{}")) }
+        concurrently(7) { i -> service.applyRefund(VerifiedRefund("r-$i", "pay-anna", 2999, "RUB", full = false, rawPayload = "{}")) }
+
+        assertEquals((29900L - 7 * 2999) * 20 / 100, runBlocking { referrals.entries("boris").sumOf { it.amountMinor } })
     }
 }

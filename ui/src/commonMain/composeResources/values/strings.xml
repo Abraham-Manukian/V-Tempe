@@ -595,6 +595,37 @@
     <string name="settings_health_consent_withdraw_confirm">Withdraw</string>
     <string name="settings_health_consent_withdraw_cancel">Cancel</string>
     <string name="chat_consent_required">The AI coach needs your consent to process health data. You can give it in Settings → Legal and consents.</string>
+    <string name="settings_referral">Invite friends</string>
+    <string name="settings_referral_hint">Your code, your invitations and your reward balance</string>
+    <string name="referral_title">Invite friends</string>
+    <string name="referral_invite_title">Your invite code</string>
+    <string name="referral_rules">When a friend you invited pays for a subscription for the first time, you get %1$d%% of that payment. The reward stays pending for %2$d days; if the payment is refunded, it shrinks by the same share or is cancelled.</string>
+    <string name="referral_copy">Copy</string>
+    <string name="referral_share">Share</string>
+    <string name="referral_share_text">Join me in V-Tempe, the AI fitness coach! Enter my invite code in the app: %1$s</string>
+    <string name="referral_get_code">Get my code</string>
+    <string name="referral_subscribers_only">Inviting friends is available to subscribers.</string>
+    <string name="referral_try_again">Could not reach the server. Try again.</string>
+    <string name="referral_balance_title">Rewards</string>
+    <string name="referral_stats">Invited: %1$d · Rewarded: %2$d</string>
+    <string name="referral_balance_empty">No rewards yet.</string>
+    <string name="referral_balance_line">Available: %1$s · Pending: %2$s</string>
+    <string name="referral_spending_soon">Paying for your subscription with the balance is coming soon. Your rewards are kept.</string>
+    <string name="referral_enter_title">Got a code from a friend?</string>
+    <string name="referral_enter_hint">Invite code</string>
+    <string name="referral_enter_apply">Apply</string>
+    <string name="referral_attached">Code applied. Your friend gets the reward after your first payment.</string>
+    <string name="referral_referred">You joined with a friend\'s invitation.</string>
+    <string name="referral_error_invalid">That does not look like an invite code. Codes have 8 letters and digits.</string>
+    <string name="referral_error_unknown">No such invite code.</string>
+    <string name="referral_error_self">You cannot use your own code.</string>
+    <string name="referral_error_already_referred">You have already used another invite code.</string>
+    <string name="referral_error_already_paid">Invite codes are for new subscribers only.</string>
+    <string name="referral_error_inactive">This code is not active right now.</string>
+    <string name="referral_error_account_deleted">This account has been deleted.</string>
+    <string name="referral_sign_in">Sign in to invite friends and use invite codes.</string>
+    <string name="referral_sign_in_action">Sign in</string>
+    <string name="referral_load_failed">Could not load your invitations.</string>
 </resources>
 
 

@@ -70,6 +70,10 @@ data class LedgerEntry(
     val availableAt: Instant,
     /** REDEMPTION only: how many days of access it buys. */
     val periodDays: Int?,
+    /** ACCRUAL only: the payment's full amount, the base its share is recomputed from on refunds. */
+    val baseMinor: Long? = null,
+    /** ACCRUAL only: the share percent it was earned at; refunds settle with it, not today's policy. */
+    val sharePercent: Int? = null,
     /** REDEMPTION only: the access it paid for has been granted. */
     val completed: Boolean,
     val createdAt: Instant,
@@ -85,6 +89,8 @@ data class ReferralSummary(
     val rewardedCount: Int,
     val balances: List<ReferralBalance>,
     val offers: List<RedeemOffer>,
+    val sharePercent: Int,
+    val holdDays: Int,
 )
 
 enum class AttachResult {
@@ -138,6 +144,14 @@ fun isAvailable(entry: LedgerEntry, now: Instant): Boolean =
 /** The spendable balance in [currency] at [now]: the single rule both repositories use for debits. */
 fun availableMinor(entries: List<LedgerEntry>, currency: String, now: Instant): Long =
     entries.filter { it.currency == currency && isAvailable(it, now) }.sumOf { it.amountMinor }
+
+/**
+ * What an accrual should still hold once [refundedMinor] of its payment is refunded: the share of
+ * what the user kept. Refunds are settled against this target, never as deltas, so a refund seen
+ * both by the payment step and by its own notification is taken back once.
+ */
+fun settledShareMinor(sharePercent: Int, baseMinor: Long, refundedMinor: Long): Long =
+    Math.multiplyExact(maxOf(baseMinor - refundedMinor, 0), sharePercent.toLong()) / 100
 
 /** How much a reversal may take: the [requestedMinor], capped at what the accrual still holds. */
 fun reversalMinor(accrualMinor: Long, alreadyReversedMinor: Long, requestedMinor: Long): Long =

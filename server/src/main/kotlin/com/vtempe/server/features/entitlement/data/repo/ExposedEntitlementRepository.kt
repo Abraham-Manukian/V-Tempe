@@ -62,6 +62,13 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
             Payments.selectAll().where { Payments.userId eq userId }.limit(1).any()
         }
 
+    override suspend fun refundedMinor(paymentExternalId: String): Long =
+        newSuspendedTransaction(Dispatchers.IO, database()) {
+            PaymentRefunds.selectAll()
+                .where { PaymentRefunds.paymentExternalId eq paymentExternalId }
+                .sumOf { it[PaymentRefunds.amountMinor] }
+        }
+
     override suspend fun firstProviderPaymentId(userId: String): String? =
         newSuspendedTransaction(Dispatchers.IO, database()) {
             Payments.selectAll()

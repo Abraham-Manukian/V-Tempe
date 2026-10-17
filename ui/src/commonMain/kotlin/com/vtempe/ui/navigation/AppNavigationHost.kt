@@ -9,6 +9,7 @@ import com.vtempe.ui.*
 import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.screens.*
 import com.vtempe.ui.screens.consent.HealthConsentScreen
+import com.vtempe.ui.screens.referral.ReferralScreen
 
 @Composable
 internal fun AppNavigationHost(
@@ -48,8 +49,10 @@ internal fun AppNavigationHost(
         is Destination.Paywall -> PaywallScreen()
         is Destination.Settings -> SettingsScreen(
             onEditProfile = { onNavigate(Destination.EditProfile) },
-            onAccount = { onNavigate(Destination.Auth) }
+            onAccount = { onNavigate(Destination.Auth) },
+            onReferral = { onNavigate(Destination.Referral) }
         )
+        is Destination.Referral -> ReferralScreen(onSignIn = { onNavigate(Destination.Auth) })
         is Destination.EditProfile -> EditProfileScreen(onDone = { onNavigate(Destination.Settings) })
         is Destination.Auth -> AuthScreen()
         is Destination.Chat -> ChatScreen(
