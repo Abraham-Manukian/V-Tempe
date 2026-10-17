@@ -6,7 +6,9 @@ import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.entitlement.domain.model.RefundResult
 import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
+import com.vtempe.server.features.entitlement.domain.model.VerifiedPayment
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
+import com.vtempe.server.features.entitlement.domain.port.PaymentObserver
 import java.time.Duration
 import java.time.Instant
 
@@ -18,7 +20,9 @@ import java.time.Instant
 class EntitlementService(
     private val repository: EntitlementRepository,
     private val gracePeriod: Duration = Duration.ofDays(3),
-    private val clock: () -> Instant = Instant::now
+    /** Referral rewards in production (ServerModule); nothing in tests that do not need it. */
+    private val observer: PaymentObserver = PaymentObserver.NONE,
+    private val clock: () -> Instant = Instant::now,
 ) {
     suspend fun current(userId: String): Entitlement {
         val record = repository.find(userId)
@@ -38,6 +42,8 @@ class EntitlementService(
     suspend fun grant(userId: String, expiresAt: Instant, source: PaymentSource, externalRef: String? = null) {
         repository.grantUntilAtLeast(userId, expiresAt, source, externalRef)
     }
+
+    suspend fun hasPayments(userId: String): Boolean = repository.hasPayments(userId)
 
     suspend fun revoke(userId: String) {
         repository.revoke(userId)
@@ -64,6 +70,27 @@ class EntitlementService(
         GrantWindow(from = base, until = base.plus(period))
     }
 
-    /** Takes back what a verified refund paid for — see [EntitlementRepository.recordRefund]. */
-    suspend fun applyRefund(refund: VerifiedRefund): RefundResult = repository.recordRefund(refund, clock())
+    /**
+     * The entry point for every provider's verified payment: records it and extends access (see
+     * [recordPaymentAndExtend]), then tells the [PaymentObserver] on every delivery, duplicates
+     * included, so a delivery that failed after the commit is completed by the provider's retry.
+     */
+    suspend fun recordVerifiedPayment(payment: VerifiedPayment, rawPayload: String, period: Duration): Instant? {
+        val expiresAt = recordPaymentAndExtend(
+            payment.externalId, payment.userId, payment.source, payment.amountMinor, payment.currency, rawPayload, period,
+        )
+        observer.onPayment(payment)
+        return expiresAt
+    }
+
+    /** Takes back what a verified refund paid for (see [EntitlementRepository.recordRefund]), then
+     *  tells the [PaymentObserver], duplicates included, for the same reason as payments. */
+    suspend fun applyRefund(refund: VerifiedRefund): RefundResult {
+        val result = repository.recordRefund(refund, clock())
+        observer.onRefund(refund)
+        return result
+    }
+
+    /** See [EntitlementRepository.firstProviderPaymentId]. */
+    suspend fun firstProviderPaymentId(userId: String): String? = repository.firstProviderPaymentId(userId)
 }

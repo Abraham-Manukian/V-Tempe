@@ -1,5 +1,6 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.referral.data.repo.InMemoryReferralRepository
 import com.vtempe.server.app.registerUserRoutes
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
@@ -45,7 +46,7 @@ class SyncWriteBarrierTest {
     private var now = Instant.parse("2026-10-13T12:00:00Z")
     private val blobs = InMemorySyncBlobRepository()
     private val sync = SyncService(blobs) { now }
-    private val deletion = AccountDeletionService(blobs, InMemoryEntitlementRepository()) { now }
+    private val deletion = AccountDeletionService(blobs, InMemoryEntitlementRepository(), InMemoryReferralRepository()) { now }
 
     @Test
     fun `a push from another device right after deletion is refused and stores nothing`() = runBlocking {

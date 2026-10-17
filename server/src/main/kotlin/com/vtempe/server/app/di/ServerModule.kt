@@ -43,6 +43,12 @@ import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepos
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.port.EntitlementRepository
 import com.vtempe.server.features.payments.yookassa.data.YooKassaApi
+import com.vtempe.server.features.referral.data.ReferralConfig
+import com.vtempe.server.features.referral.data.repo.ExposedReferralRepository
+import com.vtempe.server.features.referral.data.repo.InMemoryReferralRepository
+import com.vtempe.server.features.referral.data.service.ReferralRewards
+import com.vtempe.server.features.referral.data.service.ReferralService
+import com.vtempe.server.features.referral.domain.port.ReferralRepository
 import com.vtempe.server.features.payments.yookassa.data.YooKassaClient
 import com.vtempe.server.features.payments.yookassa.data.YooKassaWebhookProcessor
 import com.vtempe.server.features.sync.data.repo.ExposedSyncBlobRepository
@@ -270,7 +276,8 @@ val serverModule = module {
         val connector: DatabaseConnector = get()
         if (connector.isConfigured) ExposedEntitlementRepository(connector::require) else InMemoryEntitlementRepository()
     }
-    single { EntitlementService(repository = get()) }
+    // Every verified provider payment and refund also reaches referral rewards (PaymentObserver).
+    single { EntitlementService(repository = get(), observer = get<ReferralRewards>()) }
 
     // --- AI access (app token + Firebase session + paid tier policy, see AiAccessResolver) ---
     single { AiAccessConfig.from { key -> Env[key] } }
@@ -288,7 +295,15 @@ val serverModule = module {
         if (connector.isConfigured) ExposedSyncBlobRepository(connector::require) else InMemorySyncBlobRepository()
     }
     single { SyncService(repository = get()) }
-    single { AccountDeletionService(syncBlobs = get(), entitlements = get()) }
+    // Referrals: same connector and same memory/durable choice as entitlements.
+    single<ReferralRepository> {
+        val connector: DatabaseConnector = get()
+        if (connector.isConfigured) ExposedReferralRepository(connector::require) else InMemoryReferralRepository()
+    }
+    single { ReferralConfig.from { key -> Env[key] } }
+    single { ReferralRewards(repository = get(), payments = get(), policy = get()) }
+    single { ReferralService(repository = get(), entitlements = get(), policy = get()) }
+    single { AccountDeletionService(syncBlobs = get(), entitlements = get(), referrals = get()) }
     single<YooKassaApi> {
         YooKassaClient(
             shopId = Env["YOOKASSA_SHOP_ID"]?.takeIf { it.isNotBlank() },

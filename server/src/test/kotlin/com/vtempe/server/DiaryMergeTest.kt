@@ -1,5 +1,6 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.referral.data.repo.InMemoryReferralRepository
 import com.vtempe.server.app.registerUserRoutes
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
@@ -49,7 +50,7 @@ class DiaryMergeTest {
     private fun diaryTest(block: suspend (HttpClient) -> Unit) = testApplication {
         application {
             install(Koin) {
-                modules(module { single { sync }; single { AccountDeletionService(blobs, InMemoryEntitlementRepository()) } })
+                modules(module { single { sync }; single { AccountDeletionService(blobs, InMemoryEntitlementRepository(), InMemoryReferralRepository()) } })
             }
             install(ContentNegotiation) { json() }
             routing { registerUserRoutes { token -> token } } // the token is the uid

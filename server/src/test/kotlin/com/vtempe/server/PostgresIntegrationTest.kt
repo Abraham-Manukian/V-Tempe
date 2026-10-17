@@ -1,5 +1,9 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.referral.data.repo.ExposedReferralRepository
+import com.vtempe.server.features.referral.domain.model.DebitResult
+import com.vtempe.server.features.referral.domain.model.LedgerEntry
+import com.vtempe.server.features.referral.domain.model.LedgerKind
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.entitlement.data.db.Entitlements
@@ -144,7 +148,7 @@ class PostgresIntegrationTest {
         val entitlements = ExposedEntitlementRepository { database }
         runBlocking {
             blobs.push("anna", "profile", "{}", Instant.now())
-            AccountDeletionService(blobs, entitlements).deleteAccountData("anna")
+            AccountDeletionService(blobs, entitlements, ExposedReferralRepository { database }).deleteAccountData("anna")
             assertTrue(blobs.pullAll("anna").isEmpty())
             assertEquals(false, blobs.push("anna", "profile", "{}", Instant.now()))
         }
@@ -230,5 +234,77 @@ class PostgresIntegrationTest {
 
         // 10 months bought, the first one refunded on day 10 (its last 20 days removed).
         assertEquals(start.plus(month.multipliedBy(10)).minus(Duration.ofDays(20)), runBlocking { service.current("anna").expiresAt })
+    }
+
+    /** boris has a code and [earnedMinor] available (an accrual whose hold ended before [start]). */
+    private suspend fun ExposedReferralRepository.borisEarned(earnedMinor: Long) {
+        saveCode("boris", "BRSKCDM2", start)
+        appendIfAbsent(LedgerEntry("boris", LedgerKind.ACCRUAL, "accrual:anna", "pay-anna", "anna", "RUB", earnedMinor,
+            availableAt = start.minus(Duration.ofDays(1)), periodDays = null, completed = false, createdAt = start))
+    }
+
+    @Test
+    fun `parallel redemptions never spend more than the referral balance`() {
+        database = open()
+        val referrals = ExposedReferralRepository { database }
+        runBlocking { referrals.borisEarned(5980) }
+
+        val results = concurrently(8) { i -> referrals.debit("boris", "redeem:boris:req-$i", "RUB", 2000, 7, start) }
+
+        assertEquals(2, results.count { it is DebitResult.Debited }, "results: $results")
+        assertEquals(1980L, runBlocking { referrals.entries("boris").sumOf { it.amountMinor } })
+    }
+
+    @Test
+    fun `a refund delivered many times at once takes the share back once`() {
+        database = open()
+        val referrals = ExposedReferralRepository { database }
+        runBlocking { referrals.borisEarned(5980) }
+
+        val reversals = concurrently(6) { referrals.reverse("pay-anna", "r-1", start) { accrual, done -> accrual.amountMinor - done } }
+
+        assertEquals(1, reversals.count { it != null }, "reversals: $reversals")
+        assertEquals(0L, runBlocking { referrals.entries("boris").sumOf { it.amountMinor } })
+    }
+
+    @Test
+    fun `an invited user is attached once and earns once`() {
+        database = open()
+        val referrals = ExposedReferralRepository { database }
+        runBlocking { referrals.saveCode("boris", "BRSKCDM2", start) }
+
+        val attached = concurrently(6) { referrals.attach("anna", "boris", "BRSKCDM2", start) }
+        val accrued = concurrently(6) { referrals.appendIfAbsent(
+            LedgerEntry("boris", LedgerKind.ACCRUAL, "accrual:anna", "pay-$it", "anna", "RUB", 5980,
+                availableAt = start, periodDays = null, completed = false, createdAt = start)) }
+
+        assertEquals(1, attached.count { it })
+        assertEquals(1, accrued.count { it })
+        assertEquals(null, runBlocking { referrals.saveCode("vera", "BRSKCDM2", start) }, "a taken code is refused")
+    }
+
+    @Test
+    fun `a debit with an earlier clock still sees a later debit`() {
+        database = open()
+        val referrals = ExposedReferralRepository { database }
+        runBlocking {
+            referrals.borisEarned(5980)
+            assertTrue(referrals.debit("boris", "redeem:boris:late", "RUB", 4000, 7, start) is DebitResult.Debited)
+            assertEquals(DebitResult.Insufficient(1980),
+                referrals.debit("boris", "redeem:boris:early", "RUB", 4000, 7, start.minus(Duration.ofHours(1))))
+        }
+    }
+
+    @Test
+    fun `a deleted account's balance cannot be spent, even by parallel requests`() {
+        database = open()
+        val referrals = ExposedReferralRepository { database }
+        runBlocking { referrals.borisEarned(5980); referrals.deleteUser("boris", start) }
+
+        val results = concurrently(6) { i -> referrals.debit("boris", "redeem:boris:req-$i", "RUB", 2000, 7, start) }
+
+        assertTrue(results.all { it == DebitResult.AccountClosed }, "results: $results")
+        assertEquals(5980L, runBlocking { referrals.entries("boris").sumOf { it.amountMinor } })
+        assertEquals(null, runBlocking { referrals.codeOf("boris") })
     }
 }

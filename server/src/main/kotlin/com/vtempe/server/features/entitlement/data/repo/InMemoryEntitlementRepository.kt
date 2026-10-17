@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class InMemoryEntitlementRepository : EntitlementRepository {
     private val entitlements = ConcurrentHashMap<String, EntitlementRecord>()
-    private val payments = HashMap<String, String>() // externalId -> userId
+    private val payments = LinkedHashMap<String, Pair<String, PaymentSource>>() // externalId -> (userId, source), recording order
     private val windows = HashMap<String, Pair<String, GrantWindow>>() // externalId -> (userId, window)
     private val refunds = HashMap<String, RefundOutcome>()
     private val paymentLock = Mutex()
@@ -35,6 +35,12 @@ class InMemoryEntitlementRepository : EntitlementRepository {
             userId,
             EntitlementRecord(userId, expiresAt, source, externalRef)
         ) { existing, new -> if (existing.expiresAt >= new.expiresAt) existing else new }
+    }
+
+    override suspend fun hasPayments(userId: String): Boolean = paymentLock.withLock { payments.values.any { it.first == userId } }
+
+    override suspend fun firstProviderPaymentId(userId: String): String? = paymentLock.withLock {
+        payments.entries.firstOrNull { (_, v) -> v.first == userId && v.second != PaymentSource.REFERRAL_BALANCE }?.key
     }
 
     override suspend fun revoke(userId: String) {
@@ -50,7 +56,7 @@ class InMemoryEntitlementRepository : EntitlementRepository {
         rawPayload: String,
         grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant? = paymentLock.withLock {
-        if (payments.putIfAbsent(externalId, userId) != null) return@withLock null
+        if (payments.putIfAbsent(externalId, userId to source) != null) return@withLock null
         val current = entitlements[userId]?.expiresAt
         val window = grant(current)
         windows[externalId] = userId to window
@@ -61,7 +67,7 @@ class InMemoryEntitlementRepository : EntitlementRepository {
 
     override suspend fun recordRefund(refund: VerifiedRefund, now: Instant): RefundResult = paymentLock.withLock {
         if (refund.refundId in refunds) return@withLock RefundResult(RefundOutcome.DUPLICATE)
-        val userId = payments[refund.paymentExternalId]
+        val userId = payments[refund.paymentExternalId]?.first
         val window = windows[refund.paymentExternalId]?.second
         val result = when {
             userId == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW)

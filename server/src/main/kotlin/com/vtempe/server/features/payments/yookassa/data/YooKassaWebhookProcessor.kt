@@ -3,6 +3,7 @@ package com.vtempe.server.features.payments.yookassa.data
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
 import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
+import com.vtempe.server.features.entitlement.domain.model.VerifiedPayment
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -65,13 +66,17 @@ class YooKassaWebhookProcessor(
             return
         }
         val period = payment.metadata["periodDays"]?.toLongOrNull()?.let(Duration::ofDays) ?: DEFAULT_PERIOD
-        // The current expiry is read inside the payment's transaction (VT-AUD-051).
-        val expiresAt = entitlements.recordPaymentAndExtend(
-            externalId = payment.id,
-            userId = userId,
-            source = PaymentSource.YOOKASSA,
-            amountMinor = payment.amount.minorUnits(),
-            currency = payment.amount.currency,
+        // The current expiry is read inside the payment's transaction (VT-AUD-051); the payment
+        // observers (referral rewards) run after it on every delivery.
+        val expiresAt = entitlements.recordVerifiedPayment(
+            VerifiedPayment(
+                externalId = payment.id,
+                userId = userId,
+                source = PaymentSource.YOOKASSA,
+                amountMinor = payment.amount.minorUnits(),
+                refundedMinor = payment.refundedAmount?.minorUnits() ?: 0,
+                currency = payment.amount.currency,
+            ),
             rawPayload = payment.toLedgerPayload(),
             period = period,
         )
@@ -80,6 +85,7 @@ class YooKassaWebhookProcessor(
         } else {
             logger.info("YooKassa webhook: payment {} already processed, skipping duplicate delivery", paymentId)
         }
+
     }
 
     private suspend fun handleRefund(refundId: String) {

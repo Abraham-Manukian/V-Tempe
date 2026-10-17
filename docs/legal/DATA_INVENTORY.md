@@ -23,6 +23,7 @@
 | 8 | Сообщения чата с AI-тренером | Экран чата | ПДн, пользователь может писать о здоровье | `ChatHistoryStore.kt`, `ui/.../presenter/ChatPresenter.kt` |
 | 9 | Аккаунт Google: Firebase UID, e-mail, имя, фото | Вход через Google (Firebase Auth) | ПДн, прямые идентификаторы | `shared/.../domain/repository/Repositories.kt` (`AuthUser`), `app-android/.../auth/FirebaseAuthRepository.kt` |
 | 10 | Подписка: срок действия, источник оплаты, сумма и валюта платежа, id платежа у провайдера | Google Play Billing, вебхук ЮKassa | ПДн, связанные с UID | `server/.../entitlement/data/db/EntitlementTables.kt` |
+| 10a | Реферальная программа: код приглашения, кто кого пригласил, начисления и списания баланса (доля первой оплаты приглашённого) | Экран приглашений, вебхуки оплаты | ПДн, связанные с UID (связь двух пользователей) | `server/.../referral/data/db/ReferralTables.kt` |
 | 11 | Настройки: язык, единицы, режим AI (free/paid), согласие на аналитику | Настройки | Технические | `shared/.../data/repo/PreferencesRepository.kt` |
 | 12 | IP-адрес, User-Agent | Каждый HTTP-запрос к серверу | ПДн (технические) | Cloud Run (журналы запросов), `server/.../app/Application.kt` (ключ rate-limit) |
 | 13 | Технические данные устройства для аналитики и отчётов о сбоях | Firebase SDK | ПДн (псевдонимные идентификаторы) | `app-android/.../analytics/FirebaseAnalyticsRepository.kt` |
@@ -56,6 +57,9 @@
 | БД, таблица `sync_blobs` (`server/.../sync/data/db/SyncTables.kt`) | JSON-снимки доменов `profile` (весь профиль, включая травмы, медзаметки и аллергии), `workoutProgress`, `sleep`, `sleepNotes`, `weight`. Каждый снимок до 256 КБ | Firebase UID | Бессрочно. Хранится последняя версия каждого домена, старая перезаписывается. Удаление выполняется вместе с удалением аккаунта (`DELETE /me`, разрабатывается отдельно) |
 | БД, таблица `entitlements` (`EntitlementTables.kt`) | UID, дата окончания подписки, источник, внешний id | Firebase UID | Бессрочно |
 | БД, таблица `payments` (`EntitlementTables.kt`) | UID, источник, id платежа, сумма, валюта, `raw_payload`, время | Firebase UID | Бессрочно (append-only журнал). Для ЮKassa `raw_payload` теперь содержит только проверенные поля: id, status, paid, amount, metadata (`YooKassaLedgerPayload.kt`). Данные карты и авторизации не сохраняются |
+| БД, таблицы `referral_codes`, `referral_attributions` (`server/.../referral/data/db/ReferralTables.kt`) | Код приглашения пользователя; UID приглашённого, UID пригласившего, код, время | Firebase UID | До удаления аккаунта: `DELETE /me` удаляет код и все приглашения, где пользователь участвует |
+| БД, таблица `referral_accounts` | UID и время закрытия реферального счёта | Firebase UID | Бессрочно. При удалении аккаунта строка не удаляется, а помечается закрытой, чтобы остаток баланса нельзя было потратить |
+| БД, таблица `referral_ledger` | UID получателя, вид операции (начисление, сторно, списание), сумма, валюта, id платежа, UID приглашённого (у начислений), время | Firebase UID | Бессрочно, как журнал `payments`: это учёт денежных обязательств. После удаления аккаунта UID в строках остаются, но больше ни с чем не связаны. Срок хранения и обезличивание UID приглашённого — решение владельца (открытый вопрос) |
 | Память процесса: `BundleCache` (`server/.../ai/data/service/BundleCache.kt`) | Сгенерированные планы | SHA-256 от профиля | 30 минут, для запасного (fallback) плана 2 минуты. Сбрасывается при перезапуске |
 | Память процесса: rate-limit (`Application.kt`) | IP-адрес клиента | IP | Около 1 минуты (окно лимита) |
 | Файлы `logs/llm/*.txt` (`server/.../ai/data/llm/telemetry/LlmRawStore.kt`) | Сырые ответы модели, которые могут пересказывать данные о здоровье | Хэш профиля, номер попытки | **По умолчанию выключено** (`LLM_RAW_STORE_ENABLED`, в продакшене не включается). Если включено, файлы старше `LLM_RAW_STORE_RETENTION_HOURS` (по умолчанию 24 ч) удаляются при старте и не реже раза в 10 минут при записи. На Cloud Run файловая система эфемерна |
@@ -143,6 +147,7 @@ Firebase-токен, данные подписки или оплаты. Поле
 | `POST /ai/chat` | `ChatProfileDto`, история чата, текущие планы, те же заголовки | `shared/.../data/repo/NetworkChatRepository.kt` |
 | `PUT /me/sync/{domain}`, `GET /me/sync` | Снимки профиля, прогресса, сна, заметок к сну и веса. Авторизация по Firebase ID token | `shared/.../data/repo/NetworkSyncRepository.kt`, `server/.../sync/api/SyncRoutes.kt` |
 | `GET /me/entitlement` | Firebase ID token | `server/.../entitlement/api/EntitlementRoutes.kt` |
+| `GET /me/referral`, `POST /me/referral/{code,attach,redeem}` | Firebase ID token; код приглашения или id запроса и валюта | `server/.../referral/api/ReferralRoutes.kt` |
 
 Firebase ID token содержит claims Google-аккаунта (UID, e-mail, имя). Сервер извлекает из него
 только UID (`FirebaseTokenVerifier.kt`) и сам токен не сохраняет.

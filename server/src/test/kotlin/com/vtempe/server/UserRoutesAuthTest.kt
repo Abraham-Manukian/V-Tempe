@@ -71,6 +71,10 @@ class UserRoutesAuthTest {
         HttpMethod.Put to "/me/sync/weight",
         HttpMethod.Get to "/me/entitlement",
         HttpMethod.Delete to "/me",
+        HttpMethod.Get to "/me/referral",
+        HttpMethod.Post to "/me/referral/code",
+        HttpMethod.Post to "/me/referral/attach",
+        HttpMethod.Post to "/me/referral/redeem",
     )
 
     private suspend fun assertRejected(response: HttpResponse, what: String) {

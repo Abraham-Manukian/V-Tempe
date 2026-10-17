@@ -1,9 +1,13 @@
 package com.vtempe.server
 
+import com.vtempe.server.features.referral.data.repo.InMemoryReferralRepository
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.repo.InMemoryEntitlementRepository
 import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import com.vtempe.server.features.referral.domain.model.DebitResult
+import com.vtempe.server.features.referral.domain.model.LedgerEntry
+import com.vtempe.server.features.referral.domain.model.LedgerKind
 import com.vtempe.server.features.sync.data.repo.InMemorySyncBlobRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,7 +22,8 @@ class AccountDeletionServiceTest {
 
     private val syncBlobs = InMemorySyncBlobRepository()
     private val entitlements = InMemoryEntitlementRepository()
-    private val service = AccountDeletionService(syncBlobs, entitlements)
+    private val referrals = InMemoryReferralRepository()
+    private val service = AccountDeletionService(syncBlobs, entitlements, referrals)
     private val expiresAt = Instant.parse("2027-01-01T00:00:00Z")
 
     @Test
@@ -74,5 +79,25 @@ class AccountDeletionServiceTest {
         assertNull(
             entitlements.recordPaymentAndExtend("pay-1", "user-1", PaymentSource.YOOKASSA, 49_900, "RUB", "{}") { GrantWindow(expiresAt.minus(Duration.ofDays(30)), expiresAt) }
         )
+    }
+
+    @Test
+    fun `removes the invite code and invitations, closes the balance, keeps the ledger`() = runBlocking {
+        val t = Instant.parse("2026-01-01T00:00:00Z")
+        referrals.saveCode("boris", "BRSKCDM2", t)
+        referrals.attach("anna", "boris", "BRSKCDM2", t)
+        referrals.appendIfAbsent(LedgerEntry("boris", LedgerKind.ACCRUAL, "accrual:anna", "pay-anna", "anna", "RUB", 5980,
+            availableAt = t, periodDays = null, completed = false, createdAt = t))
+
+        service.deleteAccountData("boris")
+        service.deleteAccountData("boris") // repeated: a no-op
+
+        assertNull(referrals.codeOf("boris"))
+        assertNull(referrals.ownerOfCode("BRSKCDM2"))
+        assertNull(referrals.attributionOf("anna"))
+        assertEquals(0, referrals.invitedCount("boris"))
+        assertEquals(1, referrals.entries("boris").size, "money earned stays on record")
+        assertTrue(referrals.isClosed("boris"))
+        assertEquals(DebitResult.AccountClosed, referrals.debit("boris", "redeem:boris:x1234567", "RUB", 100, 7, t.plus(Duration.ofDays(1))))
     }
 }

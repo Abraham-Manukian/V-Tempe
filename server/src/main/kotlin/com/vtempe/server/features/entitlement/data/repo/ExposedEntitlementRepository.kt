@@ -16,6 +16,7 @@ import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
@@ -38,7 +39,8 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
                     EntitlementRecord(
                         userId = it[Entitlements.userId],
                         expiresAt = it[Entitlements.expiresAt],
-                        source = PaymentSource.valueOf(it[Entitlements.paymentSource]),
+                        // Tolerant: a rollback to this revision must still read rows a newer one wrote.
+                        source = PaymentSource.entries.firstOrNull { s -> s.name == it[Entitlements.paymentSource] },
                         externalRef = it[Entitlements.externalRef]
                     )
                 }
@@ -54,6 +56,20 @@ class ExposedEntitlementRepository(private val database: () -> Database) : Entit
             grantUntilAtLeastInTransaction(userId, expiresAt, source, externalRef)
         }
     }
+
+    override suspend fun hasPayments(userId: String): Boolean =
+        newSuspendedTransaction(Dispatchers.IO, database()) {
+            Payments.selectAll().where { Payments.userId eq userId }.limit(1).any()
+        }
+
+    override suspend fun firstProviderPaymentId(userId: String): String? =
+        newSuspendedTransaction(Dispatchers.IO, database()) {
+            Payments.selectAll()
+                .where { (Payments.userId eq userId) and (Payments.paymentSource neq PaymentSource.REFERRAL_BALANCE.name) }
+                .orderBy(Payments.id)
+                .limit(1)
+                .singleOrNull()?.get(Payments.externalId)
+        }
 
     override suspend fun revoke(userId: String) {
         newSuspendedTransaction(Dispatchers.IO, database()) {

@@ -6,6 +6,7 @@ import com.vtempe.server.features.ai.access.AiAccessConfig
 import com.vtempe.server.features.ai.api.registerAiRoutes
 import com.vtempe.server.features.auth.IdTokenVerifier
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
+import com.vtempe.server.features.referral.domain.model.ReferralPolicy
 import com.vtempe.server.features.payments.yookassa.api.registerYooKassaWebhookRoutes
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -70,6 +71,10 @@ fun Application.module() {
     // /ai/* access (app token, Firebase session, paid tier) is enforced by AiAccessPlugin on the
     // AI route subtree itself — see registerAiRoutes. Only the configuration is reported here.
     val aiAccess: AiAccessConfig by inject()
+    // Read at startup on purpose: an invalid REFERRAL_* value must stop this revision from starting
+    // (Cloud Run keeps the previous one), not fail the first payment webhook later.
+    val referralPolicy: ReferralPolicy by inject()
+    referralPolicy.sharePercent
     when {
         aiAccess.appSecret != null -> Unit
         aiAccess.allowMissingAppSecret ->

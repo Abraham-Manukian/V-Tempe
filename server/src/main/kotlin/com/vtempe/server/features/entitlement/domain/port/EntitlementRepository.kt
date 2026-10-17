@@ -11,7 +11,8 @@ import java.time.Instant
 data class EntitlementRecord(
     val userId: String,
     val expiresAt: Instant,
-    val source: PaymentSource,
+    /** Null for a source this server version does not know (written by a newer revision). */
+    val source: PaymentSource?,
     val externalRef: String?
 )
 
@@ -22,6 +23,13 @@ interface EntitlementRepository {
      *  arriving for a user who already has a later expiry (e.g. duplicate delivery, or a
      *  concurrent renewal from a second provider) must never shorten their access. */
     suspend fun grantUntilAtLeast(userId: String, expiresAt: Instant, source: PaymentSource, externalRef: String?)
+
+    /** True when [userId] has any recorded payment, from any source. */
+    suspend fun hasPayments(userId: String): Boolean
+
+    /** The external id of [userId]'s first recorded payment that came from a provider (any source
+     *  except [PaymentSource.REFERRAL_BALANCE]), in recording order; null if there is none. */
+    suspend fun firstProviderPaymentId(userId: String): String?
 
     /** Immediately ends access — refund/chargeback/cancellation. */
     suspend fun revoke(userId: String)

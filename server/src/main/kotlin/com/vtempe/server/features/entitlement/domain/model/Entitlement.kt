@@ -5,7 +5,12 @@ import java.time.Instant
 /** Where a grant of access originated — the app never needs to know which one, only
  *  [EntitlementService] and the provider-specific verifiers (Google Play / App Store /
  *  YooKassa) care. */
-enum class PaymentSource { GOOGLE_PLAY, APP_STORE, YOOKASSA }
+enum class PaymentSource {
+    GOOGLE_PLAY, APP_STORE, YOOKASSA,
+
+    /** Access bought with the user's own referral balance (no money from a provider). */
+    REFERRAL_BALANCE,
+}
 
 enum class EntitlementStatus { ACTIVE, GRACE, EXPIRED }
 

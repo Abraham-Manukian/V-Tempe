@@ -4,6 +4,7 @@ import com.vtempe.server.features.account.api.registerAccountRoutes
 import com.vtempe.server.features.auth.IdTokenVerifier
 import com.vtempe.server.features.auth.UserAuthPlugin
 import com.vtempe.server.features.entitlement.api.registerEntitlementRoutes
+import com.vtempe.server.features.referral.api.registerReferralRoutes
 import com.vtempe.server.features.sync.api.registerSyncRoutes
 import io.ktor.server.application.install
 import io.ktor.server.routing.Route
@@ -15,6 +16,7 @@ fun Route.registerUserRoutes(verifier: IdTokenVerifier) {
         install(UserAuthPlugin) { this.verifier = verifier }
         registerAccountRoutes()
         registerEntitlementRoutes()
+        registerReferralRoutes()
         registerSyncRoutes()
     }
 }
