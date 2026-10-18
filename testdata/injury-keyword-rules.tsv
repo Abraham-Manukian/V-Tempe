@@ -1,8 +1,8 @@
 # Every injury keyword the server (InjuryFilter + InjuryRestrictions) and the client (ExerciseRestrictions)
 # react to, and what an injury note containing just that keyword bans. Both sides must know exactly these
 # keywords and give exactly these results: a rule changed on one side only fails its TrainingContractTest.
-# keyword	banned movement patterns (;)	banned exercise ids (;)
-ac joint	VERTICAL_PUSH	
+# keyword	banned movement patterns (;)	banned exercise ids (;); "-" = none
+ac joint	VERTICAL_PUSH	-
 achilles	SINGLE_LEG	box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
 acl	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 ankle	SINGLE_LEG	box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
@@ -10,86 +10,86 @@ back	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;r
 carpal	ARM_EXTENSION;ARM_FLEXION;HORIZONTAL_PUSH	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
 cervical	VERTICAL_PUSH	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
 cuff	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-dip bar		bench_dip;dip
-dip bars		bench_dip;dip
+dip bar	-	bench_dip;dip
+dip bars	-	bench_dip;dip
 disc	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-disk	HINGE	
+disk	HINGE	-
 elbow	ARM_EXTENSION;ARM_FLEXION	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
 epicondyl	ARM_EXTENSION;ARM_FLEXION	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
 golfer	ARM_EXTENSION;ARM_FLEXION	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
-hernia		box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
+hernia	-	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
 herniat	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-hip		bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
+hip	-	bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
 impingement	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
 knee	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 kneecap	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 knees	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
-l4	HINGE	
-l5	HINGE	
-labrum	VERTICAL_PUSH	
-ligament		box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
+l4	HINGE	-
+l5	HINGE	-
+labrum	VERTICAL_PUSH	-
+ligament	-	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 lumbar	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
 mcl	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 meniscus	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 neck	VERTICAL_PUSH	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
-parallel bar		bench_dip;dip
-parallel bars		bench_dip;dip
-patell		box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
+parallel bar	-	bench_dip;dip
+parallel bars	-	bench_dip;dip
+patell	-	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 patella	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 patellofemoral	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 pcl	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
-pelvi		bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
+pelvi	-	bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
 rotator	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-s1	HINGE	
-sciatica		box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-scoliosis	HINGE	
+s1	HINGE	-
+sciatica	-	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
+scoliosis	HINGE	-
 shoulder	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-spine	HINGE	
-tendinopathy	VERTICAL_PUSH	
-tennis		cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
+spine	HINGE	-
+tendinopathy	VERTICAL_PUSH	-
+tennis	-	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
 tennis elbow	ARM_EXTENSION;ARM_FLEXION	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
-wide grip		wide_pullup
-wide pull up		wide_pullup
-wide pull-up		wide_pullup
-wide pullup		wide_pullup
-wide-grip		wide_pullup
+wide grip	-	wide_pullup
+wide pull up	-	wide_pullup
+wide pull-up	-	wide_pullup
+wide pullup	-	wide_pullup
+wide-grip	-	wide_pullup
 wrist	ARM_EXTENSION;ARM_FLEXION;HORIZONTAL_PUSH	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
 ахилл	SINGLE_LEG	box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
-бедр		bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
-брусья		bench_dip;dip
-брусьях		bench_dip;dip
-голено		box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
+бедр	-	bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
+брусья	-	bench_dip;dip
+брусьях	-	bench_dip;dip
+голено	-	box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
 голеностоп	SINGLE_LEG	box_jump;burpee;high_knees;jump_rope;jump_squat;lunge;run;skater_jump;sprint;stair_climb;step_up
 грыж	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-диск		box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-запяст		ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
+диск	-	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
+запяст	-	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
 запястн	ARM_EXTENSION;ARM_FLEXION;HORIZONTAL_PUSH	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
 запястье	ARM_EXTENSION;ARM_FLEXION;HORIZONTAL_PUSH	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
-импинджмент		arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-ишиас		box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-карпал		ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
-кист		ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
+импинджмент	-	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
+ишиас	-	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
+карпал	-	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
+кист	-	ab_wheel;bench;close_grip_bench;curl;decline_pushup;diamond_pushup;handstand_pushup;incline_bench;incline_pushup;mountain_climber;plank;pushup;reverse_curl;skull_crusher;wide_pushup
 колен	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 колено	KNEE_DOMINANT;SINGLE_LEG	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
-лодыж	SINGLE_LEG	
-лодыжка	SINGLE_LEG	
-локоть	ARM_EXTENSION;ARM_FLEXION	
+лодыж	SINGLE_LEG	-
+лодыжка	SINGLE_LEG	-
+локоть	ARM_EXTENSION;ARM_FLEXION	-
 локт	ARM_EXTENSION;ARM_FLEXION	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
-манжет		arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-мениск		box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
-пателл		box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
+манжет	-	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
+мениск	-	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
+пателл	-	box_jump;box_squat;bulgarian_split_squat;burpee;front_squat;goblet_squat;hack_squat;high_knees;jump_rope;jump_squat;lateral_lunge;leg_extension;lunge;pistol_squat;reverse_lunge;skater_jump;skater_lunge;squat;step_up;sumo_squat
 плеч	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
 плечо	VERTICAL_PUSH	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
 поясниц	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-ротатор		arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
-сколиоз	HINGE	
+ротатор	-	arnold_press;dumbbell_shoulder_press;front_raise;handstand_pushup;lateral_raise;muscle_up;ohp;upright_row
+сколиоз	HINGE	-
 спин	HINGE	box_squat;burpee;deadlift;front_squat;good_morning;kettlebell_swing;romanian_deadlift;row;russian_twist;single_leg_deadlift;squat;sumo_deadlift;t_bar_row
-таз		bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
-тендинопатия	VERTICAL_PUSH	
-цервикал		bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
+таз	-	bulgarian_split_squat;glute_bridge;hip_thrust;lateral_lunge;lunge;pistol_squat;reverse_lunge;single_leg_deadlift;skater_lunge
+тендинопатия	VERTICAL_PUSH	-
+цервикал	-	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
 цервикальн	VERTICAL_PUSH	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
-шей	VERTICAL_PUSH	
+шей	VERTICAL_PUSH	-
 шейн	VERTICAL_PUSH	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
 шея	VERTICAL_PUSH	bicycle_crunch;cable_crunch;crunch;front_squat;hanging_leg_raise;ohp;squat;toes_to_bar
-широким хватом		wide_pullup
-эпикондил		cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown
+широким хватом	-	wide_pullup
+эпикондил	-	cable_curl;cable_row;close_grip_bench;concentration_curl;curl;dumbbell_row;hammer_curl;incline_curl;reverse_curl;row;skull_crusher;tricep_extension;tricep_kickback;tricep_pushdown

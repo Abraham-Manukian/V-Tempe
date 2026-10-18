@@ -79,4 +79,3 @@ class CoachActionWeekTest {
         assertEquals(2, saved.single().weekIndex)
     }
 }
-

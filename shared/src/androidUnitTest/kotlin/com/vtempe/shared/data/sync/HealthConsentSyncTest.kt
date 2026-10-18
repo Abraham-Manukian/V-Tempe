@@ -184,4 +184,3 @@ class HealthConsentSyncTest {
         assertEquals(HealthDataConsentStatus.NOT_ASKED, device.consent.status())
     }
 }
-

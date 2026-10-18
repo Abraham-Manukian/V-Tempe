@@ -51,8 +51,8 @@ class TrainingContractTest {
     fun `server injury keywords are exactly the shared keyword table`() {
         val rows = rows("injury-keyword-rules.tsv")
         assertEquals(rows.size, rows.distinctBy { it[0] }.size, "a keyword is listed twice")
-        assertTrue(rows.all { it.size == 3 }, "every row has keyword, patterns and ids (an empty last column keeps its tab)")
-        val table = rows.associate { it[0] to (it[1] to it[2]) }
+        assertTrue(rows.all { it.size == 3 }, "every row has keyword, patterns and ids (\"-\" for none)")
+        val table = rows.associate { it[0] to (it[1].noneAsEmpty() to it[2].noneAsEmpty()) }
         assertEquals(table.keys.sorted(), (InjuryFilter.keywords + InjuryRestrictions.keywords).sorted())
         val mismatches = table.mapNotNull { (keyword, expected) ->
             val r = ExerciseRestrictions.forInjuries(listOf(keyword))
@@ -63,4 +63,6 @@ class TrainingContractTest {
     }
 
     private operator fun <T> List<T>.component6(): T = this[5]
+
+    private fun String.noneAsEmpty() = if (this == "-") "" else this
 }
