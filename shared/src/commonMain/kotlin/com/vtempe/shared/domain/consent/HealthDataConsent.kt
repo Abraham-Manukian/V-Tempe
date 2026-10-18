@@ -18,6 +18,7 @@ data class HealthDataConsentRecord(
 interface HealthDataConsentPreferences {
     fun getHealthDataConsent(): HealthDataConsentRecord?
     fun setHealthDataConsent(record: HealthDataConsentRecord)
+    fun clearHealthDataConsent()
 }
 
 enum class HealthDataConsentStatus {
@@ -40,7 +41,10 @@ fun interface HealthDataConsentGate {
 class HealthDataConsentManager(
     private val preferences: HealthDataConsentPreferences,
     private val currentVersion: String = LegalDocuments.HEALTH_DATA_CONSENT_VERSION,
-    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() }
+    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** Runs after a grant: the backup the consent covers starts at once (DI delivers the held-back
+     *  sync changes), not at the next launch. */
+    private val onGranted: () -> Unit = {},
 ) : HealthDataConsentGate {
 
     fun status(): HealthDataConsentStatus {
@@ -58,7 +62,17 @@ class HealthDataConsentManager(
 
     override fun isHealthDataConsentGranted(): Boolean = status() == HealthDataConsentStatus.GRANTED
 
-    fun grant() = decide(granted = true)
+    fun grant() {
+        decide(granted = true)
+        onGranted()
+    }
+
+    /**
+     * Forgets the decision, so the next person is asked: the consent is a person's, not the
+     * device's. Called when the device data stops belonging to the account that decided (sign-out,
+     * another account, account deletion); until asked again, nothing is sent (NOT_ASKED).
+     */
+    fun forget() = preferences.clearHealthDataConsent()
 
     /** Used both for declining the first request and for withdrawing an earlier grant. */
     fun withdraw() = decide(granted = false)

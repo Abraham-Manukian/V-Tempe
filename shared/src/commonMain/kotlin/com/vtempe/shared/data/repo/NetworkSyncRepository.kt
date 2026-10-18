@@ -6,6 +6,7 @@ import com.vtempe.shared.data.network.dto.SyncPullResponseDto
 import com.vtempe.shared.data.network.dto.SyncPushRequestDto
 import com.vtempe.shared.domain.account.AccountDataFailure
 import com.vtempe.shared.domain.account.LocalDataOwnerStore
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.RemoteFetch
@@ -31,6 +32,10 @@ class NetworkSyncRepository(
     private val weightStore: WeightStore,
     private val pending: PendingSyncStore,
     private val syncBase: SyncBaseStore,
+    /** The server backup is one of the purposes the health-data consent covers (and the server is
+     *  abroad): without it nothing with the user's data leaves the device. Changes stay pending
+     *  and are delivered once consent is given; empty payloads (erasing the server copy) still go. */
+    private val consent: HealthDataConsentGate,
 ) : SyncRepository {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -59,6 +64,8 @@ class NetworkSyncRepository(
     }
 
     override suspend fun deliverAll(uid: String): Boolean = mutex.withLock {
+        // Without consent nothing can be sent; the device is "delivered" exactly when nothing waits.
+        if (!consent.isHealthDataConsentGranted()) return@withLock pending.pendingDomains().isEmpty()
         val token = auth.idTokenFor(uid) ?: return@withLock false
         SyncDomain.entries.all { uploadTracked(it, token) }
     }
@@ -76,12 +83,14 @@ class NetworkSyncRepository(
             LocalSnapshot.Absent -> if (domain.diary) RemoteSyncSnapshot.EMPTY_PAYLOAD else return true
             LocalSnapshot.Unreadable -> return false // VT-AUD-058: never sent as "nothing here"
         }
+        if (!mayUpload(payload)) return false // stays pending until consent is given
         val delivered = if (domain.diary) deliverDiary(domain, payload, token) else upload(domain, payload, token)
         if (delivered) pending.confirm(domain, revision)
         return delivered
     }
 
     private suspend fun deliverDiary(domain: SyncDomain, payload: String, token: String): Boolean {
+        if (!mayUpload(payload)) return false // consent withdrawn while other domains were sent
         val changes = diaryChanges(syncBase.load(domain), payload) ?: return upload(domain, payload, token)
         if (changes.isEmpty) return true
         val result = api.patchNoContent("/me/sync/${domain.wireKey}", changes, bearerToken = token)
@@ -98,7 +107,9 @@ class NetworkSyncRepository(
 
     override suspend fun pushAll(uid: String): Boolean = mutex.withLock {
         val token = auth.idTokenFor(uid) ?: return@withLock false
-        SyncDomain.entries.all { domain ->
+        // Read everything first: the account is replaced as a whole or not at all, so a domain the
+        // consent holds back never leaves the others half-replaced on the server.
+        val snapshots = SyncDomain.entries.map { domain ->
             val revision = pending.currentRevision(domain)
             val payload = when (val local = readSnapshot(domain)) {
                 is LocalSnapshot.Present -> local.payload
@@ -107,9 +118,15 @@ class NetworkSyncRepository(
                 // account's good copy and let sign-out wipe the device as if it were backed up.
                 LocalSnapshot.Unreadable -> return@withLock false
             }
+            Triple(domain, revision, payload)
+        }
+        if (!snapshots.all { (_, _, payload) -> mayUpload(payload) }) return@withLock false
+        snapshots.all { (domain, revision, payload) ->
             upload(domain, payload, token).also { delivered -> if (delivered) pending.confirm(domain, revision) }
         }
     }
+
+    override fun hasUndeliveredChanges(): Boolean = pending.pendingDomains().isNotEmpty()
 
     override suspend fun awaitIdle() {
         mutex.withLock { }
@@ -169,7 +186,12 @@ class NetworkSyncRepository(
         SyncDomain.WEIGHT -> weightStore.restoreRaw(payload)
     }
 
+    /** Only an empty payload (no user data) may go to the server without the health-data consent. */
+    private fun mayUpload(payload: String): Boolean =
+        payload == RemoteSyncSnapshot.EMPTY_PAYLOAD || consent.isHealthDataConsentGranted()
+
     private suspend fun upload(domain: SyncDomain, payload: String, token: String): Boolean {
+        if (!mayUpload(payload)) return false // re-checked per request: a withdrawal stops the rest
         val result = api.putNoContent("/me/sync/${domain.wireKey}", SyncPushRequestDto(payload), bearerToken = token)
         if (result is DataResult.Failure) {
             Napier.d(tag = "Sync", message = "push failed for ${domain.wireKey}: ${result.reason} ${result.code ?: ""}")

@@ -49,6 +49,12 @@ class SettingsPreferencesRepository(
         settings.putLong(KEY_HEALTH_CONSENT_DECIDED_AT, record.decidedAtMillis)
     }
 
+    override fun clearHealthDataConsent() {
+        settings.remove(KEY_HEALTH_CONSENT_GRANTED)
+        settings.remove(KEY_HEALTH_CONSENT_VERSION)
+        settings.remove(KEY_HEALTH_CONSENT_DECIDED_AT)
+    }
+
     private companion object {
         const val KEY_HEALTH_CONSENT_GRANTED = "prefs.healthDataConsent.granted"
         const val KEY_HEALTH_CONSENT_VERSION = "prefs.healthDataConsent.version"

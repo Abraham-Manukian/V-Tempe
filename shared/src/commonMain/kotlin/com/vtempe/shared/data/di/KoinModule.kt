@@ -1,5 +1,7 @@
 package com.vtempe.shared.data.di
 
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import com.vtempe.shared.data.account.DeviceUserData
 import com.vtempe.shared.data.account.SettingsLocalDataOwnerStore
 import com.vtempe.shared.data.consent.ConsentGatedAiTrainerRepository
@@ -105,7 +107,16 @@ object DI {
         single<ProfileRepository> { get<ProfileRepositoryDb>() }
         // Health data leaves the device only with the user's consent (152-FZ art. 10/12): both AI
         // repositories are wrapped in a consent gate, nothing else may talk to /ai/* directly.
-        single { HealthDataConsentManager(get<PreferencesRepository>()) }
+        single {
+            HealthDataConsentManager(get<PreferencesRepository>(), onGranted = {
+                // Resolved lazily: the session depends on sync, which depends on this gate.
+                get<CoroutineScope>(named("appScope")).launch {
+                    // Best effort, like the launch-time reconcile: a failure must not crash the app.
+                    runCatching { get<AccountSession>().reconcile() }
+                        .onFailure { if (it is CancellationException) throw it; Napier.w("Delivery after consent failed", it) }
+                }
+            })
+        }
         single<HealthDataConsentGate> { get<HealthDataConsentManager>() }
         single<AiTrainerRepository> {
             ConsentGatedAiTrainerRepository(
@@ -163,12 +174,12 @@ object DI {
         // Firebase SDK dependency like Auth/Analytics have. Uploads are pinned to the account
         // that owns the device data (see AccountDataCoordinator).
         single<SyncRepository> {
-            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
+            NetworkSyncRepository(get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
         }
         single<LocalDataOwnerStore> { SettingsLocalDataOwnerStore(get()) }
         single<LocalUserData> { DeviceUserData(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
         single<RemoteAccountRepository> { NetworkRemoteAccountRepository(get(), get()) }
-        single { AccountDataCoordinator(get(), get(), get(), get(), get()) }
+        single { AccountDataCoordinator(get(), get(), get(), get(), get(), get()) }
         single<AccountSession> { DefaultAccountSession(get(), get(), get(), get(named("appScope"))) }
         single<AnalyticsRepository> { NoOpAnalyticsRepository() }
         single<AuthRepository> { StubAuthRepository() }

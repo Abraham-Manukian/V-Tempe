@@ -421,7 +421,7 @@
     <string name="account_data_failed_unexpected">Что-то пошло не так на устройстве. Попробуй ещё раз.</string>
     <string name="account_data_retry">Повторить</string>
     <string name="account_data_unsynced_title">Прогресс не сохранён в аккаунте</string>
-    <string name="account_data_unsynced_message">Часть последнего прогресса не удалось отправить. Если выйти сейчас, он удалится с этого устройства.</string>
+    <string name="account_data_unsynced_message">Часть прогресса ещё не сохранена в аккаунте: не было связи или выключено согласие на обработку данных о здоровье (его можно включить в настройках). Если выйти сейчас, этот прогресс удалится с устройства.</string>
     <string name="account_data_unsynced_cancel">Не выходить</string>
     <string name="account_data_unsynced_sign_out">Выйти и удалить</string>    <string name="settings_weight_label">Вес</string>
     <string name="settings_weight_value">%1$.1f кг</string>

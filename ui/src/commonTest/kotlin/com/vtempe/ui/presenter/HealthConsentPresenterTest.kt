@@ -16,6 +16,7 @@ class HealthConsentPresenterTest {
 
     private class InMemoryConsent(var record: HealthDataConsentRecord? = null) : HealthDataConsentPreferences {
         override fun getHealthDataConsent() = record
+        override fun clearHealthDataConsent() { record = null }
         override fun setHealthDataConsent(record: HealthDataConsentRecord) { this.record = record }
     }
 

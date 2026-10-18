@@ -1,5 +1,6 @@
 package com.vtempe.shared.domain.account
 
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.repository.AuthErrorCode
 import com.vtempe.shared.domain.repository.AuthException
 import com.vtempe.shared.domain.repository.AuthRepository
@@ -19,7 +20,8 @@ class AccountDataCoordinator(
     private val owner: LocalDataOwnerStore,
     private val localData: LocalUserData,
     private val sync: SyncRepository,
-    private val remoteAccount: RemoteAccountRepository
+    private val remoteAccount: RemoteAccountRepository,
+    private val healthConsent: HealthDataConsentManager,
 ) {
     suspend fun onSignedIn(uid: String): AccountDataOutcome {
         val currentOwner = owner.ownerUid()
@@ -50,6 +52,11 @@ class AccountDataCoordinator(
         }
         return AccountDataOutcome.NeedsGuestChoice
     }
+
+    /** True when the device data has parts the account's server copy lacks (an upload failed, or
+     *  the health-data consent held it back): a sign-out the user did not ask for must keep it. */
+    fun holdsUnbackedData(): Boolean = owner.ownerUid() != null && !owner.isWipeRequested() &&
+        (owner.isFullPushPending() || sync.hasUndeliveredChanges())
 
     /** Delivers changes a failed or interrupted upload left behind, when [uid] owns the device data. */
     suspend fun deliverPending(uid: String) {
@@ -90,7 +97,12 @@ class AccountDataCoordinator(
         if (!force && uid != null && currentOwner == uid && !sync.deliverAll(uid)) {
             return SignOutOutcome.Unsynced
         }
+        // Remembered until done: a wipe the user asked for is finished at the next launch if the
+        // app dies halfway, not kept like data of a session that ended by itself.
+        if (currentOwner != null) owner.setWipeRequested(true)
         auth.signOut()
+        // The decision on health data was this person's, whether or not the data was theirs.
+        if (uid != null) healthConsent.forget()
         if (currentOwner != null) clearDeviceData()
         return SignOutOutcome.SignedOut
     }
@@ -159,6 +171,9 @@ class AccountDataCoordinator(
         localData.clearUserData()
         owner.setOwnerUid(null)
         owner.setFullPushPending(false)
+        // The data's person is gone from the device; so is their decision on health data.
+        healthConsent.forget()
+        owner.setWipeRequested(false)
     }
 
     private suspend fun uploadDeviceData(uid: String) {

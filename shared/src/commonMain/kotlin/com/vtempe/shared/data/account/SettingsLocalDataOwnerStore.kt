@@ -17,6 +17,12 @@ class SettingsLocalDataOwnerStore(private val settings: Settings) : LocalDataOwn
         if (pending) settings.putBoolean(KEY_PUSH_PENDING, true) else settings.remove(KEY_PUSH_PENDING)
     }
 
+    override fun isWipeRequested(): Boolean = settings.getBooleanOrNull(KEY_WIPE_REQUESTED) == true
+
+    override fun setWipeRequested(requested: Boolean) {
+        if (requested) settings.putBoolean(KEY_WIPE_REQUESTED, true) else settings.remove(KEY_WIPE_REQUESTED)
+    }
+
     override fun isTracking(): Boolean = settings.getBooleanOrNull(KEY_TRACKING) == true
 
     override fun startTracking() = settings.putBoolean(KEY_TRACKING, true)
@@ -25,5 +31,6 @@ class SettingsLocalDataOwnerStore(private val settings: Settings) : LocalDataOwn
         const val KEY_OWNER = "account.data.owner.v1"
         const val KEY_PUSH_PENDING = "account.data.push_pending.v1"
         const val KEY_TRACKING = "account.data.tracking.v1"
+        const val KEY_WIPE_REQUESTED = "account.data.wipe_requested.v1"
     }
 }

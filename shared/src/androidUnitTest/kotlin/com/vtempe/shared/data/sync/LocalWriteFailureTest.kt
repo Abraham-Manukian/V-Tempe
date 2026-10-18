@@ -48,7 +48,8 @@ class LocalWriteFailureTest {
             }
         }
         val coordinator = AccountDataCoordinator(
-            device.auth, device.owner, localData, device.sync, NetworkRemoteAccountRepository(device.server.apiClient(device.auth), device.auth)
+            device.auth, device.owner, localData, device.sync, NetworkRemoteAccountRepository(device.server.apiClient(device.auth), device.auth),
+            device.consent,
         )
         val session = DefaultAccountSession(coordinator, device.auth, device.owner, scope)
 

@@ -19,6 +19,10 @@ import com.vtempe.shared.data.repo.SleepStore
 import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.data.repo.WorkoutProgressStore
 import com.vtempe.shared.db.AppDatabase
+import com.vtempe.shared.domain.consent.HealthDataConsentManager
+import com.vtempe.shared.domain.consent.HealthDataConsentPreferences
+import com.vtempe.shared.domain.consent.HealthDataConsentRecord
+import com.vtempe.shared.domain.legal.LegalDocuments
 import com.vtempe.shared.domain.account.AccountDataCoordinator
 import com.vtempe.shared.domain.model.Advice
 import com.vtempe.shared.domain.model.Goal
@@ -75,6 +79,16 @@ internal fun inMemorySettings(): Settings {
     } as Settings
 }
 
+/** Stored health-data consent, granted by default. */
+internal class TestConsentPreferences : HealthDataConsentPreferences {
+    var record: HealthDataConsentRecord? = HealthDataConsentRecord(true, LegalDocuments.HEALTH_DATA_CONSENT_VERSION, 0)
+    /** False keeps the decision across account changes, as if each next person consented at once. */
+    var forgetOnAccountChange = false
+    override fun getHealthDataConsent() = record
+    override fun setHealthDataConsent(record: HealthDataConsentRecord) { this.record = record }
+    override fun clearHealthDataConsent() { if (forgetOnAccountChange) record = null }
+}
+
 /** One phone: real stores on in-memory SQLite/Settings, real sync and coordinator, fake Firebase and server. */
 /** [server] may be shared: two devices signed in to one account (VT-AUD-057). */
 internal class TestDevice(val server: FakeSyncServer = FakeSyncServer()) {
@@ -94,7 +108,18 @@ internal class TestDevice(val server: FakeSyncServer = FakeSyncServer()) {
     val chat = ChatHistoryStore(settings)
     val advice = SettingsAdviceRepository(settings)
     val syncBase = SyncBaseStore(settings)
-    val sync = NetworkSyncRepository(server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight, pendingSync, syncBase)
+    /** The stored consent decision (see [TestConsentPreferences.forgetOnAccountChange]). */
+    val consentPrefs = TestConsentPreferences()
+    /** Runs what DI runs after a grant (delivery of what waited). */
+    var onConsentGranted: () -> Unit = {}
+    val consent = HealthDataConsentManager(consentPrefs, onGranted = { onConsentGranted() })
+    /** The user's health-data consent; sync sends no user data without it. */
+    var healthConsent: Boolean
+        get() = consent.isHealthDataConsentGranted()
+        set(value) { if (value) consent.grant() else consent.withdraw() }
+    val sync = NetworkSyncRepository(
+        server.apiClient(auth), auth, owner, profiles, workouts, sleep, weight, pendingSync, syncBase, consent,
+    )
     val coordinator = AccountDataCoordinator(
         auth = auth,
         owner = owner,
@@ -104,7 +129,8 @@ internal class TestDevice(val server: FakeSyncServer = FakeSyncServer()) {
             syncBase,
         ),
         sync = sync,
-        remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth)
+        remoteAccount = NetworkRemoteAccountRepository(server.apiClient(auth), auth),
+        healthConsent = consent,
     )
 
     /** Profile "<name>-profile", workout "<name>-workout", a weight and a private chat message. */
@@ -195,6 +221,8 @@ internal class FakeSyncServer {
     /** When set, a write (PUT or PATCH) is held after it reached the server and before it is stored. */
     var putGate: CompletableDeferred<Unit>? = null
     val putReceived = CompletableDeferred<Unit>()
+    /** Every write that reached the server: uid, domain, body. */
+    val writes = mutableListOf<Triple<String, String, String>>()
     /** Every account (uid) whose server data a `DELETE /me` reached. */
     val deleteRequests = mutableListOf<String>()
 
@@ -224,6 +252,7 @@ internal class FakeSyncServer {
                     putGate?.await()
                     val domain = request.url.encodedPath.substringAfterLast('/')
                     val body = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
+                    writes += Triple(uid, domain, body)
                     val changes = json.decodeFromString(SyncChangesDto.serializer(), body)
                     // Same merge as the server's mergeDiary.
                     val stored = payload(uid, domain)?.let { json.parseToJsonElement(it) as? JsonObject }.orEmpty()
@@ -236,7 +265,9 @@ internal class FakeSyncServer {
                     putGate?.await()
                     val domain = request.url.encodedPath.substringAfterLast('/')
                     val body = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
-                    seed(uid, domain, json.decodeFromString(SyncPushRequestDto.serializer(), body).payload)
+                    val payload = json.decodeFromString(SyncPushRequestDto.serializer(), body).payload
+                    writes += Triple(uid, domain, payload)
+                    seed(uid, domain, payload)
                     respond("", HttpStatusCode.NoContent)
                 }
                 else -> {

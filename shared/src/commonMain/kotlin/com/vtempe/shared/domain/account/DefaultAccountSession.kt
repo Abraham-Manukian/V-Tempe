@@ -72,7 +72,14 @@ class DefaultAccountSession(
         // Choices and failures are only surfaced as state; the account screen shows them when opened.
         _state.value = runStep {
             if (uid == null) {
-                coordinator.signOut(force = true)
+                // The session ended without the user signing out (expired, revoked). Data the
+                // server lacks stays: the owner is kept, so the same account gets it delivered on
+                // its next sign-in and any other account still clears it first.
+                if (coordinator.holdsUnbackedData()) {
+                    Napier.w(tag = "Account", message = "session ended with undelivered data; kept on the device")
+                } else {
+                    coordinator.signOut(force = true)
+                }
                 AccountDataState.Idle
             } else {
                 coordinator.onSignedIn(uid).toState(uid)

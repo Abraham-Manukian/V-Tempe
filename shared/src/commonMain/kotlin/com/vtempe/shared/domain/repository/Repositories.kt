@@ -145,6 +145,10 @@ interface SyncRepository {
      *  added (VT-AUD-057), not replaced — so the device's data is safe on the server, e.g. before
      *  signing out. Returns false if anything could not be delivered. */
     suspend fun deliverAll(uid: String): Boolean
+
+    /** True when the device holds changes the server has not confirmed (offline, or held back
+     *  without the health-data consent): wiping the device now would lose them for good. */
+    fun hasUndeliveredChanges(): Boolean
 }
 
 sealed interface RemoteFetch {

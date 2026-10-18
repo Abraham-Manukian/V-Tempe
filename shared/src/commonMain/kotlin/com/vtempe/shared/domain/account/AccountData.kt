@@ -15,6 +15,11 @@ interface LocalDataOwnerStore {
     fun isFullPushPending(): Boolean
     fun setFullPushPending(pending: Boolean)
 
+    /** Set while a sign-out the user asked for is wiping the device, so an interrupted wipe is
+     *  finished at the next launch instead of being taken for a session that ended by itself. */
+    fun isWipeRequested(): Boolean
+    fun setWipeRequested(requested: Boolean)
+
     /** False only on installs that predate owner tracking; see [AccountSession.reconcile]. */
     fun isTracking(): Boolean
     fun startTracking()

@@ -438,7 +438,7 @@
     <string name="account_data_failed_unexpected">Something went wrong on the device. Try again.</string>
     <string name="account_data_retry">Try again</string>
     <string name="account_data_unsynced_title">Progress isn't saved to the account</string>
-    <string name="account_data_unsynced_message">Some recent progress couldn't be uploaded. If you sign out now, it will be deleted from this device.</string>
+    <string name="account_data_unsynced_message">Some of your progress isn't saved to the account yet: there was no connection, or consent to process health data is off (you can turn it on in Settings). If you sign out now, it will be deleted from this device.</string>
     <string name="account_data_unsynced_cancel">Stay signed in</string>
     <string name="account_data_unsynced_sign_out">Sign out and delete</string>
     <!-- Paywall -->

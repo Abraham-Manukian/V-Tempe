@@ -10,6 +10,7 @@ class HealthDataConsentManagerTest {
 
     private class InMemoryConsent(var record: HealthDataConsentRecord? = null) : HealthDataConsentPreferences {
         override fun getHealthDataConsent() = record
+        override fun clearHealthDataConsent() { record = null }
         override fun setHealthDataConsent(record: HealthDataConsentRecord) { this.record = record }
     }
 
@@ -57,6 +58,7 @@ class HealthDataConsentManagerTest {
         val broken = object : HealthDataConsentPreferences {
             override fun getHealthDataConsent(): HealthDataConsentRecord? = error("storage broken")
             override fun setHealthDataConsent(record: HealthDataConsentRecord) = Unit
+            override fun clearHealthDataConsent() = Unit
         }
         val consent = HealthDataConsentManager(broken)
         assertFalse(consent.isHealthDataConsentGranted())

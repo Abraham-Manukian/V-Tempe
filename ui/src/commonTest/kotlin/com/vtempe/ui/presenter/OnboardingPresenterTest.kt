@@ -278,6 +278,7 @@ class OnboardingPresenterTest {
             override fun setAnalyticsConsent(granted: Boolean) { analyticsConsent = granted }
             override fun getHealthDataConsent() = healthConsent
             override fun setHealthDataConsent(record: HealthDataConsentRecord) { healthConsent = record }
+            override fun clearHealthDataConsent() = Unit
         }
         var healthConsent: HealthDataConsentRecord? = null
         val consentManager = HealthDataConsentManager(preferences, nowMillis = { 99L })
