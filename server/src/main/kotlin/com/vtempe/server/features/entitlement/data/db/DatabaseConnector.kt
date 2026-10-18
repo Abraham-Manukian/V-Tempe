@@ -117,9 +117,13 @@ class DatabaseConnector(
 
         private const val CONNECTION_TIMEOUT_MS = 10_000L
 
-        /** Opens the pool and creates missing tables and columns; internal so integration tests
-         *  open a throwaway database exactly the way production does. */
-        internal fun openPostgres(url: String, user: String?, password: String?, poolSize: Int): Database {
+        /** Opens the pool and creates missing tables and columns. The pool lives as long as the server. */
+        internal fun openPostgres(url: String, user: String?, password: String?, poolSize: Int): Database =
+            openPostgresPool(url, user, password, poolSize).database
+
+        /** [openPostgres] with its pool, for callers that must close it: integration tests open a
+         *  throwaway database exactly the way production does, one pool per test. */
+        internal fun openPostgresPool(url: String, user: String?, password: String?, poolSize: Int): PostgresPool {
             val dataSource = HikariDataSource(
                 HikariConfig().apply {
                     jdbcUrl = url
@@ -133,7 +137,7 @@ class DatabaseConnector(
                 }
             )
             return try {
-                Database.connect(dataSource).also { database ->
+                val database = Database.connect(dataSource).also { database ->
                     transaction(database) {
                         SchemaUtils.createMissingTablesAndColumns(
                             Entitlements, Payments, GrantWindows, PaymentRefunds, SyncBlobs, SyncWriteBarriers,
@@ -144,10 +148,16 @@ class DatabaseConnector(
                         exec("CREATE INDEX IF NOT EXISTS payment_refunds_payment_external_id_idx ON payment_refunds (payment_external_id)")
                     }
                 }
+                PostgresPool(database, dataSource)
             } catch (error: Exception) {
                 dataSource.close() // no half-initialized pool left behind
                 throw error
             }
         }
     }
+}
+
+/** A database and the connection pool behind it; [close] gives the connections back to PostgreSQL. */
+internal class PostgresPool(val database: Database, private val dataSource: HikariDataSource) : AutoCloseable {
+    override fun close() = dataSource.close()
 }

@@ -11,6 +11,7 @@ import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.entitlement.data.db.Entitlements
 import com.vtempe.server.features.entitlement.data.db.PaymentRefunds
+import com.vtempe.server.features.entitlement.data.db.PostgresPool
 import com.vtempe.server.features.entitlement.data.db.Payments
 import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementRepository
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
@@ -63,11 +64,12 @@ import java.time.Instant
 class PostgresIntegrationTest {
     private val url: String? = System.getenv("VTEMPE_PG_TEST_URL")
     private lateinit var database: Database
-    private val connectors = mutableListOf<Database>()
+    private val pools = mutableListOf<PostgresPool>()
 
     private fun open(): Database = DatabaseConnector(url, open = {
-        DatabaseConnector.openPostgres(checkNotNull(url), System.getenv("VTEMPE_PG_TEST_USER"), System.getenv("VTEMPE_PG_TEST_PASSWORD"), poolSize = 5)
-    }).require().also(connectors::add)
+        DatabaseConnector.openPostgresPool(checkNotNull(url), System.getenv("VTEMPE_PG_TEST_USER"), System.getenv("VTEMPE_PG_TEST_PASSWORD"), poolSize = 5)
+            .also(pools::add).database
+    }).require()
 
     @BeforeEach
     fun freshDatabase() {
@@ -81,7 +83,12 @@ class PostgresIntegrationTest {
 
     @AfterEach
     fun close() {
-        connectors.forEach(TransactionManager::closeAndUnregister)
+        // Each test opens its own pool; closing it gives its connections back. Left open, the pools
+        // of the whole class exceed PostgreSQL's max_connections (100) and a later test fails to connect.
+        pools.forEach {
+            TransactionManager.closeAndUnregister(it.database)
+            it.close()
+        }
     }
 
     /** Starts [count] calls at once on the IO pool, so they really overlap in the database. */
