@@ -19,13 +19,25 @@ import com.vtempe.server.features.ai.domain.model.WorkoutSkeleton
  */
 internal object InjuryFilter {
 
-    private val KNEE_KEYWORDS     = setOf("knee", "колено", "колен", "knees", "kneecap", "patella", "mcl", "acl", "pcl", "meniscus", "patellofemoral")
-    private val SHOULDER_KEYWORDS = setOf("shoulder", "плечо", "плеч", "rotator", "cuff", "labrum", "ac joint", "impingement", "тендинопатия", "tendinopathy")
-    private val BACK_KEYWORDS     = setOf("back", "spine", "lumbar", "поясниц", "спин", "disc", "disk", "herniat", "грыж", "l4", "l5", "s1", "scoliosis", "сколиоз")
-    private val ELBOW_KEYWORDS    = setOf("elbow", "локоть", "локт", "tennis elbow", "golfer", "epicondyl")
-    private val WRIST_KEYWORDS    = setOf("wrist", "запястье", "запястн", "carpal")
-    private val NECK_KEYWORDS     = setOf("neck", "шея", "шей", "cervical", "цервикальн")
-    private val ANKLE_KEYWORDS    = setOf("ankle", "лодыжка", "лодыж", "голеностоп", "achilles", "ахилл")
+    /**
+     * Body-part keywords -> banned MovementPatterns, one list so [bannedPatterns] and [keywords]
+     * can never disagree. Shoulder bans only overhead press: horizontal press is safe at moderate
+     * ROM and is first-line exercise therapy for most shoulder conditions.
+     */
+    private val PATTERN_RULES: List<Pair<Set<String>, Set<MovementPattern>>> = listOf(
+        setOf("knee", "колено", "колен", "knees", "kneecap", "patella", "mcl", "acl", "pcl", "meniscus", "patellofemoral") to
+            setOf(MovementPattern.KNEE_DOMINANT, MovementPattern.SINGLE_LEG),
+        setOf("shoulder", "плечо", "плеч", "rotator", "cuff", "labrum", "ac joint", "impingement", "тендинопатия", "tendinopathy") to
+            setOf(MovementPattern.VERTICAL_PUSH),
+        setOf("back", "spine", "lumbar", "поясниц", "спин", "disc", "disk", "herniat", "грыж", "l4", "l5", "s1", "scoliosis", "сколиоз") to
+            setOf(MovementPattern.HINGE),
+        setOf("elbow", "локоть", "локт", "tennis elbow", "golfer", "epicondyl") to
+            setOf(MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION),
+        setOf("wrist", "запястье", "запястн", "carpal") to
+            setOf(MovementPattern.HORIZONTAL_PUSH, MovementPattern.ARM_FLEXION, MovementPattern.ARM_EXTENSION),
+        setOf("neck", "шея", "шей", "cervical", "цервикальн") to setOf(MovementPattern.VERTICAL_PUSH),
+        setOf("ankle", "лодыжка", "лодыж", "голеностоп", "achilles", "ахилл") to setOf(MovementPattern.SINGLE_LEG),
+    )
 
     /**
      * Body-part keywords above ban whole MovementPatterns. Some injury notes instead name a
@@ -39,6 +51,11 @@ internal object InjuryFilter {
         setOf("широким хватом", "wide grip", "wide-grip", "wide pullup", "wide pull up", "wide pull-up") to
             setOf("wide_pullup"),
     )
+
+    /** Every keyword these rules react to — the contract test checks each one against
+     *  testdata/injury-keyword-rules.tsv, so a keyword added here alone fails the build. */
+    val keywords: Set<String>
+        get() = (PATTERN_RULES.flatMap { it.first } + EXERCISE_ID_BAN_KEYWORDS.flatMap { it.first }).toSet()
 
     /** ExerciseIds the user explicitly can't do, parsed from free-text injury notes. */
     fun bannedExerciseIds(injuries: List<String>): Set<String> {
@@ -56,32 +73,8 @@ internal object InjuryFilter {
         val banned = mutableSetOf<MovementPattern>()
         for (injury in injuries) {
             val lower = injury.lowercase()
-            if (KNEE_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.KNEE_DOMINANT
-                banned += MovementPattern.SINGLE_LEG
-            }
-            if (SHOULDER_KEYWORDS.any { lower.contains(it) }) {
-                // Only overhead press is banned — horizontal press is safe at moderate ROM
-                // and is first-line exercise therapy for most shoulder conditions.
-                banned += MovementPattern.VERTICAL_PUSH
-            }
-            if (BACK_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.HINGE
-            }
-            if (ELBOW_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.ARM_FLEXION
-                banned += MovementPattern.ARM_EXTENSION
-            }
-            if (WRIST_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.HORIZONTAL_PUSH
-                banned += MovementPattern.ARM_FLEXION
-                banned += MovementPattern.ARM_EXTENSION
-            }
-            if (NECK_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.VERTICAL_PUSH
-            }
-            if (ANKLE_KEYWORDS.any { lower.contains(it) }) {
-                banned += MovementPattern.SINGLE_LEG
+            for ((keywords, patterns) in PATTERN_RULES) {
+                if (keywords.any { lower.contains(it) }) banned += patterns
             }
         }
         return banned

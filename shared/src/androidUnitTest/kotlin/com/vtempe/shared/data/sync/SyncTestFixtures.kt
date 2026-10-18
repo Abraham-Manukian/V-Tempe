@@ -161,8 +161,17 @@ internal class FakeAuthRepository : AuthRepository {
     override suspend fun idTokenFor(uid: String): String? =
         authState.value?.takeIf { it.uid == uid }?.let { "token-${it.uid}" }
     override suspend fun reauthenticate(credential: ReauthCredential) { recentLogin = true }
+    /** True: the sign-in age can't be read (offline). */
+    var signInAgeUnknown = false
+    override suspend fun isSignInRecent(): Boolean {
+        if (signInAgeUnknown) throw AuthException(AuthErrorCode.NETWORK, "offline")
+        return recentLogin
+    }
+    /** The sign-in passes the early check but ages out before the account deletion itself. */
+    var signInAgesOutBeforeDeletion = false
     override suspend fun deleteCurrentUser() {
         if (failDeletion) throw AuthException(AuthErrorCode.NETWORK, "offline")
+        if (signInAgesOutBeforeDeletion) throw AuthException(AuthErrorCode.REQUIRES_RECENT_LOGIN, "aged out")
         if (!recentLogin) throw AuthException(AuthErrorCode.REQUIRES_RECENT_LOGIN, "stale sign-in")
         deletedUids += checkNotNull(authState.value).uid
         authState.value = null
@@ -186,6 +195,8 @@ internal class FakeSyncServer {
     /** When set, a write (PUT or PATCH) is held after it reached the server and before it is stored. */
     var putGate: CompletableDeferred<Unit>? = null
     val putReceived = CompletableDeferred<Unit>()
+    /** Every account (uid) whose server data a `DELETE /me` reached. */
+    val deleteRequests = mutableListOf<String>()
 
     fun seed(uid: String, domain: String, payload: String) {
         blobs.getOrPut(uid) { mutableMapOf() }[domain] = payload
@@ -203,6 +214,7 @@ internal class FakeSyncServer {
                 failRequests -> respond("", failStatus)
                 uid == null -> respond("", HttpStatusCode.Unauthorized)
                 request.method == HttpMethod.Delete -> {
+                    deleteRequests += uid
                     blobs.remove(uid)
                     respond("", HttpStatusCode.NoContent)
                 }

@@ -4,6 +4,10 @@ import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import java.time.Duration
 import java.time.Instant
 
+/** A payment is refunded in full once the refunds cover what was paid (a zero payment never is). */
+internal fun isFullRefund(refundedMinor: Long, amountMinor: Long): Boolean =
+    amountMinor > 0 && refundedMinor >= amountMinor
+
 /**
  * The refund policy as arithmetic, shared by both repositories (VT-AUD-052): a fully refunded
  * payment loses the part of its window after [now] — the part already used can't be taken back —

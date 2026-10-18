@@ -1,8 +1,11 @@
 package com.vtempe.server
 
 import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
+import com.vtempe.server.features.ai.data.service.InjuryRestrictions
 import com.vtempe.server.features.ai.data.service.split.ExerciseRestrictions
+import com.vtempe.server.features.ai.data.service.split.InjuryFilter
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -40,6 +43,21 @@ class TrainingContractTest {
             val injuries = listOf(injury).filter { it.isNotBlank() }
             val actual = if (ExerciseRestrictions.forInjuries(injuries).allows(id, catalog)) "allowed" else "banned"
             "'$injury' / $id: expected $expected, got $actual".takeIf { actual != expected }
+        }
+        assertEquals(emptyList<String>(), mismatches)
+    }
+
+    @Test
+    fun `server injury keywords are exactly the shared keyword table`() {
+        val rows = rows("injury-keyword-rules.tsv")
+        assertEquals(rows.size, rows.distinctBy { it[0] }.size, "a keyword is listed twice")
+        assertTrue(rows.all { it.size == 3 }, "every row has keyword, patterns and ids (an empty last column keeps its tab)")
+        val table = rows.associate { it[0] to (it[1] to it[2]) }
+        assertEquals(table.keys.sorted(), (InjuryFilter.keywords + InjuryRestrictions.keywords).sorted())
+        val mismatches = table.mapNotNull { (keyword, expected) ->
+            val r = ExerciseRestrictions.forInjuries(listOf(keyword))
+            val actual = r.bannedPatterns.map { it.name }.sorted().joinToString(";") to r.bannedIds.sorted().joinToString(";")
+            "'$keyword': table $expected, server $actual".takeIf { actual != expected }
         }
         assertEquals(emptyList<String>(), mismatches)
     }

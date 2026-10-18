@@ -67,7 +67,8 @@ class AskAiTrainer(
             is DataResult.Success -> {
                 val materialized = materializeCoachActions(
                     baseProfile = profile,
-                    response = result.data
+                    response = result.data,
+                    currentWeek = weekIndex,
                 )
                 val hasCoachUpdates =
                     materialized.trainingPlan != null ||

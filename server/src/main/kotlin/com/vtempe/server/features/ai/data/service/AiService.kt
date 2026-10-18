@@ -213,7 +213,7 @@ class AiService(
                 requestId = requestId,
                 weekStart = weekStart,
             )
-            if (decomposed != null) return GeneratedBundle(decomposed, BundleCache.BundleCacheTtlMs)
+            if (decomposed != null) return decomposed
             logger.warn("Decomposed-first bundle generation failed, falling back to monolithic requestId={}", requestId)
         }
 
@@ -308,7 +308,7 @@ class AiService(
             } else {
                 null
             }
-            if (decomposed != null) return GeneratedBundle(decomposed, BundleCache.BundleCacheTtlMs)
+            if (decomposed != null) return decomposed
 
             val fallbackBundle = normalizeBundle(
                 AiBootstrapResponse(
@@ -333,8 +333,11 @@ class AiService(
         locale: java.util.Locale,
         requestId: String,
         weekStart: java.time.LocalDate,
-    ): AiBootstrapResponse? {
+    ): GeneratedBundle? {
         if (!EnableDecomposedBundle) return null
+        // A section that failed is replaced by its template. Under load (a full LLM queue) that is
+        // common, so such a bundle is cached as briefly as a whole fallback, not for 30 minutes.
+        val sectionFellBack = java.util.concurrent.atomic.AtomicBoolean(false)
 
         return runCatching {
             coroutineScope {
@@ -357,6 +360,7 @@ class AiService(
                     }.onFailure {
                         logger.warn("Decomposed training generation failed requestId={}", requestId, it)
                     }.getOrElse {
+                        sectionFellBack.set(true)
                         fallbackTraining(AiTrainingRequest(profile, weekIndex, localeTag, weekStart.toString()))
                     }
                 }
@@ -375,6 +379,7 @@ class AiService(
                     }.onFailure {
                         logger.warn("Decomposed nutrition generation failed requestId={}", requestId, it)
                     }.getOrElse {
+                        sectionFellBack.set(true)
                         fallbackNutrition(AiNutritionRequest(profile, weekIndex, localeTag, weekStart.toString()))
                     }
                 }
@@ -390,6 +395,7 @@ class AiService(
                     }.onFailure {
                         logger.warn("Decomposed sleep advice generation failed requestId={}", requestId, it)
                     }.getOrElse {
+                        sectionFellBack.set(true)
                         fallbackAdvice(AiAdviceRequest(profile, localeTag))
                     }
                 }
@@ -424,7 +430,7 @@ class AiService(
                         com.vtempe.server.features.ai.data.llm.telemetry.SafeDiagnostics.validationErrors(warningErrors)
                     )
                 }
-                bundle
+                GeneratedBundle(bundle, BundleCache.ttlFor(sectionFellBack.get()))
             }
         }.onFailure {
             logger.warn("Decomposed bundle generation failed requestId={}", requestId, it)

@@ -55,7 +55,7 @@ object AppModule {
         viewModel { ProgressViewModel(get(), get(), get(), get()) }
         viewModel { PaywallViewModel(get()) }
         viewModel { ReferralViewModel(get()) }
-        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
+        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get()) }
         viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
         viewModel { AuthViewModel(get(), get(), get()) }
     }

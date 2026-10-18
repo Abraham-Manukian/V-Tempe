@@ -30,6 +30,9 @@ internal object InjuryRestrictions {
         return result
     }
 
+    /** Every keyword of [RULES] (see InjuryFilter.keywords). */
+    val keywords: Set<String> get() = RULES.flatMap { it.first }.toSet()
+
     /** All forbidden exercise IDs across all of the user's injuries (union). */
     fun allForbiddenFor(injuries: List<String>): Set<String> =
         resolveFor(injuries).values.flatten().toSet()

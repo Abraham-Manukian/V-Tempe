@@ -86,8 +86,13 @@ class TrainingRepositoryDb(
 
     override suspend fun deleteWeeksFrom(weekIndex: Int) {
         withContext(Dispatchers.IO) {
-            // WorkoutSet rows cascade automatically via ON DELETE CASCADE
-            db.workoutQueries.deleteWorkoutsFromWeek(weekIndex.toLong())
+            db.workoutQueries.transaction {
+                // No cascade (foreign keys are off): sets go explicitly, with any orphans earlier
+                // versions left behind.
+                db.workoutQueries.deleteSetsFromWeek(weekIndex.toLong())
+                db.workoutQueries.deleteWorkoutsFromWeek(weekIndex.toLong())
+                db.workoutQueries.deleteOrphanSets()
+            }
         }
     }
 
@@ -115,6 +120,9 @@ class TrainingRepositoryDb(
             db.workoutQueries.transaction {
                 db.workoutQueries.deleteSetsByWeek(plan.weekIndex.toLong())
                 db.workoutQueries.deleteWorkoutsByWeek(plan.weekIndex.toLong())
+                // Sets left by versions that relied on the (never enabled) cascade: cleaned up on
+                // every plan save, not only when a profile change invalidates weeks.
+                db.workoutQueries.deleteOrphanSets()
                 plan.workouts.forEach { workout ->
                     db.workoutQueries.insertWorkout(workout.id, plan.weekIndex.toLong(), workout.label, workout.date.toString())
                     db.workoutQueries.deleteSetsForWorkout(workout.id)

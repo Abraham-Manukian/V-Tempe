@@ -109,6 +109,16 @@ class GateExitCodes(unittest.TestCase):
         self.assertEqual(1, res.returncode, res.stdout)
         self.assertIn("NEW DOM", res.stdout)
 
+    def test_fully_qualified_data_use_in_domain_fails(self):
+        self.fx.write("shared/src/commonMain/kotlin/com/vtempe/shared/domain/Y.kt",
+                      "package com.vtempe.shared.domain\n"
+                      "/** Links [com.vtempe.shared.data.stub.Stub] in a comment: fine. */\n"
+                      "interface Y { fun f(): List<com.vtempe.shared.data.network.dto.Dto> }\n")
+        res = self.fx.gate("--profile", "quick")
+        self.assertEqual(1, res.returncode, res.stdout)
+        self.assertIn("com.vtempe.shared.data.network.dto.Dto", res.stdout)
+        self.assertNotIn("com.vtempe.shared.data.stub.Stub", res.stdout)
+
 
 class HookBehaviour(unittest.TestCase):
     def setUp(self):

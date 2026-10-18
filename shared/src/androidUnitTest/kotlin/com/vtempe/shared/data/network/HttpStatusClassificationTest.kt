@@ -1,6 +1,6 @@
 package com.vtempe.shared.data.network
 
-import com.vtempe.shared.data.network.dto.EntitlementDto
+import com.vtempe.shared.domain.repository.SubscriptionEntitlement
 import com.vtempe.shared.data.repo.NetworkEntitlementRepository
 import com.vtempe.shared.domain.util.DataResult
 import io.ktor.client.HttpClient
@@ -45,7 +45,7 @@ class HttpStatusClassificationTest {
 
     @Test
     fun aSuccessfulAnswerIsDecodedAndAMalformedOneStaysInvalidFormat() = runBlocking<Unit> {
-        val ok = assertIs<DataResult.Success<EntitlementDto>>(
+        val ok = assertIs<DataResult.Success<SubscriptionEntitlement>>(
             NetworkEntitlementRepository(api(HttpStatusCode.OK, """{"active":true}""")).fetchEntitlement()
         )
         assertEquals(true, ok.data.active)

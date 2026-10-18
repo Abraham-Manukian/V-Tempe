@@ -29,6 +29,10 @@ import kotlinx.coroutines.CancellationException
 
 private const val APPLE_PROVIDER_ID = "apple.com"
 
+/** Firebase asks for a fresh sign-in after about 5 minutes; 4 leaves room for `DELETE /me`
+ *  (bounded to 30 s in NetworkRemoteAccountRepository) and the account deletion after it. */
+private const val RECENT_SIGN_IN_SECONDS = 4 * 60L
+
 private fun FirebaseUser?.toAuthUser(): AuthUser? = this?.let {
     // Google Sign-In provides a profile photo + display name; email/password and Apple typically don't.
     AuthUser(
@@ -124,6 +128,15 @@ class FirebaseAuthRepository : AuthRepository {
                 }
                 throw error.toAuthException()
             }
+    }
+
+    override suspend fun isSignInRecent(): Boolean {
+        val user = auth.currentUser ?: throw AuthException(AuthErrorCode.UNKNOWN, "No signed-in user")
+        // A forced refresh: right after reauthenticate() the cached token may still carry the
+        // old auth_time, and a fresh token's issue time is the server's "now" — the device clock
+        // may be off. Deletion is rare, so the round-trip is fine.
+        val token = runCatching { user.getIdToken(true).await() }.getOrElse { throw it.toAuthException() }
+        return token.issuedAtTimestamp - token.authTimestamp < RECENT_SIGN_IN_SECONDS
     }
 
     override suspend fun deleteCurrentUser() {

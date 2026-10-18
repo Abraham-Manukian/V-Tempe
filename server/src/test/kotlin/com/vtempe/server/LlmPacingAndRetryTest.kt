@@ -89,6 +89,47 @@ class LlmPacingAndRetryTest {
         queued.forEach { it.cancel() }
     }
 
+    @Test
+    fun `a full local queue is not retried, so the caller falls back at once`() = runTest {
+        // The production stack: retries around the paced client.
+        val delegate = Recording(vclock())
+        val throttled = ThrottledLLMClient(delegate, minSpacingMs = 10_000, maxWaiting = 1, clock = vclock())
+        val client = retrying(throttled, attempts = 3)
+        throttled.generateJson("first", null)
+        val queued = launch { throttled.generateJson("queued", null) }
+        runCurrent()
+
+        val started = currentTime
+        val refused = runCatching { client.generateJson("overflow", null) }.exceptionOrNull()
+
+        assertTrue(refused is LlmException.RateLimited, "got $refused")
+        assertEquals(started, currentTime, "no backoff wait before the refusal")
+        queued.cancel()
+    }
+
+    @Test
+    fun `a 429 on the last attempt still holds the next request back`() = runTest {
+        val delegate = Recording(vclock()).failNext(LlmException.RateLimited("429", retryAfterMillis = 20_000))
+        val client = retrying(delegate, attempts = 1)
+        assertThrows(LlmException.RateLimited::class.java) { kotlinx.coroutines.runBlocking { client.generateJson("p", null) } }
+
+        client.generateJson("next", null)
+
+        assertEquals(listOf(0L, 20_000L), delegate.starts, "the next call waited out the provider's cooldown")
+    }
+
+    @Test
+    fun `an absurd Retry-After is capped instead of switching the AI off for a day`() = runTest {
+        val delegate = Recording(vclock()).failNext(LlmException.RateLimited("429", retryAfterMillis = 86_400_000))
+        val client = RetryingLLMClient(delegate, attempts = 2, maxCooldownWaitMs = 30_000, maxCooldownMs = 300_000, clock = vclock())
+        runCatching { client.generateJson("p", null) }
+
+        advanceTimeBy(300_001)
+        client.generateJson("later", null)
+
+        assertEquals(2, delegate.starts.size, "the provider is asked again after the capped cooldown")
+    }
+
     // ── VT-AUD-009 ─────────────────────────────────────────────────────────────
 
     private fun TestScope.retrying(delegate: LLMClient, attempts: Int = 2) = RetryingLLMClient(

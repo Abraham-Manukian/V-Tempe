@@ -27,6 +27,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -35,6 +37,7 @@ import kotlinx.datetime.todayIn
 import java.lang.reflect.Proxy
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /** VT-AUD-041–047: what the Sleep and Progress screens show, against real stores. */
@@ -215,6 +218,130 @@ class SleepScreenStateTest {
 
         assertEquals(0, bootstraps, "this week's plans must not be regenerated for missing advice")
         assertEquals(1, f.ai.calls)
+        assertEquals(listOf("Fresh tip"), f.advice.getAdvice(profile, mapOf("topic" to "sleep")).messages)
+    }
+
+    @Test
+    fun aFailedFirstBootstrapLeavesTheAdviceToBeFetchedOnceTheNetworkIsBack() = runTest {
+        val f = Fixture()
+        val ai = object : AiTrainerRepository by f.ai {
+            override suspend fun bootstrap(profile: Profile, weekIndex: Int): DataResult<CoachBundle> =
+                DataResult.Failure(DataResult.Reason.Network)
+        }
+        val profiles = object : ProfileRepository {
+            override suspend fun getProfile() = profile
+            override suspend fun upsertProfile(profile: Profile) = Unit
+            override suspend fun clearAll() = Unit
+        }
+        var trainingSaved = false
+        var nutritionSaved = false
+        val training = object : TrainingRepository by NoTraining {
+            override suspend fun generatePlan(profile: Profile, weekIndex: Int) = TrainingPlan(weekIndex, emptyList())
+            override suspend fun savePlan(plan: TrainingPlan) { trainingSaved = true }
+            override suspend fun hasPlan(weekIndex: Int) = trainingSaved
+        }
+        val nutrition = object : NutritionRepository by NoNutrition {
+            override suspend fun generatePlan(profile: Profile, weekIndex: Int) = NutritionPlan(weekIndex, emptyMap(), emptyList())
+            override suspend fun savePlan(plan: NutritionPlan) { nutritionSaved = true }
+            override suspend fun hasPlan(weekIndex: Int) = nutritionSaved
+        }
+        val ensure = EnsureCoachData(
+            profiles, training, nutrition, f.advice,
+            BootstrapCoachData(profiles, ai, training, nutrition, f.advice, NoCache), NoCache, backgroundScope,
+            RefreshSleepAdvice(profiles, ai, f.advice),
+        )
+
+        ensure() // offline: offline plans, no advice
+        assertFalse(f.advice.hasAdvice("sleep"), "no empty record that would count as advice")
+
+        f.answer(DataResult.Success(Advice(listOf("Fresh tip"))))
+        ensure() // back online, plans in place
+        runCurrent()
+
+        assertEquals(listOf("Fresh tip"), f.advice.getAdvice(profile, mapOf("topic" to "sleep")).messages)
+    }
+
+    @Test
+    fun adviceThatKeepsFailingIsNotRequestedOnEveryScreenOpen() = runTest {
+        val f = Fixture()
+        val profiles = object : ProfileRepository {
+            override suspend fun getProfile() = profile
+            override suspend fun upsertProfile(profile: Profile) = Unit
+            override suspend fun clearAll() = Unit
+        }
+        val training = object : TrainingRepository by NoTraining { override suspend fun hasPlan(weekIndex: Int) = true }
+        val nutrition = object : NutritionRepository by NoNutrition { override suspend fun hasPlan(weekIndex: Int) = true }
+        var now = 0L
+        val ensure = EnsureCoachData(
+            profiles, training, nutrition, f.advice,
+            BootstrapCoachData(profiles, f.ai, training, nutrition, f.advice, NoCache), NoCache, backgroundScope,
+            RefreshSleepAdvice(profiles, f.ai, f.advice), nowMillis = { now },
+        )
+        repeat(4) { f.answer(DataResult.Failure(DataResult.Reason.Network)) }
+
+        repeat(3) { ensure(); runCurrent() } // Home, Workout, Nutrition open while offline
+        assertEquals(1, f.ai.calls, "one attempt, not one per screen")
+
+        now += 5 * 60 * 1000L
+        ensure(); runCurrent()
+        assertEquals(2, f.ai.calls, "tried again after the gap")
+    }
+
+    @Test
+    fun aFailedBootstrapIsNotRepeatedByTheNextScreenThatWaitedForIt() = runTest {
+        val f = Fixture()
+        var bootstraps = 0
+        val ai = object : AiTrainerRepository by f.ai {
+            override suspend fun bootstrap(profile: Profile, weekIndex: Int): DataResult<CoachBundle> {
+                bootstraps++
+                return DataResult.Failure(DataResult.Reason.Network)
+            }
+        }
+        val profiles = object : ProfileRepository {
+            override suspend fun getProfile() = profile
+            override suspend fun upsertProfile(profile: Profile) = Unit
+            override suspend fun clearAll() = Unit
+        }
+        var trainingSaved = false
+        var nutritionSaved = false
+        val training = object : TrainingRepository by NoTraining {
+            override suspend fun generatePlan(profile: Profile, weekIndex: Int) = TrainingPlan(weekIndex, emptyList())
+            override suspend fun savePlan(plan: TrainingPlan) { trainingSaved = true }
+            override suspend fun hasPlan(weekIndex: Int) = trainingSaved
+        }
+        val nutrition = object : NutritionRepository by NoNutrition {
+            override suspend fun generatePlan(profile: Profile, weekIndex: Int) = NutritionPlan(weekIndex, emptyMap(), emptyList())
+            override suspend fun savePlan(plan: NutritionPlan) { nutritionSaved = true }
+            override suspend fun hasPlan(weekIndex: Int) = nutritionSaved
+        }
+        val bootstrap = BootstrapCoachData(profiles, ai, training, nutrition, f.advice, FakeCoachCache())
+
+        listOf(async { bootstrap(0) }, async { bootstrap(0) }).awaitAll()
+
+        assertEquals(1, bootstraps, "the second caller sees the week done, advice or not")
+    }
+
+    @Test
+    fun anEmptyAdviceRecordFromAnEarlierVersionIsFetchedAgain() = runTest {
+        val f = Fixture()
+        f.advice.saveAdvice("sleep", Advice(emptyList())) // what earlier versions stored after a failed bootstrap
+        val profiles = object : ProfileRepository {
+            override suspend fun getProfile() = profile
+            override suspend fun upsertProfile(profile: Profile) = Unit
+            override suspend fun clearAll() = Unit
+        }
+        val training = object : TrainingRepository by NoTraining { override suspend fun hasPlan(weekIndex: Int) = true }
+        val nutrition = object : NutritionRepository by NoNutrition { override suspend fun hasPlan(weekIndex: Int) = true }
+        val ensure = EnsureCoachData(
+            profiles, training, nutrition, f.advice,
+            BootstrapCoachData(profiles, f.ai, training, nutrition, f.advice, NoCache), NoCache, backgroundScope,
+            RefreshSleepAdvice(profiles, f.ai, f.advice),
+        )
+        f.answer(DataResult.Success(Advice(listOf("Fresh tip"))))
+
+        ensure()
+        runCurrent()
+
         assertEquals(listOf("Fresh tip"), f.advice.getAdvice(profile, mapOf("topic" to "sleep")).messages)
     }
 

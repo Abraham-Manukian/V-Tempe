@@ -4,8 +4,8 @@ import com.vtempe.server.features.ai.data.llm.LLMClient
 import com.vtempe.server.features.ai.data.llm.LlmRepairer
 import com.vtempe.server.features.ai.data.llm.decode.SchemaValidator
 import com.vtempe.server.features.ai.data.llm.pipeline.ExtractionMode
-import com.vtempe.server.features.ai.api.AiInputRejected
-import com.vtempe.server.features.ai.api.AiRequestLimits
+import com.vtempe.server.features.ai.domain.AiInputLimits
+import com.vtempe.server.features.ai.domain.PromptTooLargeException
 import com.vtempe.server.features.ai.data.privacy.boundedForPrompt
 import com.vtempe.server.features.ai.data.privacy.withoutDirectIdentifiers
 import com.vtempe.server.features.ai.domain.model.TrainingMode
@@ -58,8 +58,8 @@ class ChatService(
         val prompt = buildChatPrompt(req, locale)
         // Final guard before anything is paid for: the plans the client attached are the only
         // part not cut field by field, so the whole prompt gets a ceiling too.
-        if (prompt.length > AiRequestLimits.MAX_PROMPT_CHARS) {
-            throw AiInputRejected(io.ktor.http.HttpStatusCode.PayloadTooLarge, "request_too_large")
+        if (prompt.length > AiInputLimits.MAX_PROMPT_CHARS) {
+            throw PromptTooLargeException()
         }
         val requestId = "chat|${req.messages.size}|${req.messages.lastOrNull()?.content?.hashCode() ?: 0}"
 
@@ -101,6 +101,8 @@ class ChatService(
         finalizeChatResponse(normalized, req, locale)
     }.getOrElse { error ->
         if (error is CancellationException && error !is TimeoutCancellationException) throw error
+        // The caller's own oversized input: answered 413, not an unexpected server error.
+        if (error is PromptTooLargeException) throw error
         if (!isExpectedLlmFailure(error)) {
             logger.error("Unexpected error in LLM chat — not falling back, surfacing as failure", error)
             throw error

@@ -1,7 +1,7 @@
 package com.vtempe.shared.domain.usecase
 
-import com.vtempe.shared.data.repo.WeightStore
 import com.vtempe.shared.domain.model.ProfileBounds
+import com.vtempe.shared.domain.repository.BodyWeightLog
 import com.vtempe.shared.domain.repository.ProfileRepository
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -14,12 +14,12 @@ import kotlinx.datetime.todayIn
  * next plan follows the user's current weight instead of the weight given at registration.
  */
 class RecordBodyWeight(
-    private val weightStore: WeightStore,
+    private val weightLog: BodyWeightLog,
     private val profileRepository: ProfileRepository,
     private val today: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) {
     suspend operator fun invoke(kg: Double) {
-        weightStore.logWeight(today().toString(), kg)
+        weightLog.logWeight(today().toString(), kg)
         if (!kg.isFinite() || kg !in ProfileBounds.WEIGHT_KG) return
         val profile = profileRepository.getProfile() ?: return
         if (profile.weightKg != kg) profileRepository.upsertProfile(profile.copy(weightKg = kg))

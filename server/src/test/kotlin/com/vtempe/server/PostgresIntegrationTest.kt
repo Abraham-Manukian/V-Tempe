@@ -10,10 +10,17 @@ import com.vtempe.server.features.referral.domain.model.LedgerKind
 import com.vtempe.server.features.account.data.service.AccountDeletionService
 import com.vtempe.server.features.entitlement.data.db.DatabaseConnector
 import com.vtempe.server.features.entitlement.data.db.Entitlements
+import com.vtempe.server.features.entitlement.data.db.PaymentRefunds
 import com.vtempe.server.features.entitlement.data.db.Payments
 import com.vtempe.server.features.entitlement.data.repo.ExposedEntitlementRepository
 import com.vtempe.server.features.entitlement.data.service.EntitlementService
 import com.vtempe.server.features.entitlement.domain.model.PaymentSource
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.CountDownLatch
+import org.junit.jupiter.api.Assertions.assertFalse
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import com.vtempe.server.features.entitlement.domain.model.GrantWindow
 import com.vtempe.server.features.entitlement.domain.model.RefundOutcome
 import com.vtempe.server.features.entitlement.domain.model.VerifiedRefund
 import com.vtempe.server.features.sync.data.db.SyncBlobs
@@ -238,6 +245,97 @@ class PostgresIntegrationTest {
 
         // 10 months bought, the first one refunded on day 10 (its last 20 days removed).
         assertEquals(start.plus(month.multipliedBy(10)).minus(Duration.ofDays(20)), runBlocking { service.current("anna").expiresAt })
+    }
+
+    @Test
+    fun `a full refund verified before its payment is applied when the payment is recorded`() {
+        database = open()
+        val service = service()
+        val early = runBlocking { service.applyRefund(VerifiedRefund("r-A", "A", 29900, "RUB", full = true, rawPayload = "{}")) }
+
+        val expiresAt = runBlocking { service.pay("A") }
+
+        assertEquals(RefundOutcome.UNMATCHED_REVIEW, early.outcome)
+        assertEquals(start, expiresAt)
+        assertEquals(start, runBlocking { service.current("anna").expiresAt })
+        val stored = transaction(database) {
+            PaymentRefunds.selectAll().single().let { it[PaymentRefunds.outcome] to it[PaymentRefunds.userId] }
+        }
+        assertEquals(RefundOutcome.ACCESS_REDUCED.name to "anna", stored)
+    }
+
+    @Test
+    fun `a payment and its full refund racing each other never leave the period granted`() {
+        database = open()
+        val service = service()
+
+        // Many rounds: the refund and the payment start together in every order.
+        repeat(10) { round ->
+            concurrently(2) { i ->
+                if (i == 0) service.applyRefund(VerifiedRefund("r-$round", "P-$round", 29900, "RUB", full = true, rawPayload = "{}"))
+                else service.recordPaymentAndExtend("P-$round", "user-$round", PaymentSource.YOOKASSA, 29900, "RUB", "{}", month)
+            }
+            assertEquals(start, runBlocking { service.current("user-$round").expiresAt }, "round $round")
+        }
+    }
+
+    @Test
+    fun `a refund waits for an open payment transaction of the same payment`() {
+        database = open()
+        val repo = ExposedEntitlementRepository { database }
+        val inside = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        runBlocking {
+            // The payment's transaction stays open inside its grant step (payment row written, not committed).
+            val payment = async(Dispatchers.IO) {
+                repo.recordPaymentAndExtend("P", "anna", PaymentSource.YOOKASSA, 29900, "RUB", "{}", 0, start) {
+                    inside.countDown()
+                    release.await()
+                    GrantWindow(start, start.plus(month))
+                }
+            }
+            assertTrue(withContext(Dispatchers.IO) { inside.await(10, TimeUnit.SECONDS) })
+            val refund = async(Dispatchers.IO) { repo.recordRefund(VerifiedRefund("r-P", "P", 29900, "RUB", true, "{}"), start) }
+            delay(500)
+
+            // Without the payment lock the refund would not see the uncommitted payment and finish as unmatched.
+            assertFalse(refund.isCompleted, "the refund waits for the payment's transaction")
+            release.countDown()
+            payment.await()
+            assertEquals(RefundOutcome.ACCESS_REDUCED, refund.await().outcome)
+        }
+        assertEquals(start, runBlocking { service().current("anna").expiresAt })
+    }
+
+    @Test
+    fun `a payment the provider reports as refunded in full grants no unused access`() {
+        database = open()
+        val service = service()
+        runBlocking { service.pay("A") }
+
+        val expiresAt = runBlocking {
+            service.recordPaymentAndExtend("B", "anna", PaymentSource.YOOKASSA, 29900, "RUB", "{}", month, refundedMinor = 29900)
+        }
+
+        assertEquals(start.plus(month), expiresAt, "only A's month remains")
+    }
+
+    @Test
+    fun `partial refunds verified before the payment that add up to it count as full, once`() {
+        database = open()
+        val service = service()
+        runBlocking {
+            service.applyRefund(VerifiedRefund("r-1", "A", 10000, "RUB", full = false, rawPayload = "{}"))
+            service.applyRefund(VerifiedRefund("r-2", "A", 19900, "RUB", full = false, rawPayload = "{}"))
+            service.pay("A")
+            service.pay("A") // redelivery
+        }
+
+        assertEquals(start, runBlocking { service.current("anna").expiresAt })
+        val rows = transaction(database) {
+            PaymentRefunds.selectAll().orderBy(PaymentRefunds.id).map { it[PaymentRefunds.outcome] to it[PaymentRefunds.removedSeconds] }
+        }
+        assertEquals(listOf(RefundOutcome.ACCESS_REDUCED.name to 0L, RefundOutcome.ACCESS_REDUCED.name to month.seconds), rows)
     }
 
     /** boris has a code and [earnedMinor] available (an accrual whose hold ended before [start]). */

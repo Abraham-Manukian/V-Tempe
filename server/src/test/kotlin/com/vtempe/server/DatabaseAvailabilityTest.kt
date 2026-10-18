@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -75,6 +76,61 @@ class DatabaseAvailabilityTest {
         pool.shutdown()
         assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS))
         assertEquals(1, opens.get())
+    }
+
+    @Test
+    // Separate thread: the old monitor wait is not interruptible, so a same-thread timeout never fires.
+    @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    fun `requests do not queue behind a slow connection attempt`() {
+        val attemptStarted = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val connector = DatabaseConnector("jdbc:postgresql://db/app", open = {
+            attemptStarted.countDown()
+            release.await() // a connect that hangs, like an unreachable Cloud SQL instance
+            error("connect timed out")
+        }, waitForOpenMs = 100, firstOpenWaitMs = 100)
+        val pool = Executors.newSingleThreadExecutor()
+        pool.submit { connector.state() }
+        assertTrue(attemptStarted.await(5, TimeUnit.SECONDS))
+
+        val startedAt = System.nanoTime()
+        val other = connector.state()
+        val waitedMs = (System.nanoTime() - startedAt) / 1_000_000
+
+        assertEquals(DatabaseState.Unavailable, other)
+        assertTrue(waitedMs < 1_000, "answered after $waitedMs ms instead of waiting for the hung attempt")
+        release.countDown()
+        pool.shutdown()
+        assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS))
+    }
+
+    @Test
+    fun `a cold start's first open is waited for, not answered with 503`() {
+        val connector = DatabaseConnector("jdbc:postgresql://db/app", open = { Thread.sleep(300); fakeDatabase }, waitForOpenMs = 50)
+        val pool = Executors.newFixedThreadPool(4)
+        val results = List(4) { pool.submit<DatabaseState> { connector.state() } }
+
+        assertTrue(results.all { it.get(5, TimeUnit.SECONDS) is DatabaseState.Ready }, "every request of the cold start is served")
+        pool.shutdown()
+    }
+
+    @Test
+    fun `an interrupted wait answers Unavailable and keeps the interrupt`() {
+        val holding = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val connector = DatabaseConnector("jdbc:postgresql://db/app", open = { holding.countDown(); release.await(); fakeDatabase })
+        val pool = Executors.newSingleThreadExecutor()
+        try {
+            pool.submit { connector.state() }
+            assertTrue(holding.await(5, TimeUnit.SECONDS))
+            Thread.currentThread().interrupt()
+
+            assertEquals(DatabaseState.Unavailable, connector.state())
+            assertTrue(Thread.interrupted(), "the interrupt flag is restored (and cleared here)")
+        } finally {
+            release.countDown()
+            pool.shutdown()
+        }
     }
 
     @Test

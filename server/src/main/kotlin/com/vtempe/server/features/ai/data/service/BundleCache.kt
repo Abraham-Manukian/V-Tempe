@@ -26,6 +26,10 @@ class BundleCache(
     companion object {
         const val BundleCacheTtlMs = 30 * 60 * 1000L
         const val FallbackCacheTtlMs = 2 * 60 * 1000L
+
+        /** A bundle that is partly templates (a section fell back) is cached like a whole
+         *  fallback: the coach is asked again soon instead of 30 minutes later. */
+        fun ttlFor(anySectionFellBack: Boolean): Long = if (anySectionFellBack) FallbackCacheTtlMs else BundleCacheTtlMs
     }
 
     data class PendingBundle(

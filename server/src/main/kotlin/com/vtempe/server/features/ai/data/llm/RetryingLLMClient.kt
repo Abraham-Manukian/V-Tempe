@@ -23,6 +23,9 @@ class RetryingLLMClient(
     private val maxDelayMs: Long = 12_000,
     private val backoffMultiplier: Double = 2.0,
     private val maxCooldownWaitMs: Long = 30_000,
+    /** Longest cooldown a Retry-After can impose: a bogus `Retry-After: 86400` must not switch the
+     *  AI off on this instance for a day. */
+    private val maxCooldownMs: Long = 5 * 60_000,
     /** Monotonic milliseconds; tests pass the virtual clock of their scheduler. */
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
 ) : LLMClient {
@@ -41,12 +44,16 @@ class RetryingLLMClient(
             } catch (ex: CancellationException) {
                 throw ex // cancellation (including an outer timeout) is never retried
             } catch (ex: Throwable) {
-                if (attempt >= attempts || !isRetryable(ex)) throw ex
-
-                val retryAfter = (ex as? LlmException.RateLimited)?.retryAfterMillis?.takeIf { it > 0 }
+                val retryAfter = (ex as? LlmException.RateLimited)?.retryAfterMillis?.takeIf { it > 0 }?.coerceAtMost(maxCooldownMs)
                 if (retryAfter != null) {
+                    // Recorded before the attempt limit: the last attempt's 429 must still hold
+                    // the next requests back.
                     val until = clock() + retryAfter
                     cooldownUntilMs = cooldownUntilMs?.let { max(it, until) } ?: until
+                }
+                if (attempt >= attempts || !isRetryable(ex)) throw ex
+
+                if (retryAfter != null) {
                     if (retryAfter > maxCooldownWaitMs) throw ex // too long to wait: let the caller fall back
                     logger.warn("LLM rate-limited (attempt {}/{}); provider asked to wait {} ms", attempt, attempts, retryAfter)
                 } else {
@@ -75,7 +82,9 @@ class RetryingLLMClient(
 
     private fun isRetryable(error: Throwable): Boolean = errorChain(error).any { cause ->
         when (cause) {
-            is LlmException.RateLimited, is LlmException.Timeout -> true
+            // The local queue's refusal fails fast so the caller falls back (ThrottledLLMClient).
+            is LlmException.RateLimited -> !cause.local
+            is LlmException.Timeout -> true
             is LlmException.Auth, is LlmException.PaymentRequired -> false
             // Unlike OpenRouterLLMClient.shouldTryNextModel (which can still usefully try a
             // DIFFERENT model on a null-status provider error), retrying the SAME request here

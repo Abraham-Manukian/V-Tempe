@@ -93,20 +93,26 @@ class ProfileRepositoryDb(
         profile.weeklySchedule.forEach { (day, active) -> db.profileDetailsQueries.insertSchedule(profile.id, day, if (active) 1L else 0L) }
     }
 
-    override suspend fun clearAll() {
-        // Order matters because WorkoutSet/MealIngredient depend on parent rows.
-        db.workoutQueries.deleteAllWorkouts()
-        db.nutritionQueries.deleteAllMealByDay()
-        db.nutritionQueries.deleteAllShoppingItems()
-        db.nutritionQueries.deleteAllDailyTargets()
-        db.nutritionQueries.deleteAllMealIngredients()
-        db.nutritionQueries.deleteAllMeals()
+    override suspend fun clearAll() = withContext(Dispatchers.IO) {
+        // One transaction: a wipe interrupted halfway (app killed during sign-out or account
+        // deletion) must not leave part of the previous user's health data behind.
+        db.transaction {
+            // Order matters because WorkoutSet/MealIngredient depend on parent rows. Foreign keys
+            // are off, so nothing cascades: every child table is emptied explicitly.
+            db.workoutQueries.deleteAllSets()
+            db.workoutQueries.deleteAllWorkouts()
+            db.nutritionQueries.deleteAllMealByDay()
+            db.nutritionQueries.deleteAllShoppingItems()
+            db.nutritionQueries.deleteAllDailyTargets()
+            db.nutritionQueries.deleteAllMealIngredients()
+            db.nutritionQueries.deleteAllMeals()
 
-        db.profileDetailsQueries.deleteAllEquipment()
-        db.profileDetailsQueries.deleteAllDietPrefs()
-        db.profileDetailsQueries.deleteAllAllergies()
-        db.profileDetailsQueries.deleteAllSchedule()
-        db.profileQueries.deleteAllProfiles()
+            db.profileDetailsQueries.deleteAllEquipment()
+            db.profileDetailsQueries.deleteAllDietPrefs()
+            db.profileDetailsQueries.deleteAllAllergies()
+            db.profileDetailsQueries.deleteAllSchedule()
+            db.profileQueries.deleteAllProfiles()
+        }
     }
 }
 

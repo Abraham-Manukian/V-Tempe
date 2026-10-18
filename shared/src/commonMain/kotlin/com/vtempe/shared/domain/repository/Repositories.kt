@@ -65,10 +65,25 @@ interface PurchasesRepository {
     suspend fun isSubscriptionActive(): Boolean
 }
 
-/** Wire shape for `GET /me/entitlement` — field names must match the server's
- *  `EntitlementResponse` exactly. */
+/** The signed-in account's subscription as the server decided it ([expiresAt]: ISO-8601). */
+data class SubscriptionEntitlement(val active: Boolean, val expiresAt: String?)
+
+/** `GET /me/entitlement`; the wire shape stays in the data layer. */
 interface EntitlementRepository {
-    suspend fun fetchEntitlement(): DataResult<com.vtempe.shared.data.network.dto.EntitlementDto>
+    suspend fun fetchEntitlement(): DataResult<SubscriptionEntitlement>
+}
+
+/** The last subscription status the server confirmed, per account, for offline display. */
+interface LastKnownEntitlement {
+    fun save(uid: String, entitlement: SubscriptionEntitlement)
+
+    /** Only ever [uid]'s own entry — another account's status is never returned. */
+    fun load(uid: String): SubscriptionEntitlement?
+}
+
+/** The weigh-in history ([date]: ISO-8601 day). */
+interface BodyWeightLog {
+    fun logWeight(date: String, kg: Double)
 }
 
 /** Keep in sync with the server's ALLOWED_SYNC_DOMAINS and MERGEABLE_SYNC_DOMAINS

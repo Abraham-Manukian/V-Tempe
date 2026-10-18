@@ -30,7 +30,7 @@ class ThrottledLLMClient(
     override suspend fun generateJson(prompt: String, schema: com.vtempe.server.features.ai.data.llm.schema.ResponseSchema?): String {
         if (waiting.incrementAndGet() > maxWaiting) {
             waiting.decrementAndGet()
-            throw LlmException.RateLimited("Local LLM queue is full ($maxWaiting waiting)")
+            throw LlmException.RateLimited("Local LLM queue is full ($maxWaiting waiting)", local = true)
         }
         try {
             turn.withLock {

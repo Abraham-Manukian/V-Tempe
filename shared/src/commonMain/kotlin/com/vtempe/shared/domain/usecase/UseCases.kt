@@ -58,14 +58,20 @@ class BootstrapCoachData(
     // Prevents duplicate network requests when multiple presenters initialise simultaneously.
     // BootstrapCoachData is a Koin `single` so this mutex is truly app-wide.
     private val mutex = Mutex()
+    /** Weeks this process already bootstrapped, successfully or not (guarded by [mutex]). */
+    private val attemptedWeeks = mutableSetOf<Int>()
 
     suspend operator fun invoke(weekIndex: Int = 0, force: Boolean = false): Boolean = mutex.withLock {
         val profile = profileRepository.getProfile() ?: return@withLock false
 
         // Double-check after acquiring the lock: a concurrent caller may have
-        // already completed the bootstrap for this week while we were waiting.
+        // already completed the bootstrap for this week while we were waiting. Missing advice
+        // means an earlier run was cut short (redo it) — unless this process just ran it and the
+        // coach was unavailable: then the caller that waited must not repeat the failed request
+        // (EnsureCoachData fetches the advice on its own, throttled).
         if (!force && trainingRepository.hasPlan(weekIndex) && nutritionRepository.hasPlan(weekIndex) &&
-            adviceRepository.hasAdvice("sleep") && coachCache.planEpochDateMs() != null
+            coachCache.planEpochDateMs() != null &&
+            (adviceRepository.hasAdvice("sleep") || weekIndex in attemptedWeeks)
         ) {
             Napier.d("Bootstrap week $weekIndex: already done by concurrent call — skipping")
             return@withLock true
@@ -88,8 +94,9 @@ class BootstrapCoachData(
         val nutritionPlan = bundle?.nutritionPlan ?: nutritionRepository.generatePlan(profile, weekIndex)
         nutritionRepository.savePlan(nutritionPlan)
 
-        val advice = bundle?.sleepAdvice ?: adviceRepository.getAdvice(profile, mapOf("topic" to "sleep"))
-        adviceRepository.saveAdvice("sleep", advice)
+        // Only the coach's own advice is stored. Saving "none" after a failed bundle would mark the
+        // advice as present, and EnsureCoachData would never fetch it once the network is back.
+        bundle?.sleepAdvice?.takeIf { it.messages.isNotEmpty() }?.let { adviceRepository.saveAdvice("sleep", it) }
 
         val now = Clock.System.now().toEpochMilliseconds()
 
@@ -106,6 +113,7 @@ class BootstrapCoachData(
             version = CoachDataFreshness.SCHEMA_VERSION,
             timestampMillis = now
         )
+        attemptedWeeks += weekIndex
 
         return true
     }
@@ -123,7 +131,13 @@ class EnsureCoachData(
     /** Application-level scope — outlives any individual screen, safe for background prefetch. */
     private val appScope: CoroutineScope,
     private val refreshSleepAdvice: RefreshSleepAdvice,
+    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
+    // A Koin `single`: every screen calls invoke(), so the automatic advice fetch is throttled
+    // app-wide — one at a time, and not again within ADVICE_RETRY_GAP_MS while it keeps failing.
+    private val adviceFetch = Mutex()
+    private var lastAdviceAttemptMs: Long? = null // guarded by adviceFetch
+
     /**
      * Rolling 7-day plan strategy:
      *
@@ -156,10 +170,7 @@ class EnsureCoachData(
         } else if (!adviceRepository.hasAdvice(RefreshSleepAdvice.TOPIC)) {
             // Plans are in place, only the advice record is missing (e.g. installed before advice
             // was stored): fetch just the advice — a full bootstrap would regenerate this week's plans.
-            appScope.launch {
-                runCatching { refreshSleepAdvice() }
-                    .onFailure { if (it is CancellationException) throw it; Napier.w("Sleep advice refresh failed", it) }
-            }
+            fetchAdviceInBackground()
         }
 
         // Pre-fetch next week in the background when the current week is almost over.
@@ -177,6 +188,29 @@ class EnsureCoachData(
         }
 
         return true
+    }
+
+    private fun fetchAdviceInBackground() {
+        if (!adviceFetch.tryLock()) return // one is under way
+        val now = nowMillis()
+        val last = lastAdviceAttemptMs
+        if (last != null && now - last < ADVICE_RETRY_GAP_MS) {
+            adviceFetch.unlock()
+            return
+        }
+        lastAdviceAttemptMs = now
+        appScope.launch {
+            try {
+                runCatching { refreshSleepAdvice() }
+                    .onFailure { if (it is CancellationException) throw it; Napier.w("Sleep advice refresh failed", it) }
+            } finally {
+                adviceFetch.unlock()
+            }
+        }
+    }
+
+    private companion object {
+        const val ADVICE_RETRY_GAP_MS = 5 * 60 * 1000L
     }
 }
 

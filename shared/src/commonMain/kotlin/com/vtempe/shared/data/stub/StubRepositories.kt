@@ -54,6 +54,9 @@ class StubAuthRepository : AuthRepository {
     override suspend fun reauthenticate(credential: ReauthCredential): Unit =
         throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
 
+    // Nothing to protect: no one is signed in on this build, and deletion fails on its own.
+    override suspend fun isSignInRecent(): Boolean = true
+
     override suspend fun deleteCurrentUser(): Unit =
         throw AuthException(AuthErrorCode.UNAVAILABLE, "Auth is not available in this build")
 }

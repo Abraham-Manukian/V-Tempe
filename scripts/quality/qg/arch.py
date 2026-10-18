@@ -4,7 +4,8 @@ Rules (each one verified against the codebase when it was written; known excepti
 scripts/quality/arch-baseline.txt so only NEW violations fail the gate):
 
   MOD  Gradle project dependencies follow modules.ALLOWED_PROJECT_DEPS and have no cycles.
-  DOM  shared domain (com.vtempe.shared.domain) does not import shared data.
+  DOM  shared domain (com.vtempe.shared.domain) does not import shared data, nor name it fully
+       qualified in code.
   KMP  commonMain code of shared/ui/core-designsystem does not import android.*, java.*, javax.*.
   SRV  server feature domain packages do not import Ktor, Exposed, JDBC or their feature's
        data/api layers.
@@ -19,6 +20,9 @@ from pathlib import Path
 from . import modules
 
 IMPORT_RE = re.compile(r"^\s*import\s+([\w.]+)", re.MULTILINE)
+# A fully qualified use in code (`DataResult<com.vtempe.shared.data.network.dto.X>`) is a
+# dependency too, though no import line names it.
+SHARED_DATA_FQN_RE = re.compile(r"\bcom\.vtempe\.shared\.data\.[\w.]*\w")
 PROJECT_DEP_RE = re.compile(r"""project\(\s*["']:([\w\-]+)["']\s*\)""")
 
 
@@ -39,6 +43,22 @@ def _kotlin_files(root: Path, subdir: str) -> list[Path]:
 
 def _rel(root: Path, p: Path) -> str:
     return p.relative_to(root).as_posix()
+
+
+def _qualified_data_uses(p: Path) -> list[str]:
+    """Fully qualified shared-data names used in code lines (not imports or comments)."""
+    try:
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    found: list[str] = []
+    for line in lines:
+        code = line.strip()
+        if code.startswith(("import ", "package ", "//", "*", "/*")):
+            continue
+        code = code.split("//", 1)[0]
+        found += SHARED_DATA_FQN_RE.findall(code)
+    return list(dict.fromkeys(found))  # each name once per file
 
 
 def _imports(p: Path) -> list[str]:
@@ -97,6 +117,8 @@ def check_imports(root: Path) -> list[Violation]:
         for imp in _imports(p):
             if imp.startswith("com.vtempe.shared.data"):
                 out.append(Violation("DOM", _rel(root, p), imp))
+        for ref in _qualified_data_uses(p):
+            out.append(Violation("DOM", _rel(root, p), ref))
 
     for mod in ("shared", "ui", "core-designsystem"):
         for p in _kotlin_files(root, f"{mod}/src/commonMain"):

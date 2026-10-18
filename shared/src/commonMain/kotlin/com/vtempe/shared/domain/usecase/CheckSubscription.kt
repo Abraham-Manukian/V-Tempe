@@ -1,8 +1,8 @@
 package com.vtempe.shared.domain.usecase
 
-import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.LastKnownEntitlement
 import com.vtempe.shared.domain.util.DataResult
 
 /** The subscription as the server knows it (VT-AUD-053). */
@@ -23,13 +23,13 @@ sealed interface SubscriptionStatus {
 class CheckSubscription(
     private val auth: AuthRepository,
     private val entitlements: EntitlementRepository,
-    private val lastKnown: LastKnownEntitlementStore,
+    private val lastKnown: LastKnownEntitlement,
 ) {
     suspend operator fun invoke(): SubscriptionStatus {
         val uid = auth.authState.value?.uid ?: return SubscriptionStatus.SignedOut
         return when (val result = entitlements.fetchEntitlement()) {
             is DataResult.Success -> {
-                lastKnown.save(uid, result.data.active, result.data.expiresAt)
+                lastKnown.save(uid, result.data)
                 SubscriptionStatus.Known(result.data.active, result.data.expiresAt, stale = false)
             }
             is DataResult.Failure -> lastKnown.load(uid)

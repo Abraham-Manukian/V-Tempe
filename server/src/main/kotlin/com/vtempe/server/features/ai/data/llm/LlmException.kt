@@ -10,9 +10,15 @@ package com.vtempe.server.features.ai.data.llm
  * `retryAfterMillis` hint.
  */
 sealed class LlmException(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
-    /** HTTP 429. [retryAfterMillis] is the upstream Retry-After hint, in ms, if the response sent one. */
-    class RateLimited(message: String, val retryAfterMillis: Long? = null, cause: Throwable? = null) :
-        LlmException(message, cause)
+    /** HTTP 429. [retryAfterMillis] is the upstream Retry-After hint, in ms, if the response sent one.
+     *  [local]: refused by this server's own queue (ThrottledLLMClient), not by the provider — a
+     *  retry would only queue again, so it is never retried. */
+    class RateLimited(
+        message: String,
+        val retryAfterMillis: Long? = null,
+        cause: Throwable? = null,
+        val local: Boolean = false,
+    ) : LlmException(message, cause)
 
     /** HTTP 402 — insufficient credits / payment required on the OpenRouter account. */
     class PaymentRequired(message: String, cause: Throwable? = null) : LlmException(message, cause)

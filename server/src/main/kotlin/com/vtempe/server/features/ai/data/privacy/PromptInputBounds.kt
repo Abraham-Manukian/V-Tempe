@@ -1,6 +1,6 @@
 package com.vtempe.server.features.ai.data.privacy
 
-import com.vtempe.server.features.ai.api.AiRequestLimits as L
+import com.vtempe.server.features.ai.domain.AiInputLimits as L
 import com.vtempe.server.shared.dto.chat.AiChatRequest
 import com.vtempe.server.shared.dto.profile.AiProfile
 import java.time.LocalDate
@@ -11,6 +11,18 @@ import java.time.ZoneOffset
  * Applied BEFORE [DirectIdentifierRedactor] and prompt building, so neither ever works on more
  * text than the limits in [L] allow. Lengths count UTF-16 chars; a cut never splits a surrogate pair.
  */
+/**
+ * Measurements outside the supported range never reach a calculation or a prompt (VT-AUD-035):
+ * they are clamped into it. The AI routes apply it to every request (refusing would lock
+ * installed versions out, their profile form had no bounds); calculations apply it again for
+ * callers that do not come through a route (fallbacks, tests).
+ */
+internal fun AiProfile.withSupportedMeasurements(): AiProfile = copy(
+    age = age.coerceIn(L.AGE_YEARS),
+    heightCm = heightCm.coerceIn(L.HEIGHT_CM),
+    weightKg = if (weightKg.isFinite()) weightKg.coerceIn(L.WEIGHT_KG) else L.WEIGHT_KG.start,
+)
+
 internal fun AiProfile.boundedForPrompt(today: LocalDate = LocalDate.now(ZoneOffset.UTC)): AiProfile = copy(
     sex = sex.cut(SHORT),
     goal = goal.cut(SHORT),

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.PreferencesRepository
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -25,6 +26,7 @@ class SettingsViewModel(
     accountSession: AccountSession,
     syncAnalyticsProfile: SyncAnalyticsProfile,
     authRepository: AuthRepository,
+    healthDataConsent: HealthDataConsentGate,
 ) : ViewModel(), SettingsPresenter {
 
     private val delegate = SettingsPresenterDelegate(
@@ -34,6 +36,7 @@ class SettingsViewModel(
         accountSession = accountSession,
         syncAnalyticsProfile = syncAnalyticsProfile,
         authRepository = authRepository,
+        healthDataConsent = healthDataConsent,
         scope = viewModelScope,
         applyLocale = { tag ->
             if (tag.isNullOrBlank()) {

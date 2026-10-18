@@ -182,4 +182,12 @@ class BundleCacheLifecycleTest {
         assertNotNull(result.trainingPlan)
         assertEquals(0, cache.inFlightCount())
     }
+
+    @Test
+    fun `a bundle with a section that fell back is cached only as long as a fallback`() {
+        // Under load (a full LLM queue) a section is replaced by its template; such a bundle must
+        // not stand in for the coach's answer for the next 30 minutes.
+        assertEquals(BundleCache.FallbackCacheTtlMs, BundleCache.ttlFor(anySectionFellBack = true))
+        assertEquals(BundleCache.BundleCacheTtlMs, BundleCache.ttlFor(anySectionFellBack = false))
+    }
 }

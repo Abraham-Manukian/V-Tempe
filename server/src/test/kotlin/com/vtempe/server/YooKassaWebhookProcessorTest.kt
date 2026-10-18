@@ -166,4 +166,79 @@ class YooKassaWebhookProcessorTest {
         assertEquals(now.plus(Duration.ofDays(30)), service.current("anna").expiresAt, "not extended twice")
         assertEquals(listOf(5980L), referrals.entries("boris").map { it.amountMinor })
     }
+
+    @Test
+    fun `a payment refunded in full before its notification grants no unused access`() = runBlocking {
+        // The payment notification failed (outage) and the operator refunded it meanwhile...
+        yooKassa.payments[paymentId] = payment(refunded = "299.00")
+        yooKassa.refunds[refundId] = refund("299.00")
+        processor.handle(notification("refund.succeeded", refundId))
+        // ...then YooKassa redelivers the payment: still "succeeded", now with the refunded amount.
+        assertEquals(WebhookReply.DONE, processor.handle(notification("payment.succeeded", paymentId)))
+
+        assertEquals(now, entitlements.current("anna").expiresAt)
+        processor.handle(notification("refund.succeeded", refundId)) // redelivery
+        assertEquals(now, entitlements.current("anna").expiresAt)
+    }
+
+    @Test
+    fun `an unreadable amount is retried, never read as zero`() = runBlocking {
+        yooKassa.payments[paymentId] = payment().copy(amount = YooKassaAmount("n/a", "RUB"))
+
+        assertEquals(WebhookReply.RETRY_LATER, processor.handle(notification("payment.succeeded", paymentId)))
+
+        assertEquals(null, entitlements.current("anna").expiresAt)
+    }
+
+    @Test
+    fun `a period outside one day to one year falls back to the default month`() = runBlocking {
+        yooKassa.payments[paymentId] = payment().copy(metadata = mapOf("userId" to "anna", "periodDays" to "99999999999"))
+
+        assertEquals(WebhookReply.DONE, processor.handle(notification("payment.succeeded", paymentId)))
+
+        assertEquals(now.plus(Duration.ofDays(30)), entitlements.current("anna").expiresAt)
+    }
+
+    @Test
+    fun `a payment YooKassa reports as refunded in full, with no refund notification, grants nothing`() = runBlocking {
+        yooKassa.payments[paymentId] = payment(refunded = "299.00") // the refund's own notification never came
+
+        assertEquals(WebhookReply.DONE, processor.handle(notification("payment.succeeded", paymentId)))
+
+        assertEquals(now, entitlements.current("anna").expiresAt)
+    }
+
+    @Test
+    fun `a refund with an unreadable amount is retried and changes nothing`() = runBlocking {
+        paid()
+        yooKassa.payments[paymentId] = payment(refunded = "299.00")
+        yooKassa.refunds[refundId] = refund("n/a")
+
+        assertEquals(WebhookReply.RETRY_LATER, processor.handle(notification("refund.succeeded", refundId)))
+
+        assertEquals(now.plus(Duration.ofDays(20)), entitlements.current("anna").expiresAt)
+    }
+
+    @Test
+    fun `periodDays is honoured from one day to one year and defaults outside it`() = runBlocking {
+        val cases = listOf("1" to 1L, "366" to 366L, "0" to 30L, "-1" to 30L, "367" to 30L, "abc" to 30L)
+        cases.forEachIndexed { i, (raw, days) ->
+            val id = "2d3f5a4b-000f-5000-9000-00000000000$i"
+            val user = "user-$i"
+            yooKassa.payments[id] = payment().copy(id = id, metadata = mapOf("userId" to user, "periodDays" to raw))
+
+            processor.handle(notification("payment.succeeded", id))
+
+            assertEquals(now.plus(Duration.ofDays(days)), entitlements.current(user).expiresAt, "periodDays=$raw")
+        }
+    }
+
+    @Test
+    fun `an amount finer than a kopeck is retried, never rounded`() = runBlocking {
+        yooKassa.payments[paymentId] = payment().copy(amount = YooKassaAmount("299.001", "RUB"))
+
+        assertEquals(WebhookReply.RETRY_LATER, processor.handle(notification("payment.succeeded", paymentId)))
+
+        assertEquals(null, entitlements.current("anna").expiresAt)
+    }
 }

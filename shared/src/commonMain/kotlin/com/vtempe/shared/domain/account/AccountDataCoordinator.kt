@@ -135,6 +135,14 @@ class AccountDataCoordinator(
     }
 
     private suspend fun deleteServerDataThenAccount(uid: String): AccountDeletionOutcome {
+        // Asked first: the server step revokes paid access and closes referrals, so a deletion
+        // that would then stop at re-authentication must not get that far.
+        val recent = try {
+            auth.isSignInRecent()
+        } catch (error: AuthException) {
+            return AccountDeletionOutcome.Failed
+        }
+        if (!recent) return AccountDeletionOutcome.NeedsReauthentication
         if (!remoteAccount.deleteAccountData(uid)) return AccountDeletionOutcome.Failed
         return try {
             auth.deleteCurrentUser()

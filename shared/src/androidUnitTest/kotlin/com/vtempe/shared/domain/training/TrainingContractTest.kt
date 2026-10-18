@@ -30,6 +30,21 @@ class TrainingContractTest {
     }
 
     @Test
+    fun clientInjuryKeywordsAreExactlyTheSharedKeywordTable() {
+        val rows = rows("injury-keyword-rules.tsv")
+        assertEquals(rows.size, rows.distinctBy { it[0] }.size, "a keyword is listed twice")
+        assertTrue(rows.all { it.size == 3 }, "every row has keyword, patterns and ids (an empty last column keeps its tab)")
+        val table = rows.associate { it[0] to (it[1] to it[2]) }
+        assertEquals(table.keys.sorted(), ExerciseRestrictions.keywords.sorted())
+        val mismatches = table.mapNotNull { (keyword, expected) ->
+            val r = ExerciseRestrictions.forInjuries(listOf(keyword))
+            val actual = r.bannedPatterns.map { it.name }.sorted().joinToString(";") to r.bannedIds.sorted().joinToString(";")
+            "'$keyword': table $expected, client $actual".takeIf { actual != expected }
+        }
+        assertEquals(emptyList<String>(), mismatches)
+    }
+
+    @Test
     fun clientInjuryRulesAgreeWithTheContractCases() {
         val pool = OfflineExercisePool.associateBy { it.id }
         val mismatches = rows("injury-restriction-cases.tsv").mapNotNull { (injury, id, expected) ->

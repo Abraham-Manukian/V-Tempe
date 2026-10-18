@@ -5,6 +5,7 @@ import com.vtempe.shared.domain.account.AccountSession
 import com.vtempe.shared.domain.model.AiModelMode
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.repository.AuthException
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.AuthUser
 import com.vtempe.shared.domain.repository.PreferencesRepository
@@ -34,6 +35,9 @@ data class SettingsState(
     val planUpdateFailed: Boolean = false,
     /** The plans failed because the new restrictions leave no safe meal or exercise. */
     val planRestrictionConflict: Boolean = false,
+    /** The plans were rebuilt for the saved profile without the AI coach, because the health-data
+     *  consent is not granted: say so, instead of passing the offline plan off as the coach's. */
+    val plansBuiltWithoutCoach: Boolean = false,
     val aiModelMode: AiModelMode = AiModelMode.PAID,
     val analyticsConsent: Boolean = false,
     val authUser: AuthUser? = null,
@@ -71,6 +75,7 @@ class SettingsPresenterDelegate(
     private val accountSession: AccountSession,
     private val syncAnalyticsProfile: SyncAnalyticsProfile,
     private val authRepository: AuthRepository,
+    private val healthDataConsent: HealthDataConsentGate,
     private val scope: CoroutineScope,
     /** Platform hook: Android calls AppCompatDelegate, iOS is no-op. */
     private val applyLocale: (tag: String?) -> Unit = {}
@@ -133,7 +138,7 @@ class SettingsPresenterDelegate(
     }
 
     private suspend fun rebuildPlans() {
-        _state.update { it.copy(planUpdateFailed = false, planRestrictionConflict = false) }
+        _state.update { it.copy(planUpdateFailed = false, planRestrictionConflict = false, plansBuiltWithoutCoach = false) }
         var conflict = false
         val rebuilt = try {
             ensureCoachData(force = true)
@@ -144,7 +149,13 @@ class SettingsPresenterDelegate(
             conflict = error.isPlanRestrictionConflict()
             false
         }
-        if (!rebuilt) _state.update { it.copy(planUpdateFailed = true, planRestrictionConflict = conflict) }
+        if (!rebuilt) {
+            _state.update { it.copy(planUpdateFailed = true, planRestrictionConflict = conflict) }
+        } else if (!healthDataConsent.isHealthDataConsentGranted()) {
+            // The AI is gated off (ConsentGatedAiTrainerRepository), so the rebuild used the
+            // offline planner.
+            _state.update { it.copy(plansBuiltWithoutCoach = true) }
+        }
     }
 
     override fun reset(onDone: () -> Unit) {

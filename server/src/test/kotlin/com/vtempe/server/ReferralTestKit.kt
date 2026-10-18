@@ -34,6 +34,8 @@ class FlakyEntitlementRepository(
         amountMinor: Long,
         currency: String,
         rawPayload: String,
+        refundedMinor: Long,
+        now: Instant,
         grant: (currentExpiry: Instant?) -> GrantWindow,
     ): Instant? {
         beforeNextPayment?.let { hook ->
@@ -44,7 +46,7 @@ class FlakyEntitlementRepository(
             failNextPayment = false
             error("simulated crash before the access grant")
         }
-        return delegate.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload, grant)
+        return delegate.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload, refundedMinor, now, grant)
     }
 }
 

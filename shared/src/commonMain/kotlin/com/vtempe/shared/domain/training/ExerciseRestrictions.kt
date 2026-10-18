@@ -10,7 +10,7 @@ enum class MovementPattern {
  * Exercises a user must not be given because of injuries — client port of the server's
  * `ExerciseRestrictions` (InjuryFilter patterns + InjuryRestrictions ids). An exercise is banned
  * when its id or ANY of its movement patterns is. Pinned to the server by
- * `testdata/injury-restriction-cases.tsv`.
+ * `testdata/injury-restriction-cases.tsv` and, keyword by keyword, `testdata/injury-keyword-rules.tsv`.
  */
 class ExerciseRestrictions(
     val bannedPatterns: Set<MovementPattern>,
@@ -32,6 +32,12 @@ class ExerciseRestrictions(
             }
             return ExerciseRestrictions(patterns, ids)
         }
+
+        /** Every keyword the rules react to; pinned to the server, keyword by keyword, by
+         *  testdata/injury-keyword-rules.tsv. */
+        internal val keywords: Set<String>
+            get() = (PatternRules + IdRules.map { (keywords, _) -> keywords to emptySet<MovementPattern>() })
+                .flatMapTo(mutableSetOf()) { it.first }
 
         /** Body-part keywords → banned patterns (server InjuryFilter.bannedPatterns). */
         private val PatternRules: List<Pair<Set<String>, Set<MovementPattern>>> = listOf(

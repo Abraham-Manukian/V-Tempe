@@ -3,6 +3,7 @@ package com.vtempe.shared.data.repo
 import com.russhwolf.settings.Settings
 import com.vtempe.shared.domain.model.SleepBounds
 import com.vtempe.shared.domain.model.WeightEntry
+import com.vtempe.shared.domain.repository.BodyWeightLog
 import com.vtempe.shared.domain.repository.SyncDomain
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -22,13 +23,13 @@ class WeightStore(
     private val settings: Settings,
     /** See WorkoutProgressStore's kdoc on the same parameter — same lazy-DI reasoning. */
     private val onLocalChange: (SyncDomain) -> Unit = {}
-) {
+) : BodyWeightLog {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val serializer = MapSerializer(String.serializer(), Double.serializer())
 
     /** Record weight for [date] (ISO "YYYY-MM-DD"). Prunes to most recent 30 entries. */
-    fun logWeight(date: String, kg: Double) {
+    override fun logWeight(date: String, kg: Double) {
         val current = load().toMutableMap()
         current[date] = kg.coerceIn(WEIGHT_RANGE_KG)
         val trimmed = current.entries

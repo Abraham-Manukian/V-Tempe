@@ -1,7 +1,7 @@
 package com.vtempe.server.features.auth.data
 
 import com.auth0.jwk.JwkProvider
-import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwk.UrlJwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
-import java.util.concurrent.TimeUnit
 import org.slf4j.LoggerFactory
 
 /**
@@ -37,8 +36,8 @@ class FirebaseTokenVerifier internal constructor(
      *  signature, malformed token) — callers treat every failure mode identically as
      *  "unauthenticated", never distinguishing why.
      *
-     *  suspend + Dispatchers.IO: on a JWKS cache miss (rare — up to 10 keys cached for 1h), the underlying
-     *  jwks-rsa provider does a synchronous HTTP fetch; calling this directly from a Ktor
+     *  suspend + Dispatchers.IO: when the key set is refreshed ([SigningKeyCache], at most once a
+     *  minute) the fetch is a synchronous HTTP call; calling this directly from a Ktor
      *  request-pipeline coroutine would otherwise block a Netty event-loop thread. */
     override suspend fun verify(idToken: String): String? {
         val projectId = this.projectId ?: return null
@@ -65,13 +64,16 @@ class FirebaseTokenVerifier internal constructor(
     }
 
     private companion object {
-        fun googleSigningKeys(): JwkProvider =
+        /** Bounded so a refresh of the key set ends within seconds; lookups never wait for it once keys are known. */
+        const val KEY_FETCH_TIMEOUT_MS = 3_000
+
+        fun googleSigningKeys(): JwkProvider {
             // The service-account email in this path contains "@" — java.net.URI's strict RFC 3986
             // parser rejects the literal character here (even though "@" is a valid pchar), so it
             // must be percent-encoded before constructing the URI.
-            JwkProviderBuilder(URI("https://www.googleapis.com/service_accounts/v1/jwk/securetoken%40system.gserviceaccount.com").toURL())
-                .cached(10, 1, TimeUnit.HOURS)
-                .rateLimited(10, 1, TimeUnit.MINUTES)
-                .build()
+            val url = URI("https://www.googleapis.com/service_accounts/v1/jwk/securetoken%40system.gserviceaccount.com").toURL()
+            val source = UrlJwkProvider(url, KEY_FETCH_TIMEOUT_MS, KEY_FETCH_TIMEOUT_MS)
+            return SigningKeyCache(fetchAll = source::getAll)
+        }
     }
 }

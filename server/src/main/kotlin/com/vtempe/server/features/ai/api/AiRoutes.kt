@@ -5,6 +5,9 @@ import com.vtempe.server.features.ai.access.AiAccessResolver
 import com.vtempe.server.features.ai.access.authorizedProfile
 import com.vtempe.server.features.ai.data.privacy.boundedForPrompt
 import com.vtempe.server.features.ai.data.privacy.latestUserMessage
+import com.vtempe.server.features.ai.data.privacy.withSupportedMeasurements
+import com.vtempe.server.features.ai.domain.AiInputLimits
+import com.vtempe.server.features.ai.domain.PromptTooLargeException
 import com.vtempe.server.features.ai.domain.usecase.BootstrapUseCase
 import com.vtempe.server.features.ai.domain.usecase.ChatUseCase
 import com.vtempe.server.features.ai.domain.usecase.NutritionUseCase
@@ -36,64 +39,57 @@ fun Route.registerAiRoutes() {
 
     route("/ai") {
         // Access is enforced on this subtree, not by URI prefix — see AiAccessPlugin. Every
-        // handler then reads the body within AiRequestLimits, replaces the client's llmMode with
+        // handler then reads the body within AiInputLimits, replaces the client's llmMode with
         // the server-resolved tier and bounds every free-text field before any use case runs.
         install(AiAccessPlugin) { resolver = accessResolver }
 
         post("/training") {
             call.respondAi {
                 val req = call.receiveBounded<AiTrainingRequest>()
-                requireSupportedProfile(req.profile)
-                training.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+                training.execute(req.copy(profile = call.authorizedProfile(req.profile.withSupportedMeasurements()).boundedForPrompt()))
             }
         }
         post("/nutrition") {
             call.respondAi {
                 val req = call.receiveBounded<AiNutritionRequest>()
-                requireSupportedProfile(req.profile)
-                nutrition.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+                nutrition.execute(req.copy(profile = call.authorizedProfile(req.profile.withSupportedMeasurements()).boundedForPrompt()))
             }
         }
         post("/sleep") {
             call.respondAi {
                 val req = call.receiveBounded<AiAdviceRequest>()
-                requireSupportedProfile(req.profile)
-                sleep.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+                sleep.execute(req.copy(profile = call.authorizedProfile(req.profile.withSupportedMeasurements()).boundedForPrompt()))
             }
         }
         post("/chat") {
             call.respondAi {
                 val req = call.receiveBounded<AiChatRequest>()
-                requireSupportedProfile(req.profile)
                 // The typed message is refused, not silently cut: the coach must answer what the
                 // user actually wrote. The app limits its composer to the same length.
-                if (req.latestUserMessage().length > AiRequestLimits.MAX_CHAT_MESSAGE_CHARS) {
+                if (req.latestUserMessage().length > AiInputLimits.MAX_CHAT_MESSAGE_CHARS) {
                     throw AiInputRejected(HttpStatusCode.BadRequest, "message_too_long")
                 }
-                chat.execute(req.copy(profile = call.authorizedProfile(req.profile)).boundedForPrompt())
+                chat.execute(req.copy(profile = call.authorizedProfile(req.profile.withSupportedMeasurements())).boundedForPrompt())
             }
         }
         post("/bootstrap") {
             call.respondAi {
                 val req = call.receiveBounded<AiBootstrapRequest>()
-                requireSupportedProfile(req.profile)
-                bootstrap.execute(req.copy(profile = call.authorizedProfile(req.profile).boundedForPrompt()))
+                bootstrap.execute(req.copy(profile = call.authorizedProfile(req.profile.withSupportedMeasurements()).boundedForPrompt()))
             }
         }
     }
 }
 
 /** Responds with the handler's result, or with the status and code of a rejected input. */
-/** Measurements outside the supported range never reach a calculation or a prompt (VT-AUD-035). */
-private fun requireSupportedProfile(profile: AiProfile) {
-    if (!AiRequestLimits.hasSupportedMeasurements(profile)) throw AiInputRejected(HttpStatusCode.BadRequest, "invalid_profile")
-}
-
 private suspend inline fun <reified T : Any> ApplicationCall.respondAi(handler: () -> T) {
     val result = try {
         handler()
     } catch (rejected: AiInputRejected) {
         respond(rejected.status, mapOf("error" to rejected.code))
+        return
+    } catch (tooLarge: PromptTooLargeException) {
+        respond(HttpStatusCode.PayloadTooLarge, mapOf("error" to "request_too_large"))
         return
     }
     respond(result)

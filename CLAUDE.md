@@ -40,7 +40,7 @@ Skills: `/engineering-task` (full cycle), `/bug-investigation`, `/test-generator
 
 - Follow the existing structure; do not introduce new layers, frameworks or patterns without need.
 - Module edges above are enforced by `arch.boundaries`: no new project dependencies, no `android.*`/`java.*`
-  in `commonMain`, shared `domain` must not import `data` (two known exceptions in `scripts/quality/arch-baseline.txt`),
+  in `commonMain`, shared `domain` must not import or fully-qualify `data` (no known exceptions left),
   server `features/*/domain` stays free of Ktor/Exposed and of `data`/`api`.
 - SOLID/DRY/KISS within reason: narrow interfaces, one responsibility per class, no speculative abstraction.
   Keep files small (soft limit ~300 lines; extract state/sections instead of growing a file).

@@ -83,6 +83,12 @@ interface AuthRepository {
      *  password or another user's credential). */
     suspend fun reauthenticate(credential: ReauthCredential)
 
+    /** True when the signed-in user's last sign-in is recent enough for [deleteCurrentUser].
+     *  Account deletion checks this BEFORE erasing anything on the server, so a deletion that
+     *  would stop at re-authentication never strips the surviving account of its data, access or
+     *  referrals. Throws [AuthException] when it can't tell (offline, signed out). */
+    suspend fun isSignInRecent(): Boolean
+
     /** Permanently deletes the signed-in user, which signs them out. Throws [AuthException] —
      *  [AuthErrorCode.REQUIRES_RECENT_LOGIN] when the last sign-in is too old: [reauthenticate],
      *  then call this again. */

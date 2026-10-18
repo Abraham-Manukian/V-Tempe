@@ -56,6 +56,10 @@ class NetworkChatRepository(
                 )
             }
             is DataResult.Failure -> {
+                // The server refused THIS message (too long, not allowed, signed out): an earlier
+                // cached reply would pass off as the answer to it. Only an unreachable or failing
+                // server falls back to the cache.
+                if (result.code in 400..499) return result
                 cache.lastChatResponse()?.let { cached ->
                     Napier.w("Chat request failed, using cached response", result.throwable)
                     return DataResult.Success(

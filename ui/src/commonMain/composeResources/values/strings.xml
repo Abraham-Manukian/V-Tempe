@@ -475,6 +475,7 @@
     <string name="profile_load_failed">Couldn't read your profile. Try again.</string>
     <string name="profile_missing">There is no profile on this device yet.</string>
     <string name="edit_profile_save_failed">Your changes weren't saved. Try again.</string>
+    <string name="settings_plans_without_coach">Your plans were rebuilt for the new profile without the AI coach, because consent to process health data is off. You can turn it on in Settings.</string>
     <string name="settings_plan_update_failed">Your profile is saved, but the plans haven't been updated for it yet.</string>
     <string name="settings_reset_failed">Not everything could be deleted. Check your connection and try again.</string>
     <string name="settings_delete_account">Delete account</string>

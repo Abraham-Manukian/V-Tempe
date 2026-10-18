@@ -50,6 +50,13 @@ interface EntitlementRepository {
      * from the same old expiry. The new expiry is the window's end and never shortens existing
      * access; the window is kept so a refund can take back exactly it (VT-AUD-052).
      *
+     * A payment can be refunded before it is recorded (its notification was delayed, or failed and
+     * was redelivered after the refund). A new payment is therefore settled against the refunds
+     * already stored for it and against [refundedMinor], the provider's refunded total at
+     * verification: once they cover [amountMinor] its window is cut at [now] exactly as
+     * [recordRefund] would cut it, and the stored refunds get their real outcome. A payment and a
+     * refund of the same [externalId] are serialized, so neither can miss the other.
+     *
      * Returns the resulting expiry, or null if [externalId] was already recorded — the grant is
      * NOT reapplied in that case, since the original processing already applied it.
      */
@@ -60,6 +67,8 @@ interface EntitlementRepository {
         amountMinor: Long,
         currency: String,
         rawPayload: String,
+        refundedMinor: Long = 0,
+        now: Instant = Instant.now(),
         grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant?
 

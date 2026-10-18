@@ -13,6 +13,8 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 
 /** Where the configured database stands. */
 sealed interface DatabaseState {
@@ -43,25 +45,45 @@ class DatabaseConnector(
     private val open: () -> Database,
     private val retryAfterMs: Long = 5_000,
     private val nowMs: () -> Long = System::currentTimeMillis,
+    /** How long a request waits for an attempt another request is making once an attempt has
+     *  failed: during an outage the others answer 503 instead of queueing behind a connect
+     *  timeout, which would tie up request threads (and /ready) for its whole length. */
+    private val waitForOpenMs: Long = 2_000,
+    /** The same wait before any attempt has failed — a cold start: long enough for the first
+     *  open (pool + schema check, bounded by the connection timeout) so its requests are served. */
+    private val firstOpenWaitMs: Long = 12_000,
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseConnector::class.java)
     @Volatile private var ready: Database? = null
-    private var lastFailureAtMs: Long? = null
+    private val opening = ReentrantLock()
+    @Volatile private var lastFailureAtMs: Long? = null // written under [opening]
 
     val isConfigured: Boolean get() = jdbcUrl != null
 
-    @Synchronized
     fun state(): DatabaseState {
         if (jdbcUrl == null) return DatabaseState.Disabled
-        ready?.let { return DatabaseState.Ready(it) }
-        val failedAt = lastFailureAtMs
-        if (failedAt != null && nowMs() - failedAt < retryAfterMs) return DatabaseState.Unavailable
-        return try {
-            open().also { ready = it }.let(DatabaseState::Ready).also { logger.info("Database ready") }
-        } catch (error: Exception) {
-            lastFailureAtMs = nowMs()
-            logger.error("Database unavailable ({}); retrying in {} ms", error::class.simpleName, retryAfterMs)
-            DatabaseState.Unavailable
+        ready?.let { return DatabaseState.Ready(it) } // the common case takes no lock
+        val wait = if (lastFailureAtMs == null) firstOpenWaitMs else waitForOpenMs
+        val locked = try {
+            opening.tryLock(wait, TimeUnit.MILLISECONDS)
+        } catch (interrupted: InterruptedException) {
+            Thread.currentThread().interrupt() // keep the flag; this request just gets a 503
+            false
+        }
+        if (!locked) return DatabaseState.Unavailable
+        try {
+            ready?.let { return DatabaseState.Ready(it) }
+            val failedAt = lastFailureAtMs
+            if (failedAt != null && nowMs() - failedAt < retryAfterMs) return DatabaseState.Unavailable
+            return try {
+                open().also { ready = it }.let(DatabaseState::Ready).also { logger.info("Database ready") }
+            } catch (error: Exception) {
+                lastFailureAtMs = nowMs()
+                logger.error("Database unavailable ({}); retrying in {} ms", error::class.simpleName, retryAfterMs)
+                DatabaseState.Unavailable
+            }
+        } finally {
+            opening.unlock()
         }
     }
 
@@ -93,6 +115,8 @@ class DatabaseConnector(
             })
         }
 
+        private const val CONNECTION_TIMEOUT_MS = 10_000L
+
         /** Opens the pool and creates missing tables and columns; internal so integration tests
          *  open a throwaway database exactly the way production does. */
         internal fun openPostgres(url: String, user: String?, password: String?, poolSize: Int): Database {
@@ -103,6 +127,9 @@ class DatabaseConnector(
                     this.password = password
                     driverClassName = "org.postgresql.Driver"
                     maximumPoolSize = poolSize
+                    // Explicit instead of Hikari's 30 s default: an unreachable database fails
+                    // an attempt (and a request waiting for a connection) within seconds.
+                    connectionTimeout = CONNECTION_TIMEOUT_MS
                 }
             )
             return try {
@@ -112,6 +139,9 @@ class DatabaseConnector(
                             Entitlements, Payments, GrantWindows, PaymentRefunds, SyncBlobs, SyncWriteBarriers,
                             ReferralAccounts, ReferralCodes, ReferralAttributions, ReferralLedger,
                         )
+                        // Explicit so it also reaches databases created before it existed: every new
+                        // payment reads its earlier refunds by this column, under the payment lock.
+                        exec("CREATE INDEX IF NOT EXISTS payment_refunds_payment_external_id_idx ON payment_refunds (payment_external_id)")
                     }
                 }
             } catch (error: Exception) {

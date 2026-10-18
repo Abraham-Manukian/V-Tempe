@@ -1,6 +1,6 @@
 package com.vtempe.ui.presenter
 
-import com.vtempe.shared.data.network.dto.EntitlementDto
+import com.vtempe.shared.domain.repository.SubscriptionEntitlement
 import com.vtempe.shared.data.stub.StubAuthRepository
 import com.vtempe.shared.domain.account.AccountDataState
 import com.vtempe.shared.domain.account.AccountDeletionOutcome
@@ -180,6 +180,7 @@ class AuthPresenterTest {
         override suspend fun idToken(): String? = null
         override suspend fun idTokenFor(uid: String): String? = null
         override suspend fun reauthenticate(credential: ReauthCredential) = Unit
+        override suspend fun isSignInRecent() = true
         override suspend fun deleteCurrentUser() { authState.value = null }
     }
 
@@ -208,7 +209,7 @@ class AuthPresenterTest {
     private companion object {
         val user = AuthUser("test-user", "user@example.test")
         val entitlement = object : EntitlementRepository {
-            override suspend fun fetchEntitlement() = DataResult.Success(EntitlementDto())
+            override suspend fun fetchEntitlement() = DataResult.Success(SubscriptionEntitlement(active = false, expiresAt = null))
         }
     }
 }

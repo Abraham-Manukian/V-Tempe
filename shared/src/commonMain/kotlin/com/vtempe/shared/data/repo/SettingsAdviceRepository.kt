@@ -40,8 +40,9 @@ class SettingsAdviceRepository(private val settings: Settings) : AdviceRepositor
     override fun observeAdvice(topic: String): Flow<Advice> =
         stored.map { it[topic.lowercase()] ?: Advice(messages = emptyList()) }.distinctUntilChanged()
 
-    /** True once advice for [topic] has been saved (even an empty answer) — never for a missing record. */
-    override suspend fun hasAdvice(topic: String): Boolean = topic.lowercase() in stored.value
+    /** True once advice with at least one tip is stored for [topic]. An empty record (earlier
+     *  versions saved one after a failed bootstrap) counts as missing, so it is fetched again. */
+    override suspend fun hasAdvice(topic: String): Boolean = stored.value[topic.lowercase()]?.messages?.isNotEmpty() == true
 
     fun clear() {
         settings.remove(KEY)

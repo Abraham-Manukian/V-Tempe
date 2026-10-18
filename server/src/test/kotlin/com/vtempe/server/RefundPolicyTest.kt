@@ -121,4 +121,45 @@ class RefundPolicyTest {
 
         assertEquals(Instant.parse("2026-01-31T00:00:00Z"), expiry("boris"))
     }
+
+    @Test
+    fun `a full refund verified before its payment is applied when the payment is recorded`() = runBlocking {
+        assertEquals(RefundOutcome.UNMATCHED_REVIEW, refund("r-A", "A").outcome) // payment not recorded yet
+        now = now.plus(Duration.ofDays(2))
+
+        pay("A")
+
+        assertEquals(now, expiry(), "the refunded payment keeps no unused access")
+        assertEquals(RefundOutcome.DUPLICATE, refund("r-A", "A").outcome, "the redelivered refund changes nothing more")
+        assertEquals(now, expiry())
+    }
+
+    @Test
+    fun `a payment the provider reports as refunded in full grants no unused access`() = runBlocking {
+        pay("A")
+
+        val expiresAt = service.recordPaymentAndExtend("B", "anna", PaymentSource.YOOKASSA, 299_00, "RUB", "{}", month, refundedMinor = 299_00)
+
+        assertEquals(Instant.parse("2026-01-31T00:00:00Z"), expiresAt, "only A's month remains")
+        assertEquals(expiresAt, expiry())
+    }
+
+    @Test
+    fun `a partial refund verified before its payment leaves the period whole`() = runBlocking {
+        service.applyRefund(VerifiedRefund("r-A", "A", 100_00, "RUB", false, "{}"))
+
+        pay("A")
+
+        assertEquals(now.plus(month), expiry())
+    }
+
+    @Test
+    fun `partial refunds verified before the payment that add up to it count as full`() = runBlocking {
+        service.applyRefund(VerifiedRefund("r-1", "A", 100_00, "RUB", false, "{}"))
+        service.applyRefund(VerifiedRefund("r-2", "A", 199_00, "RUB", false, "{}"))
+
+        pay("A")
+
+        assertEquals(now, expiry())
+    }
 }

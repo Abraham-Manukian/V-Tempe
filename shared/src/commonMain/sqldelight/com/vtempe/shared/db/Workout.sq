@@ -55,10 +55,22 @@ ORDER BY w.date;
 deleteSetsByWeek:
 DELETE FROM WorkoutSet WHERE workoutId IN (SELECT id FROM Workout WHERE weekIndex = ?);
 
+-- Foreign keys are not enabled on this database, so ON DELETE CASCADE never fires: every delete
+-- of Workout rows removes their WorkoutSet rows explicitly (as Nutrition.sq does for meals).
+deleteAllSets:
+DELETE FROM WorkoutSet;
+
 deleteAllWorkouts:
 DELETE FROM Workout;
 
--- Deletes plan workouts for all weeks >= given index (WorkoutSet cascades automatically).
+deleteSetsFromWeek:
+DELETE FROM WorkoutSet WHERE workoutId IN (SELECT id FROM Workout WHERE weekIndex >= ?);
+
+-- Deletes plan workouts for all weeks >= given index (delete their sets first: deleteSetsFromWeek).
 -- Used when profile changes to invalidate stale pre-fetched future weeks.
 deleteWorkoutsFromWeek:
 DELETE FROM Workout WHERE weekIndex >= ?;
+
+-- Sets left behind by earlier versions, which relied on the cascade.
+deleteOrphanSets:
+DELETE FROM WorkoutSet WHERE workoutId NOT IN (SELECT id FROM Workout);

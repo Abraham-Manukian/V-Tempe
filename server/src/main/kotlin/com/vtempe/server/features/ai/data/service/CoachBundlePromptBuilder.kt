@@ -1,6 +1,6 @@
 package com.vtempe.server.features.ai.data.service
 
-import com.vtempe.server.features.ai.api.AiRequestLimits
+import com.vtempe.server.features.ai.data.privacy.withSupportedMeasurements
 import com.vtempe.server.features.ai.data.service.split.TrainingSplitPlanner
 import com.vtempe.server.features.ai.domain.port.ExerciseCatalog
 import com.vtempe.server.features.ai.domain.port.TrainingPlanResolver
@@ -259,11 +259,11 @@ internal fun computeWorkoutDatesForWeek(
 }
 
 internal fun computeTargetNutrition(profile: AiProfile): NutritionTargets {
-    // Requests are validated at the route; clamping keeps every other caller (fallbacks, tests)
-    // from crashing on an inverted coerceIn range with a zero/negative weight (VT-AUD-035).
-    val w = if (profile.weightKg.isFinite()) profile.weightKg.coerceIn(AiRequestLimits.WEIGHT_KG) else AiRequestLimits.WEIGHT_KG.start
-    val h = profile.heightCm.coerceIn(AiRequestLimits.HEIGHT_CM).toDouble()
-    val a = profile.age.coerceIn(AiRequestLimits.AGE_YEARS).toDouble()
+    // The routes clamp already; this covers callers that don't come through one (fallbacks, tests).
+    val supported = profile.withSupportedMeasurements()
+    val w = supported.weightKg
+    val h = supported.heightCm.toDouble()
+    val a = supported.age.toDouble()
     val isMale = profile.sex.equals("MALE", ignoreCase = true)
 
     // Mifflin-St Jeor BMR

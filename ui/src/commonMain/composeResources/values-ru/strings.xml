@@ -466,6 +466,7 @@
     <string name="profile_load_failed">Не удалось прочитать профиль. Попробуйте ещё раз.</string>
     <string name="profile_missing">На этом устройстве пока нет профиля.</string>
     <string name="edit_profile_save_failed">Изменения не сохранились. Попробуйте ещё раз.</string>
+    <string name="settings_plans_without_coach">Планы обновлены под новый профиль без AI-тренера: согласие на обработку данных о здоровье выключено. Его можно включить в настройках.</string>
     <string name="settings_plan_update_failed">Профиль сохранён, но планы под него ещё не обновлены.</string>
     <string name="settings_reset_failed">Удалить всё не получилось. Проверьте соединение и попробуйте ещё раз.</string>
     <string name="settings_reset_cancel">Отмена</string>

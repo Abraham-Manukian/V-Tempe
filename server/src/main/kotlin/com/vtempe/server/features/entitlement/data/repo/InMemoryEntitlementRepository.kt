@@ -27,6 +27,7 @@ class InMemoryEntitlementRepository : EntitlementRepository {
     private val windows = HashMap<String, Pair<String, GrantWindow>>() // externalId -> (userId, window)
     private val refunds = HashMap<String, RefundOutcome>()
     private val refundedByPayment = HashMap<String, Long>() // paymentExternalId -> total refunded
+    private val refundIdsByPayment = HashMap<String, MutableList<String>>() // paymentExternalId -> refund ids
     private val paymentLock = Mutex()
 
     override suspend fun find(userId: String): EntitlementRecord? = entitlements[userId]
@@ -58,6 +59,8 @@ class InMemoryEntitlementRepository : EntitlementRepository {
         amountMinor: Long,
         currency: String,
         rawPayload: String,
+        refundedMinor: Long,
+        now: Instant,
         grant: (currentExpiry: Instant?) -> GrantWindow
     ): Instant? = paymentLock.withLock {
         if (payments.putIfAbsent(externalId, userId to source) != null) return@withLock null
@@ -66,7 +69,14 @@ class InMemoryEntitlementRepository : EntitlementRepository {
         windows[externalId] = userId to window
         val target = if (current != null && current > window.until) current else window.until
         entitlements[userId] = EntitlementRecord(userId, target, source, externalId)
-        target
+        // Refunds verified before this payment was recorded (see the port's kdoc).
+        val earlier = refundIdsByPayment[externalId].orEmpty()
+        val refunded = maxOf(refundedMinor, refundedByPayment[externalId] ?: 0)
+        if (refunded <= 0) return@withLock target
+        val result = if (isFullRefund(refunded, amountMinor)) takeBack(userId, externalId, window, now)
+        else RefundResult(RefundOutcome.PARTIAL_REVIEW, userId)
+        earlier.forEach { refunds[it] = result.outcome }
+        target.minus(result.removed)
     }
 
     override suspend fun recordRefund(refund: VerifiedRefund, now: Instant): RefundResult = paymentLock.withLock {
@@ -77,18 +87,22 @@ class InMemoryEntitlementRepository : EntitlementRepository {
             userId == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW)
             !refund.full -> RefundResult(RefundOutcome.PARTIAL_REVIEW, userId)
             window == null -> RefundResult(RefundOutcome.UNMATCHED_REVIEW, userId)
-            else -> {
-                val cut = RefundCut.of(window, now)
-                windows[refund.paymentExternalId] = userId to cut.refundedWindow
-                windows.entries
-                    .filter { (id, entry) -> id != refund.paymentExternalId && entry.first == userId && cut.movesUp(entry.second) }
-                    .forEach { it.setValue(userId to cut.movedUp(it.value.second)) }
-                entitlements.computeIfPresent(userId) { _, record -> record.copy(expiresAt = record.expiresAt.minus(cut.removed)) }
-                RefundResult(RefundOutcome.ACCESS_REDUCED, userId, cut.removed)
-            }
+            else -> takeBack(userId, refund.paymentExternalId, window, now)
         }
         refunds[refund.refundId] = result.outcome
+        refundIdsByPayment.getOrPut(refund.paymentExternalId) { mutableListOf() }.add(refund.refundId)
         refundedByPayment.merge(refund.paymentExternalId, refund.amountMinor, Long::plus)
         result
+    }
+
+    /** Takes back the unused part of [paymentId]'s [window] (see [RefundCut]). Called under [paymentLock]. */
+    private fun takeBack(userId: String, paymentId: String, window: GrantWindow, now: Instant): RefundResult {
+        val cut = RefundCut.of(window, now)
+        windows[paymentId] = userId to cut.refundedWindow
+        windows.entries
+            .filter { (id, entry) -> id != paymentId && entry.first == userId && cut.movesUp(entry.second) }
+            .forEach { it.setValue(userId to cut.movedUp(it.value.second)) }
+        entitlements.computeIfPresent(userId) { _, record -> record.copy(expiresAt = record.expiresAt.minus(cut.removed)) }
+        return RefundResult(RefundOutcome.ACCESS_REDUCED, userId, cut.removed)
     }
 }

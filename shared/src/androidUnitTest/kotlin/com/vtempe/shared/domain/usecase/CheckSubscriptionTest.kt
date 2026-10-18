@@ -1,10 +1,10 @@
 package com.vtempe.shared.domain.usecase
 
-import com.vtempe.shared.data.network.dto.EntitlementDto
 import com.vtempe.shared.data.repo.LastKnownEntitlementStore
 import com.vtempe.shared.data.sync.FakeAuthRepository
 import com.vtempe.shared.data.sync.inMemorySettings
 import com.vtempe.shared.domain.repository.EntitlementRepository
+import com.vtempe.shared.domain.repository.SubscriptionEntitlement
 import com.vtempe.shared.domain.util.DataResult
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -14,9 +14,9 @@ import kotlin.test.assertEquals
 class CheckSubscriptionTest {
 
     private class FakeEntitlements : EntitlementRepository {
-        var result: DataResult<EntitlementDto> = DataResult.Failure(DataResult.Reason.Network)
+        var result: DataResult<SubscriptionEntitlement> = DataResult.Failure(DataResult.Reason.Network)
         var calls = 0
-        override suspend fun fetchEntitlement(): DataResult<EntitlementDto> { calls++; return result }
+        override suspend fun fetchEntitlement(): DataResult<SubscriptionEntitlement> { calls++; return result }
     }
 
     private val auth = FakeAuthRepository()
@@ -33,16 +33,16 @@ class CheckSubscriptionTest {
     @Test
     fun `the server answer is shown fresh and remembered`() = runBlocking {
         auth.signInAs("alice")
-        entitlements.result = DataResult.Success(EntitlementDto(active = true, expiresAt = "2026-12-01T00:00:00Z"))
+        entitlements.result = DataResult.Success(SubscriptionEntitlement(true, "2026-12-01T00:00:00Z"))
 
         assertEquals(SubscriptionStatus.Known(true, "2026-12-01T00:00:00Z", stale = false), check())
-        assertEquals(LastKnownEntitlementStore.Entry("alice", true, "2026-12-01T00:00:00Z"), lastKnown.load("alice"))
+        assertEquals(SubscriptionEntitlement(true, "2026-12-01T00:00:00Z"), lastKnown.load("alice"))
     }
 
     @Test
     fun `an inactive server answer is not overridden by a client guess`() = runBlocking {
         auth.signInAs("alice")
-        entitlements.result = DataResult.Success(EntitlementDto(active = false))
+        entitlements.result = DataResult.Success(SubscriptionEntitlement(false, null))
 
         assertEquals(SubscriptionStatus.Known(false, null, stale = false), check())
     }
@@ -50,7 +50,7 @@ class CheckSubscriptionTest {
     @Test
     fun `offline the last known status is shown marked stale`() = runBlocking {
         auth.signInAs("alice")
-        entitlements.result = DataResult.Success(EntitlementDto(active = true))
+        entitlements.result = DataResult.Success(SubscriptionEntitlement(true, null))
         check()
         entitlements.result = DataResult.Failure(DataResult.Reason.Network)
 
@@ -60,7 +60,7 @@ class CheckSubscriptionTest {
     @Test
     fun `another account's last status is never shown`() = runBlocking {
         auth.signInAs("alice")
-        entitlements.result = DataResult.Success(EntitlementDto(active = true))
+        entitlements.result = DataResult.Success(SubscriptionEntitlement(true, null))
         check()
         auth.signInAs("bob")
         entitlements.result = DataResult.Failure(DataResult.Reason.Http, code = 503)

@@ -3,8 +3,8 @@ package com.vtempe.server
 import com.vtempe.server.features.ai.access.AiAccessConfig
 import com.vtempe.server.features.ai.access.AiAccessResolver
 import com.vtempe.server.features.ai.access.PaidAccessPolicy
-import com.vtempe.server.features.ai.api.AiInputRejected
-import com.vtempe.server.features.ai.api.AiRequestLimits
+import com.vtempe.server.features.ai.domain.AiInputLimits
+import com.vtempe.server.features.ai.domain.PromptTooLargeException
 import com.vtempe.server.features.ai.api.registerAiRoutes
 import com.vtempe.server.features.ai.data.catalog.BuiltInExerciseCatalog
 import com.vtempe.server.features.ai.data.llm.LLMClient
@@ -81,11 +81,17 @@ class AiInputLimitsTest {
     private class Recorder : TrainingUseCase, NutritionUseCase, SleepUseCase, ChatUseCase, BootstrapUseCase {
         val chats = mutableListOf<AiChatRequest>()
         val trainings = mutableListOf<AiTrainingRequest>()
-        override suspend fun execute(req: AiTrainingRequest) = AiTrainingResponse(0, emptyList()).also { trainings += req }
-        override suspend fun execute(req: AiNutritionRequest) = AiNutritionResponse(0, emptyMap())
-        override suspend fun execute(req: AiAdviceRequest) = AiAdviceResponse(emptyList())
-        override suspend fun execute(req: AiChatRequest) = AiChatResponse(reply = "ok").also { chats += req }
-        override suspend fun execute(req: AiBootstrapRequest) = AiBootstrapResponse()
+        /** The profile each use case received, by route. */
+        val profiles = mutableMapOf<String, AiProfile>()
+        var promptTooLarge = false
+        override suspend fun execute(req: AiTrainingRequest) = AiTrainingResponse(0, emptyList()).also { trainings += req; profiles["training"] = req.profile }
+        override suspend fun execute(req: AiNutritionRequest) = AiNutritionResponse(0, emptyMap()).also { profiles["nutrition"] = req.profile }
+        override suspend fun execute(req: AiAdviceRequest) = AiAdviceResponse(emptyList()).also { profiles["sleep"] = req.profile }
+        override suspend fun execute(req: AiChatRequest): AiChatResponse {
+            if (promptTooLarge) throw PromptTooLargeException()
+            return AiChatResponse(reply = "ok").also { chats += req; profiles["chat"] = req.profile }
+        }
+        override suspend fun execute(req: AiBootstrapRequest) = AiBootstrapResponse().also { profiles["bootstrap"] = req.profile }
     }
 
     private val json = Json { encodeDefaults = true }
@@ -129,11 +135,11 @@ class AiInputLimitsTest {
         assertEquals(HttpStatusCode.BadRequest, response.status)
         assertTrue(response.bodyAsText().contains("message_too_long"))
 
-        val tooLong = postJson("/ai/chat", chatBody("я".repeat(AiRequestLimits.MAX_CHAT_MESSAGE_CHARS + 1)))
+        val tooLong = postJson("/ai/chat", chatBody("я".repeat(AiInputLimits.MAX_CHAT_MESSAGE_CHARS + 1)))
         assertEquals(HttpStatusCode.BadRequest, tooLong.status)
         assertTrue(recorder.chats.isEmpty())
 
-        val atLimit = postJson("/ai/chat", chatBody("я".repeat(AiRequestLimits.MAX_CHAT_MESSAGE_CHARS)))
+        val atLimit = postJson("/ai/chat", chatBody("я".repeat(AiInputLimits.MAX_CHAT_MESSAGE_CHARS)))
         assertEquals(HttpStatusCode.OK, atLimit.status)
         assertEquals(1, recorder.chats.size)
     }
@@ -149,18 +155,18 @@ class AiInputLimitsTest {
         assertEquals(HttpStatusCode.OK, postJson("/ai/chat", body).status)
 
         val received = recorder.chats.single()
-        assertEquals(AiRequestLimits.MAX_HISTORY_MESSAGES + 1, received.messages.size)
+        assertEquals(AiInputLimits.MAX_HISTORY_MESSAGES + 1, received.messages.size)
         assertEquals("hello", received.messages.last().content)
-        assertTrue(received.messages.dropLast(1).all { it.content.length <= AiRequestLimits.MAX_HISTORY_MESSAGE_CHARS + 1 })
+        assertTrue(received.messages.dropLast(1).all { it.content.length <= AiInputLimits.MAX_HISTORY_MESSAGE_CHARS + 1 })
         assertTrue(received.messages.first().content.startsWith("h22-"), "the most recent turns are kept")
-        assertEquals(AiRequestLimits.MAX_FREE_TEXT_ITEMS, received.profile.injuries.size)
-        assertTrue(received.profile.injuries.all { it.length <= AiRequestLimits.MAX_FREE_TEXT_CHARS })
+        assertEquals(AiInputLimits.MAX_FREE_TEXT_ITEMS, received.profile.injuries.size)
+        assertTrue(received.profile.injuries.all { it.length <= AiInputLimits.MAX_FREE_TEXT_CHARS })
         assertEquals(mapOf("Mon" to true), received.profile.weeklySchedule)
     }
 
     @Test
     fun `body over the limit is refused with 413, declared or streamed`() = limitsTest { recorder ->
-        val huge = json.encodeToString(AiTrainingRequest(profile.copy(healthNotes = listOf("n".repeat(AiRequestLimits.MAX_BODY_BYTES))), 0))
+        val huge = json.encodeToString(AiTrainingRequest(profile.copy(healthNotes = listOf("n".repeat(AiInputLimits.MAX_BODY_BYTES))), 0))
         assertEquals(HttpStatusCode.PayloadTooLarge, postJson("/ai/training", huge).status)
 
         // No Content-Length: the server must stop reading at the limit on its own.
@@ -179,14 +185,53 @@ class AiInputLimitsTest {
     }
 
     @Test
-    fun `unsupported body measurements are refused with invalid_profile`() = limitsTest { recorder ->
-        for (bad in listOf(profile.copy(weightKg = -1.0), profile.copy(age = 0), profile.copy(heightCm = 999))) {
-            val response = postJson("/ai/training", json.encodeToString(AiTrainingRequest(bad, 0)))
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertTrue(response.bodyAsText().contains("invalid_profile"))
+    fun `unsupported body measurements are clamped before they reach a use case`() = limitsTest { recorder ->
+        // Installed app versions had no bounds in their profile form: refusing these would lock
+        // those users out of the AI; the values still never reach a calculation unclamped.
+        val bad = profile.copy(weightKg = -1.0, age = 0, heightCm = 999)
+        val response = postJson("/ai/training", json.encodeToString(AiTrainingRequest(bad, 0)))
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val received = recorder.trainings.single().profile
+        assertEquals(Triple(10, 272, 20.0), Triple(received.age, received.heightCm, received.weightKg))
+    }
+
+    @Test
+    fun `out-of-range measurements are clamped on every AI route, at both ends`() = limitsTest { recorder ->
+        for ((bad, expected) in listOf(
+            profile.copy(age = 9, heightCm = 49, weightKg = 19.99) to Triple(10, 50, 20.0),
+            profile.copy(age = 111, heightCm = 273, weightKg = 400.01) to Triple(110, 272, 400.0),
+        )) {
+            postJson("/ai/training", json.encodeToString(AiTrainingRequest(bad, 0)))
+            postJson("/ai/nutrition", json.encodeToString(AiNutritionRequest(bad, 0)))
+            postJson("/ai/sleep", json.encodeToString(AiAdviceRequest(bad)))
+            postJson("/ai/chat", json.encodeToString(AiChatRequest(bad, listOf(AiChatMessage("user", "hi")))))
+            postJson("/ai/bootstrap", json.encodeToString(AiBootstrapRequest(bad, 0)))
+
+            assertEquals(setOf("training", "nutrition", "sleep", "chat", "bootstrap"), recorder.profiles.keys)
+            recorder.profiles.forEach { (route, p) ->
+                assertEquals(expected, Triple(p.age, p.heightCm, p.weightKg), route)
+            }
+            recorder.profiles.clear()
         }
-        assertTrue(recorder.trainings.isEmpty())
-        assertEquals(HttpStatusCode.OK, postJson("/ai/training", json.encodeToString(AiTrainingRequest(profile.copy(weightKg = 20.0, age = 110), 0))).status)
+    }
+
+    @Test
+    fun `a prompt over the budget answers 413 request_too_large over HTTP`() = limitsTest { recorder ->
+        recorder.promptTooLarge = true
+
+        val response = postJson("/ai/chat", chatBody("hi"))
+
+        assertEquals(HttpStatusCode.PayloadTooLarge, response.status)
+        assertTrue(response.bodyAsText().contains("request_too_large"))
+    }
+
+    @Test
+    fun `measurements inside the range pass unchanged`() = limitsTest { recorder ->
+        postJson("/ai/training", json.encodeToString(AiTrainingRequest(profile.copy(weightKg = 20.0, age = 110), 0)))
+
+        val received = recorder.trainings.single().profile
+        assertEquals(20.0 to 110, received.weightKg to received.age)
     }
 
     @Test
@@ -225,15 +270,14 @@ class AiInputLimitsTest {
         val hugePlan = AiTrainingResponse(0, List(7) { d ->
             AiWorkout(id = "w$d", label = "x".repeat(20_000), date = "2026-10-0${d + 1}", sets = listOf(AiSet("squat", 8, 80.0, 7.0)))
         })
-        val rejected = assertThrows(AiInputRejected::class.java) {
+        assertThrows(PromptTooLargeException::class.java) {
             runBlocking { service.chat(AiChatRequest(profile, listOf(AiChatMessage("user", "hi")), currentTrainingPlan = hugePlan)) }
         }
-        assertEquals(HttpStatusCode.PayloadTooLarge, rejected.status)
         assertTrue(llm.prompts.isEmpty())
 
         runBlocking { service.chat(AiChatRequest(profile, listOf(AiChatMessage("user", "x".repeat(4_000))))) }
         assertTrue(llm.prompts.isNotEmpty())
-        assertTrue(llm.prompts.all { it.length <= AiRequestLimits.MAX_PROMPT_CHARS })
+        assertTrue(llm.prompts.all { it.length <= AiInputLimits.MAX_PROMPT_CHARS })
     }
 
     @Test

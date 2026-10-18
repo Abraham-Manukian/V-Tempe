@@ -79,6 +79,45 @@ class AccountDeletionTest {
     }
 
     @Test
+    fun staleSignInStopsBeforeTheServerErasesAnything() = runBlocking {
+        signedInWithData("anna")
+        device.auth.recentLogin = false
+
+        assertEquals(AccountDeletionOutcome.NeedsReauthentication, session.deleteAccount())
+
+        // DELETE /me also revokes paid access and referrals: a deletion that stops here must
+        // leave the surviving account exactly as it was.
+        assertTrue(device.server.payload("anna", "workoutProgress").orEmpty().contains("anna-workout"))
+        assertTrue(device.server.deleteRequests.isEmpty())
+    }
+
+    @Test
+    fun unknownSignInAgeFailsWithoutTouchingTheServer() = runBlocking {
+        signedInWithData("anna")
+        device.auth.signInAgeUnknown = true
+
+        assertEquals(AccountDeletionOutcome.Failed, session.deleteAccount())
+
+        assertTrue(device.server.deleteRequests.isEmpty())
+        assertEquals("anna", device.auth.authState.value?.uid)
+    }
+
+    @Test
+    fun aSignInThatAgesOutAfterTheCheckKeepsTheAccountAndRestoresItsServerCopy() = runBlocking {
+        signedInWithData("anna")
+        device.auth.signInAgesOutBeforeDeletion = true
+
+        assertEquals(AccountDeletionOutcome.NeedsReauthentication, session.deleteAccount())
+
+        // The server copy was already erased; the surviving account gets it back on the next settle.
+        assertEquals("anna", device.auth.authState.value?.uid)
+        assertEquals("anna", device.owner.ownerUid())
+        assertTrue(device.owner.isFullPushPending())
+        session.reconcile()
+        assertTrue(device.server.payload("anna", "workoutProgress").orEmpty().contains("anna-workout"))
+    }
+
+    @Test
     fun abandonedDeletionRestoresServerCopyOnNextSettle() = runBlocking {
         signedInWithData("anna")
         device.auth.failDeletion = true

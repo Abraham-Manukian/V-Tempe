@@ -123,6 +123,14 @@ fun SettingsScreen(
                 }
             }
 
+            if (state.plansBuiltWithoutCoach) {
+                Text(
+                    stringResource(Res.string.settings_plans_without_coach),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
             if (profile != null) AnimatedVisibility(
                 visible = true,
                 enter = fadeIn(animationSpec = tween(300)) + slideInVertically(initialOffsetY = { it / 5 }, animationSpec = tween(300))

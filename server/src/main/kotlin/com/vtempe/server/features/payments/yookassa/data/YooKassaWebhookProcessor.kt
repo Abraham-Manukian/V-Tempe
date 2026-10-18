@@ -8,7 +8,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
-import java.math.BigDecimal
 import java.time.Duration
 
 /** How the webhook route must answer YooKassa. */
@@ -65,7 +64,7 @@ class YooKassaWebhookProcessor(
             logger.error("YooKassa webhook: payment {} succeeded but has no metadata.userId, cannot grant", paymentId)
             return
         }
-        val period = payment.metadata["periodDays"]?.toLongOrNull()?.let(Duration::ofDays) ?: DEFAULT_PERIOD
+        val period = periodOf(paymentId, payment.metadata["periodDays"])
         // The current expiry is read inside the payment's transaction (VT-AUD-051); the payment
         // observers (referral rewards) run after it on every delivery.
         val expiresAt = entitlements.recordVerifiedPayment(
@@ -115,10 +114,29 @@ class YooKassaWebhookProcessor(
         )
     }
 
-    private fun YooKassaAmount.minorUnits(): Long = runCatching { BigDecimal(value).movePointRight(2).toLong() }.getOrDefault(0L)
+    /**
+     * An amount YooKassa returned but that is not a decimal number is not read as zero: zero would
+     * make any refund look "full" and record a free payment. It is a verification failure, so the
+     * notification is retried and the error is visible in the logs.
+     */
+    private fun YooKassaAmount.minorUnits(): Long =
+        value.toBigDecimalOrNull()?.movePointRight(2)?.let { runCatching { it.longValueExact() }.getOrNull() }
+            ?: throw YooKassaVerificationUnavailable("unreadable amount from YooKassa")
+
+    /** The period a payment bought. Out-of-range metadata falls back to the default instead of
+     *  overflowing the expiry (an endless 500 / redelivery loop) or granting years of access. */
+    private fun periodOf(paymentId: String, raw: String?): Duration {
+        val days = raw?.toLongOrNull() ?: return DEFAULT_PERIOD
+        if (days !in PERIOD_DAYS) {
+            logger.error("YooKassa webhook: payment {} has periodDays outside {}, using the default", paymentId, PERIOD_DAYS)
+            return DEFAULT_PERIOD
+        }
+        return Duration.ofDays(days)
+    }
 
     private companion object {
         const val REFUND_SUCCEEDED = "refund.succeeded"
         val DEFAULT_PERIOD: Duration = Duration.ofDays(30)
+        val PERIOD_DAYS = 1L..366L
     }
 }

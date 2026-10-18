@@ -4,5 +4,3 @@
 # without the owner's decision recorded in the commit message.
 #
 # Format: <RULE> <path> -> <offending import or edge>
-DOM shared/src/commonMain/kotlin/com/vtempe/shared/domain/usecase/CheckSubscription.kt -> com.vtempe.shared.data.repo.LastKnownEntitlementStore
-DOM shared/src/commonMain/kotlin/com/vtempe/shared/domain/usecase/RecordBodyWeight.kt -> com.vtempe.shared.data.repo.WeightStore

@@ -53,8 +53,10 @@ class EntitlementService(
      * Atomically records the payment (idempotent on [externalId]) and adds [period] to the user's
      * access: from the current expiry while it is active or in grace, from now once expired. The
      * current expiry is read inside the repository's transaction (VT-AUD-051) — see
-     * EntitlementRepository kdoc. Returns the new expiry, or null if this exact payment was
-     * already processed (the grant is NOT reapplied in that case).
+     * EntitlementRepository kdoc. [refundedMinor] is the provider's refunded total at verification:
+     * a payment already refunded in full keeps only its used part, like a refund after it. Returns
+     * the new expiry, or null if this exact payment was already processed (the grant is NOT
+     * reapplied in that case).
      */
     suspend fun recordPaymentAndExtend(
         externalId: String,
@@ -63,11 +65,14 @@ class EntitlementService(
         amountMinor: Long,
         currency: String,
         rawPayload: String,
-        period: Duration
-    ): Instant? = repository.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload) { current ->
+        period: Duration,
+        refundedMinor: Long = 0,
+    ): Instant? {
         val now = clock()
-        val base = if (current != null && now.isBefore(current.plus(gracePeriod))) current else now
-        GrantWindow(from = base, until = base.plus(period))
+        return repository.recordPaymentAndExtend(externalId, userId, source, amountMinor, currency, rawPayload, refundedMinor, now) { current ->
+            val base = if (current != null && now.isBefore(current.plus(gracePeriod))) current else now
+            GrantWindow(from = base, until = base.plus(period))
+        }
     }
 
     /**
@@ -78,6 +83,7 @@ class EntitlementService(
     suspend fun recordVerifiedPayment(payment: VerifiedPayment, rawPayload: String, period: Duration): Instant? {
         val expiresAt = recordPaymentAndExtend(
             payment.externalId, payment.userId, payment.source, payment.amountMinor, payment.currency, rawPayload, period,
+            refundedMinor = payment.refundedMinor,
         )
         observer.onPayment(payment)
         return expiresAt

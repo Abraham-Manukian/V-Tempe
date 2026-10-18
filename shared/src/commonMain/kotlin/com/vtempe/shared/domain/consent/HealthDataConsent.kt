@@ -29,7 +29,7 @@ enum class HealthDataConsentStatus {
 }
 
 /** Read-only view used by the gates in front of every AI request. */
-interface HealthDataConsentGate {
+fun interface HealthDataConsentGate {
     fun isHealthDataConsentGranted(): Boolean
 }
 

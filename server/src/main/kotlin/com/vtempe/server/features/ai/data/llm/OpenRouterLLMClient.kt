@@ -269,7 +269,7 @@ class OpenRouterLLMClient(
     private fun parseRetryAfterMillis(raw: String?): Long? {
         raw ?: return null
         raw.trim().ifEmpty { return null }
-        raw.toLongOrNull()?.let { return it * 1000L }
+        raw.toLongOrNull()?.let { return it.coerceIn(0, Long.MAX_VALUE / 1000) * 1000L } // no overflow to a negative
         raw.toDoubleOrNull()?.let { return (it * 1000L).toLong() }
         return null
     }

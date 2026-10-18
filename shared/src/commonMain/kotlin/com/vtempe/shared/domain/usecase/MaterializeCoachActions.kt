@@ -3,6 +3,7 @@ package com.vtempe.shared.domain.usecase
 import com.vtempe.shared.domain.model.Profile
 import com.vtempe.shared.domain.model.TrainingPlan
 import com.vtempe.shared.domain.repository.AdviceRepository
+import com.vtempe.shared.domain.repository.CoachAction
 import com.vtempe.shared.domain.repository.CoachActionType
 import com.vtempe.shared.domain.repository.CoachResponse
 import com.vtempe.shared.domain.repository.NutritionRepository
@@ -31,9 +32,11 @@ class MaterializeCoachActions(
     private val nutritionRepository: NutritionRepository,
     private val adviceRepository: AdviceRepository
 ) {
+    /** [currentWeek]: the week the user is in, for actions that name none — never the first week. */
     suspend operator fun invoke(
         baseProfile: Profile,
-        response: CoachResponse
+        response: CoachResponse,
+        currentWeek: Int,
     ): CoachResponse {
         var effectiveProfile = baseProfile
         var trainingPlan = response.trainingPlan
@@ -44,7 +47,7 @@ class MaterializeCoachActions(
             when (action.type) {
                 CoachActionType.SHOW_CURRENT_WORKOUT -> {
                     if (trainingPlan == null) {
-                        trainingPlan = currentOrGeneratedTrainingPlan(effectiveProfile, action.weekIndex ?: 0)
+                        trainingPlan = currentOrGeneratedTrainingPlan(effectiveProfile, weekFor(action, currentWeek))
                     }
                 }
 
@@ -53,7 +56,7 @@ class MaterializeCoachActions(
                         val profileForAction = action.trainingMode
                             ?.let { mode -> effectiveProfile.copy(trainingMode = mode) }
                             ?: effectiveProfile
-                        trainingPlan = trainingRepository.generatePlan(profileForAction, action.weekIndex ?: 0)
+                        trainingPlan = trainingRepository.generatePlan(profileForAction, weekFor(action, currentWeek))
                     }
                 }
 
@@ -65,13 +68,13 @@ class MaterializeCoachActions(
                         profileRepository.upsertProfile(effectiveProfile)
                     }
                     if (trainingPlan == null) {
-                        trainingPlan = trainingRepository.generatePlan(effectiveProfile, action.weekIndex ?: 0)
+                        trainingPlan = trainingRepository.generatePlan(effectiveProfile, weekFor(action, currentWeek))
                     }
                 }
 
                 CoachActionType.REBUILD_NUTRITION_PLAN -> {
                     if (nutritionPlan == null) {
-                        nutritionPlan = nutritionRepository.generatePlan(effectiveProfile, action.weekIndex ?: 0)
+                        nutritionPlan = nutritionRepository.generatePlan(effectiveProfile, weekFor(action, currentWeek))
                     }
                 }
 
@@ -93,7 +96,8 @@ class MaterializeCoachActions(
         // the server only attaches a plan when it actually differs from what the user had.
         trainingPlan?.let { trainingRepository.savePlan(it) }
         nutritionPlan?.let { nutritionRepository.savePlan(it) }
-        sleepAdvice?.let { adviceRepository.saveAdvice("sleep", it) }
+        // Never store an empty record: it would count as advice and block the automatic fetch.
+        sleepAdvice?.takeIf { it.messages.isNotEmpty() }?.let { adviceRepository.saveAdvice("sleep", it) }
 
         return response.copy(
             trainingPlan = trainingPlan,
@@ -102,11 +106,18 @@ class MaterializeCoachActions(
         )
     }
 
+    /** The week an action rebuilds: the model may name one, but only this week or the next is
+     *  accepted — a stale or invented index would rebuild a week the user never sees. */
+    private fun weekFor(action: CoachAction, currentWeek: Int): Int =
+        action.weekIndex?.takeIf { it in currentWeek..currentWeek + 1 } ?: currentWeek
+
     private suspend fun currentOrGeneratedTrainingPlan(
         profile: Profile,
         weekIndex: Int
     ): TrainingPlan {
-        val currentWorkouts = trainingRepository.observeWorkouts().first()
+        // Only that week's workouts: the plan is saved back under [weekIndex], and all weeks would
+        // pull earlier workouts into it.
+        val currentWorkouts = trainingRepository.observeWorkoutsByWeek(weekIndex).first()
         return if (currentWorkouts.isNotEmpty()) {
             TrainingPlan(weekIndex = weekIndex, workouts = currentWorkouts.sortedBy { it.date })
         } else {

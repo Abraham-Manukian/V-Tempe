@@ -6,6 +6,8 @@ import com.vtempe.shared.data.consent.ConsentGatedAiTrainerRepository
 import com.vtempe.shared.data.consent.ConsentGatedChatRepository
 import com.vtempe.shared.data.network.ApiClient
 import com.vtempe.shared.domain.consent.HealthDataConsentGate
+import com.vtempe.shared.domain.repository.BodyWeightLog
+import com.vtempe.shared.domain.repository.LastKnownEntitlement
 import com.vtempe.shared.domain.consent.HealthDataConsentManager
 import com.vtempe.shared.domain.account.AccountDataCoordinator
 import com.vtempe.shared.domain.account.AccountSession
@@ -85,6 +87,7 @@ object DI {
         single {
             WeightStore(get(), onLocalChange = get<LocalChangeNotifier>()::onChanged)
         }
+        single<BodyWeightLog> { get<WeightStore>() }
         single { ChatHistoryStore(get()) }
         single<ExerciseCalibrationRepository> { ExerciseCalibrationSettingsRepository(get()) }
 
@@ -192,8 +195,10 @@ object DI {
         single { BootstrapCoachData(get(), get(), get(), get(), get(), get()) }
         factory { RefreshSleepAdvice(get(), get(), get()) }
         factory { RecordBodyWeight(get(), get()) }
-        factory { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope")), get()) }
+        // single: it throttles the automatic advice fetch across all screens.
+        single { EnsureCoachData(get(), get(), get(), get(), get(), get(), get(named("appScope")), get()) }
         single { LastKnownEntitlementStore(get()) }
+        single<LastKnownEntitlement> { get<LastKnownEntitlementStore>() }
         factory { CheckSubscription(get(), get(), get()) }
         factory { SyncAnalyticsProfile(get(), get()) }
         factory { MaterializeCoachActions(get(), get(), get(), get()) }

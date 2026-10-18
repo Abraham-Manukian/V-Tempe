@@ -16,6 +16,7 @@ import com.vtempe.shared.domain.model.WorkoutSet
 import com.vtempe.shared.domain.model.WorkoutSummary
 import com.vtempe.shared.domain.repository.AiTrainerRepository
 import com.vtempe.shared.domain.repository.AnalyticsRepository
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.repository.AuthRepository
 import com.vtempe.shared.domain.repository.CoachBundle
 import com.vtempe.shared.domain.repository.CoachCacheRepository
@@ -102,7 +103,7 @@ class SettingsProfileStateTest {
     private inline fun <reified T> stub(crossinline answer: (String) -> Any?): T =
         Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, m, _ -> answer(m.name) } as T
 
-    private fun TestScope.presenter(profiles: Profiles, plans: Plans): SettingsPresenterDelegate {
+    private fun TestScope.presenter(profiles: Profiles, plans: Plans, consentGranted: Boolean = true): SettingsPresenterDelegate {
         val settings = stub<Settings> { name -> if (name == "getStringOrNull" || name == "putString") null else error(name) }
         val advice = SettingsAdviceRepository(settings)
         val preferences = stub<PreferencesRepository> { name ->
@@ -118,6 +119,7 @@ class SettingsProfileStateTest {
             stub<AccountSession> { error("unused") },
             SyncAnalyticsProfile(preferences, stub<AnalyticsRepository> { null }),
             stub<AuthRepository> { name -> if (name == "getAuthState") MutableStateFlow(null) else error(name) },
+            HealthDataConsentGate { consentGranted },
             backgroundScope,
         )
     }
@@ -163,6 +165,31 @@ class SettingsProfileStateTest {
         runCurrent()
         assertFalse(presenter.state.value.planUpdateFailed)
         assertTrue(plans.rebuilt > 0)
+    }
+
+    @Test
+    fun plansRebuiltWithoutConsentSayTheCoachWasNotUsed() = runTest {
+        val plans = Plans()
+        val presenter = presenter(Profiles(stored), plans, consentGranted = false)
+        runCurrent()
+
+        presenter.save(stored.copy(weightKg = 75.0)) {}
+        runCurrent()
+
+        assertTrue(plans.rebuilt > 0, "the plans still follow the new profile")
+        assertTrue(presenter.state.value.plansBuiltWithoutCoach)
+        assertFalse(presenter.state.value.planUpdateFailed)
+    }
+
+    @Test
+    fun plansRebuiltWithConsentShowNoNotice() = runTest {
+        val presenter = presenter(Profiles(stored), Plans())
+        runCurrent()
+
+        presenter.save(stored.copy(weightKg = 75.0)) {}
+        runCurrent()
+
+        assertFalse(presenter.state.value.plansBuiltWithoutCoach)
     }
 
     @Test
