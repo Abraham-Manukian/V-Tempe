@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,6 +44,9 @@ import com.vtempe.ui.*
 import com.vtempe.ui.navigation.Destination
 import com.vtempe.ui.presenter.ChatPresenter
 import com.vtempe.ui.presenter.ChatSendState
+import com.vtempe.ui.presenter.VoiceInputState
+import com.vtempe.ui.platform.voice.OnAppBackgrounded
+import com.vtempe.ui.platform.voice.rememberMicrophoneAccess
 import com.vtempe.ui.screens.chat.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -63,6 +67,14 @@ fun ChatScreen(
         ChatSendState.ConsentRequired -> stringResource(Res.string.chat_consent_required)
         else -> null
     }
+
+    // The microphone is only ever on while the chat is on screen and the app is in front.
+    val microphone = rememberMicrophoneAccess()
+    LaunchedEffect(state.voice == VoiceInputState.AwaitingPermission) {
+        if (state.voice == VoiceInputState.AwaitingPermission) microphone.request(presenter::onMicrophonePermissionResult)
+    }
+    OnAppBackgrounded(presenter::interruptVoiceInput)
+    DisposableEffect(presenter) { onDispose { presenter.interruptVoiceInput() } }
 
     LaunchedEffect(initialPrompt) {
         val prompt = initialPrompt?.trim().orEmpty()
@@ -177,11 +189,24 @@ fun ChatScreen(
 
                 Spacer(Modifier.size(10.dp))
 
+                (state.voice as? VoiceInputState.Notice)?.let { voiceNotice ->
+                    VoiceNoticeBanner(
+                        notice = voiceNotice.notice,
+                        onOpenSettings = microphone::openSettings,
+                        onDismiss = presenter::dismissVoiceNotice
+                    )
+                }
+
                 ComposerBar(
                     input = state.input,
                     isLoading = isLoading,
+                    voice = state.voice,
+                    voiceAvailable = state.voiceAvailable,
                     onInputChanged = presenter::updateInput,
-                    onSend = presenter::send
+                    onSend = presenter::send,
+                    onMic = presenter::requestVoiceInput,
+                    onCancelVoice = presenter::cancelVoiceInput,
+                    onFinishVoice = presenter::finishVoiceInput
                 )
             }
 

@@ -21,6 +21,8 @@ import com.vtempe.ui.vm.ProgressViewModel
 import com.vtempe.ui.vm.SettingsViewModel
 import com.vtempe.ui.vm.SleepViewModel
 import com.vtempe.ui.vm.WorkoutViewModel
+import com.vtempe.ui.platform.voice.AndroidSpeechToText
+import com.vtempe.ui.platform.voice.SpeechToText
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -56,7 +58,9 @@ object AppModule {
         viewModel { PaywallViewModel(get()) }
         viewModel { ReferralViewModel(get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get()) }
-        viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get()) }
+        // One recognizer per chat screen; audio stays on the device (see AndroidSpeechToText).
+        factory<SpeechToText> { AndroidSpeechToText(androidContext()) }
+        viewModel { ChatViewModel(get(), get<com.vtempe.shared.domain.repository.LanguagePreferences>(), get(), get(), get(), get(), get()) }
         viewModel { AuthViewModel(get(), get(), get()) }
     }
 }

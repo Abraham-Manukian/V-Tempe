@@ -1,0 +1,3 @@
+/* Russian system permission prompts for chat dictation (English comes from the build settings). */
+"NSMicrophoneUsageDescription" = "Микрофон используется только пока вы диктуете сообщение AI-тренеру. Речь распознаётся на этом устройстве, аудио никуда не отправляется.";
+"NSSpeechRecognitionUsageDescription" = "Распознавание речи превращает надиктованное сообщение в текст на этом устройстве, чтобы вы могли проверить его перед отправкой AI-тренеру.";

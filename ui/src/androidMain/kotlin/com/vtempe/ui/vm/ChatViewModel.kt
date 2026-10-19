@@ -4,6 +4,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vtempe.shared.data.repo.ChatHistoryStore
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.repository.AnalyticsRepository
 import com.vtempe.shared.domain.repository.LanguagePreferences
 import com.vtempe.shared.domain.repository.ProfileRepository
@@ -11,6 +12,8 @@ import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.ui.presenter.ChatPresenter
 import com.vtempe.ui.presenter.ChatPresenterDelegate
 import com.vtempe.ui.presenter.ChatState
+import com.vtempe.ui.platform.voice.MicrophonePermissionResult
+import com.vtempe.ui.platform.voice.SpeechToText
 import kotlinx.coroutines.flow.StateFlow
 
 class ChatViewModel(
@@ -18,7 +21,9 @@ class ChatViewModel(
     languagePrefs: LanguagePreferences,
     profileRepository: ProfileRepository,
     chatHistoryStore: ChatHistoryStore,
-    analytics: AnalyticsRepository
+    analytics: AnalyticsRepository,
+    speechToText: SpeechToText,
+    healthDataConsent: HealthDataConsentGate
 ) : ViewModel(), ChatPresenter {
 
     private val delegate = ChatPresenterDelegate(
@@ -30,10 +35,19 @@ class ChatViewModel(
             languagePrefs.getLanguageTag()
                 ?: LocaleListCompat.getAdjustedDefault().get(0)?.toLanguageTag()
         },
-        analytics = analytics
+        analytics = analytics,
+        speechToText = speechToText,
+        healthDataConsent = healthDataConsent
     )
 
     override val state: StateFlow<ChatState> get() = delegate.state
     override fun updateInput(text: String) = delegate.updateInput(text)
     override fun send() = delegate.send()
+    override fun requestVoiceInput() = delegate.requestVoiceInput()
+    override fun onMicrophonePermissionResult(result: MicrophonePermissionResult) =
+        delegate.onMicrophonePermissionResult(result)
+    override fun finishVoiceInput() = delegate.finishVoiceInput()
+    override fun cancelVoiceInput() = delegate.cancelVoiceInput()
+    override fun interruptVoiceInput() = delegate.interruptVoiceInput()
+    override fun dismissVoiceNotice() = delegate.dismissVoiceNotice()
 }

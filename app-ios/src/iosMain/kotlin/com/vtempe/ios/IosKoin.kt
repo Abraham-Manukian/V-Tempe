@@ -5,6 +5,8 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import com.vtempe.shared.data.di.DI
 import com.vtempe.shared.data.di.KoinProvider
 import com.vtempe.shared.db.AppDatabase
+import com.vtempe.ui.platform.voice.IosSpeechToText
+import com.vtempe.ui.platform.voice.SpeechToText
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import platform.Foundation.NSBundle
@@ -18,6 +20,8 @@ fun initKoinIfNeeded(apiBaseUrl: String = resolveApiBaseUrl()) {
     val iosModule = module {
         single<SqlDriver> { NativeSqliteDriver(AppDatabase.Schema, "app_v2.db") }
         single { AppDatabase(get()) }
+        // One recognizer per chat presenter; audio stays on the device (see IosSpeechToText).
+        factory<SpeechToText> { IosSpeechToText() }
     }
 
     val appToken = resolveAppToken()

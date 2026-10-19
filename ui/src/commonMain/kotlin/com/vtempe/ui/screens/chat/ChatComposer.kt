@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.vtempe.core.designsystem.theme.AiPalette
 import com.vtempe.ui.*
+import com.vtempe.ui.presenter.VoiceInputState
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -78,8 +79,13 @@ internal fun QuickActionButton(
 internal fun ComposerBar(
     input: String,
     isLoading: Boolean,
+    voice: VoiceInputState,
+    voiceAvailable: Boolean,
     onInputChanged: (String) -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onMic: () -> Unit,
+    onCancelVoice: () -> Unit,
+    onFinishVoice: () -> Unit
 ) {
     val canSend = input.isNotBlank() && !isLoading
     Surface(
@@ -88,72 +94,95 @@ internal fun ComposerBar(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.32f))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            OutlinedTextField(
-                value = input,
-                onValueChange = onInputChanged,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        text = stringResource(Res.string.chat_hint),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                },
-                singleLine = false,
-                maxLines = 5,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
-                    cursorColor = AiPalette.Primary
+        if (voice is VoiceInputState.Listening) {
+            VoiceRecordingBar(listening = voice, onCancel = onCancelVoice, onDone = onFinishVoice)
+        } else {
+            TypingRow(input, isLoading, canSend, voice, voiceAvailable, onInputChanged, onSend, onMic)
+        }
+    }
+}
+
+@Composable
+private fun TypingRow(
+    input: String,
+    isLoading: Boolean,
+    canSend: Boolean,
+    voice: VoiceInputState,
+    voiceAvailable: Boolean,
+    onInputChanged: (String) -> Unit,
+    onSend: () -> Unit,
+    onMic: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        OutlinedTextField(
+            value = input,
+            onValueChange = onInputChanged,
+            modifier = Modifier.weight(1f),
+            placeholder = {
+                Text(
+                    text = stringResource(Res.string.chat_hint),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+            },
+            singleLine = false,
+            maxLines = 5,
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                cursorColor = AiPalette.Primary
             )
+        )
 
+        Spacer(Modifier.size(8.dp))
+
+        if (voiceAvailable) {
+            MicButton(enabled = voice != VoiceInputState.AwaitingPermission, onClick = onMic)
             Spacer(Modifier.size(8.dp))
+        }
 
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 4.dp)
-                    .alpha(if (canSend) 1f else 0.45f)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            listOf(AiPalette.DeepAccent, AiPalette.Primary)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+        Box(
+            modifier = Modifier
+                .padding(bottom = 4.dp)
+                .alpha(if (canSend) 1f else 0.45f)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        listOf(AiPalette.DeepAccent, AiPalette.Primary)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .clickable(enabled = canSend, onClick = onSend)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
                     )
-                    .clickable(enabled = canSend, onClick = onSend)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        text = stringResource(Res.string.chat_send),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
                     )
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.size(6.dp))
-                        Text(
-                            text = stringResource(Res.string.chat_send),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
                 }
             }
         }

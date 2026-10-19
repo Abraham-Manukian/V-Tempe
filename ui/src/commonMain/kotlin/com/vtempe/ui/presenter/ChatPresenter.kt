@@ -3,6 +3,7 @@ package com.vtempe.ui.presenter
 import com.vtempe.shared.domain.model.MAX_CHAT_MESSAGE_LENGTH
 import androidx.compose.runtime.Immutable
 import com.vtempe.shared.data.repo.ChatHistoryStore
+import com.vtempe.shared.domain.consent.HealthDataConsentGate
 import com.vtempe.shared.domain.model.CoachTrainerIds
 import com.vtempe.shared.domain.repository.AnalyticsEvents
 import com.vtempe.shared.domain.repository.AnalyticsRepository
@@ -10,6 +11,8 @@ import com.vtempe.shared.domain.repository.ChatMessage
 import com.vtempe.shared.domain.repository.ProfileRepository
 import com.vtempe.shared.domain.usecase.AskAiTrainer
 import com.vtempe.shared.domain.util.DataResult
+import com.vtempe.ui.platform.voice.MicrophonePermissionResult
+import com.vtempe.ui.platform.voice.SpeechToText
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -34,13 +37,38 @@ data class ChatState(
     val messages: List<ChatMessage> = emptyList(),
     val input: String = "",
     val sendState: ChatSendState = ChatSendState.Idle,
-    val coachTrainerId: String = CoachTrainerIds.DEFAULT
+    val coachTrainerId: String = CoachTrainerIds.DEFAULT,
+    val voice: VoiceInputState = VoiceInputState.Idle,
+    /** On-device speech recognition exists here; the mic button is hidden otherwise. */
+    val voiceAvailable: Boolean = false
 )
+
+/** Editing the draft clears a finished send's result but keeps a request in flight (VT-AUD-066). */
+internal fun ChatSendState.afterDraftEdit(): ChatSendState =
+    if (this == ChatSendState.Loading) ChatSendState.Loading else ChatSendState.Idle
+
+/** Cuts [text] to the chat message limit without splitting a surrogate pair (emoji). */
+internal fun clipToMessageLimit(text: String): String {
+    if (text.length <= MAX_CHAT_MESSAGE_LENGTH) return text
+    val end = if (text[MAX_CHAT_MESSAGE_LENGTH - 1].isHighSurrogate()) MAX_CHAT_MESSAGE_LENGTH - 1 else MAX_CHAT_MESSAGE_LENGTH
+    return text.substring(0, end)
+}
 
 interface ChatPresenter {
     val state: StateFlow<ChatState>
     fun updateInput(text: String)
     fun send()
+
+    /** Mic tap: checks consent and availability, then asks the screen for the permission. */
+    fun requestVoiceInput()
+    fun onMicrophonePermissionResult(result: MicrophonePermissionResult)
+    /** Done: stop recording and put the transcript into the draft for review. */
+    fun finishVoiceInput()
+    /** Cancel button: discards the recording. */
+    fun cancelVoiceInput()
+    /** Screen left or app backgrounded: releases the microphone, keeps the text already shown. */
+    fun interruptVoiceInput()
+    fun dismissVoiceNotice()
 }
 
 class ChatPresenterDelegate(
@@ -50,7 +78,9 @@ class ChatPresenterDelegate(
     private val scope: CoroutineScope,
     /** Platform hook: returns the locale string to pass to the AI. */
     private val localeProvider: () -> String? = { null },
-    private val analytics: AnalyticsRepository
+    private val analytics: AnalyticsRepository,
+    speechToText: SpeechToText,
+    healthDataConsent: HealthDataConsentGate
 ) : ChatPresenter {
 
     // The stored history is in place before anything can be sent (VT-AUD-067): a send that raced
@@ -61,6 +91,7 @@ class ChatPresenterDelegate(
     )
     override val state: StateFlow<ChatState> = _state.asStateFlow()
     private var sendJob: Job? = null
+    private val voiceInput = ChatVoiceInput(_state, speechToText, healthDataConsent, scope, localeProvider)
 
     init {
         scope.launch {
@@ -76,17 +107,27 @@ class ChatPresenterDelegate(
         // Typing the next message while the coach answers keeps the request in flight (VT-AUD-066).
         _state.update {
             it.copy(
-                input = text.take(MAX_CHAT_MESSAGE_LENGTH),
-                sendState = if (it.sendState == ChatSendState.Loading) ChatSendState.Loading else ChatSendState.Idle
+                input = clipToMessageLimit(text),
+                sendState = it.sendState.afterDraftEdit(),
+                voice = if (it.voice is VoiceInputState.Notice) VoiceInputState.Idle else it.voice
             )
         }
     }
+
+    override fun requestVoiceInput() = voiceInput.request()
+    override fun onMicrophonePermissionResult(result: MicrophonePermissionResult) = voiceInput.onPermissionResult(result)
+    override fun finishVoiceInput() = voiceInput.finish()
+    override fun cancelVoiceInput() = voiceInput.cancel()
+    override fun interruptVoiceInput() = voiceInput.interrupt()
+    override fun dismissVoiceNotice() = voiceInput.dismissNotice()
 
     override fun send() {
         val current = _state.value
         val text = current.input.trim()
         // One question at a time: the next one is sent with the previous answer in its history.
         if (text.isBlank() || sendJob?.isActive == true) return
+        // The transcript is reviewed in the draft first; nothing is sent while still recording.
+        if (current.voice is VoiceInputState.Listening) return
 
         val userMsg = ChatMessage(role = "user", content = text)
         // Include all messages (including plan_change cards) in the displayed list

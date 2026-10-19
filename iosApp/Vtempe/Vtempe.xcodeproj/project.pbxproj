@@ -240,6 +240,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ru,
 			);
 			mainGroup = 401127932EE7611D00FDCDE6;
 			minimizedProjectReferenceProxies = 1;
@@ -463,6 +464,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vtempe/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The microphone is used only while you dictate a message to the AI coach. Speech is recognised on this device; the audio is not sent anywhere.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition turns your dictated message into text on this device, so you can check it before sending it to the AI coach.";
 				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "http://localhost:8081";
 				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "http://localhost:8081";
 				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;
@@ -510,6 +513,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vtempe/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The microphone is used only while you dictate a message to the AI coach. Speech is recognised on this device; the audio is not sent anywhere.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition turns your dictated message into text on this device, so you can check it before sending it to the AI coach.";
 				"INFOPLIST_KEY_API_BASE_URL[sdk=iphoneos*]" = "https://api.example.com";
 				"INFOPLIST_KEY_API_BASE_URL[sdk=iphonesimulator*]" = "https://api.example.com";
 				"INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone[sdk=iphoneos*]" = YES;

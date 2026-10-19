@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Chat dictation; recognised on the device only (AndroidSpeechToText), audio is not sent. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Dictation is optional: keep the app available on devices without a microphone. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
 </manifest>
